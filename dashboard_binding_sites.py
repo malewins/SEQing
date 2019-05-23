@@ -74,7 +74,7 @@ app.layout = html.Div(
                                                 dcc.Checklist(
                                                     id = 'paramList',
                                                     options = [{'label':i, 'value' : i} for i in dataSetNames],
-                                                    values = []
+                                                    values = [i for i in dataSetNames]
                                                 )
                                             ],
                                             style = {'width':'10vw','display':'table-cell'}
@@ -891,6 +891,7 @@ def plotRaw(name, xMax, xMin, chrom, strand, colors):
         width = countsW,
         hoverinfo = 'x+y',
         name = name,
+        legendgroup = name,
         marker = go.bar.Marker(
             color = colors[name]
         ),
@@ -916,10 +917,11 @@ def plotRaw(name, xMax, xMin, chrom, strand, colors):
                         x = [k[1]['chromStart'] + (k[1]['chromEnd'] - k[1]['chromStart']) // 2],
                         y = [0.1],
                         hoverinfo = 'name',
+                        legendgroup = name,
                         width = k[1]['chromEnd'] - k[1]['chromStart'],
                         name = 'binding sites',
                         marker = go.bar.Marker(
-                            color = colorMap[name]
+                            color = colors[name]
                         ), showlegend = False
                     )
                 )
