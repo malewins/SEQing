@@ -1,9 +1,8 @@
 ![SEQing logo](Seqing.png)
 # SEQing [seeking]
-Plotly - Dash: interactive web-based tool for visualization of iCLIP-seq and RNA-seq data.
-# Project Title
+Plotly Dash: interactive web-based tool for visualization of iCLIP-seq and RNA-seq data.
 
-The goal of this project is to develop a generalized, web based, interactive visualisation and exploration tool for iCLP and rna_seq data. The idea is to have a single running inside a groups network, allowing members to access and explore their experimental data with only a web browser and no local installations needed. 
+The goal of this project is to develop a generalized, web based, interactive visualisation and exploration tool for iCLP-seq and RNA-seq data. The application case is a local machine inside mounted in the users network, allowing members a web-based (browser) access to explore their experimental data omitting local installations. 
 
 ## Getting Started
 
@@ -20,30 +19,29 @@ pip install -r requirenments.txt
 
 ### Installing
 
-
 ## Deployment
 
 ### Minimal startup
 
-Once you have activated your virtual env you can perform a minimal startup of the tool with the following command:
+Once you have activated your virtual environment (env) you can perform a minimal startup of the tool with the following command:
 ```
-python validator.py some_gene_annotation_file
+python validator.py gene_annotation_file
 ```
-Note that some_gene_annotation_file is either a bed12 or gtf file containing gene annotations for the organism of your choice. You can also provide mroe than one file. Please ensure that all files have the correct file extension and do NOT have a header line.
+Note that some_gene_annotation_file is either a BED12 or gtf file containing gene annotations for the organism of your choice. You can also provide mroe than one file. In this case multiple annotation tracks will be added. Please ensure that all files have the correct file extension and do NOT have a header line.
 
-If everything works you should be able to connect to the dashboard via your browser and select genes from the dropsown to display their associated gene models.
+On successful initiation the dashboard is accessible via your browser. Genes can be selected from a dropdown on the top to display their associated gene models below.
 
 ### Adding iCLIP and binding site data
 
-One of the key features of this tool is the interactive visualisation of raw iCLIp data. This data should be passed in the form of 4 column bedgraph files. Example:
+One of the key features of this tool is the interactive visualization of raw iCLIP data. This data should be passed in the form of 4 column bedgraph files. Example:
 ```
-python validator.py some_gene_annotation_file -bsraw prefix_your_iCLIP_data_file
+python validator.py gene_annotation_file -bsraw iCLIP_data_file_prefix
 ```
-The program will automatically treat everything before the first underscore in the filename as a prefix. This prefix will be used to match a raw iCLIP file to a corresponding binding site file, if provided. An example:
+The program will automatically treat everything before the first underscore in the filename as a prefix. This prefix will be used to match a raw iCLIP file to a corresponding binding site file, if provided:
 ```
 python validator.py some_gene_annotation_file -bsraw prefix_your_iCLIP_data_file -bsdata prefix_your_binding_site_data_file
 ```
-These files should be 6 column bed files. The two files with the same prefix will be treated as a dataset b the tool and their graphs will be grouped together. Please note that a data set consists of maximal two files, it must have a raw iCLIP file and may have a binding site file. You can have multiple datasets, just pass multiple files to the command line options, seperated by spaces.
+These files must be 6 column BED files. The two files with the same prefix will be treated as one dataset the tool and their graphs will be grouped together. Please note that an iCLIP data set consists of maximal two files, it must have a raw iCLIP file and may have a binding site file. You can have multiple datasets, just pass multiple files to the command line options, seperated by spaces.
 
 ### Displaying descriptions and sequences
 
@@ -78,26 +76,27 @@ python validator.py some_gene_annotation_file -colors 'rgb(46, 214, 26)' 'rgb(25
 ```
 You can provide how many colors you need, they will be associated to datasets based on the order they are provided.
 
-###Sorting
+### Sorting
 
-Should you have multiple datasets you might want to take a look at the option to provide expressions for sorting. Graphs for datasets can be toggled on and off in the visualisation. Depending on the way the user does this, the order in which datasets are displayed may change. Therefore the graphs are sorted by default in ascending order using the prefix. However you might have a need for more complex soting, like the following example:
+Should you have multiple datasets you might want to take a look at the option to provide expressions for sorting. Graphs for datasets can be toggled on and off in the visualisation. Depending on the way the user does this, the order in which datasets are displayed may change. Therefore the graphs are sorted by default in ascending order using the prefix. However you might have a need for more complex sorting, like the following example:
 ```
 python validator.py some_gene_annotation_file -bsraw 8pref26_iCLIP 8pref30_iCLIP -k 'lambda x : x[-2:]' 'True' -k 'lambda x : x[:1]' 'False'
 ```
-Take note of the -k option. It allows you to provide arguments for the list.sort function of python. In this case we provide 2 different sets of arguments, the first sorts the prefixes by the last two characters, descending and the second sorts them by the first character, in ascending order. Each -k has to be followed by a string containing the desired lambda expression and a bool telling the program wether to revert the order(default is ascneding).
+Take note of the -k option. It allows you to provide arguments for the list.sort function of python. In this case we provide 2 different sets of arguments, the first sorts the prefixes by the last two characters, descending and the second sorts them by the first character, in ascending order. Each -k has to be followed by a string containing the desired lambda expression and a bool telling the program wether to revert the order(default is ascending).
+
+### Screenshot
+![SEQing example](Screenshot.png)
+
 ## Built With
 
-## Contributing
-
+## Contributions
 
 ## Versioning
 
-
 ## Authors
 
-
 ## License
-
+MIT
 
 ## Acknowledgments
 
