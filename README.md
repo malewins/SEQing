@@ -85,7 +85,7 @@ python validator.py some_gene_annotation_file -bsraw 8pref26_iCLIP 8pref30_iCLIP
 Take note of the -k option. It allows you to provide arguments for the list.sort function of python. In this case we provide 2 different sets of arguments, the first sorts the prefixes by the last two characters, descending and the second sorts them by the first character, in ascending order. Each -k has to be followed by a string containing the desired lambda expression and a bool telling the program wether to revert the order(default is ascending).
 
 ### Screenshot
-![SEQing example](Screenshot.png)
+![SEQing example](SEQing_At2G21660.PNG)
 
 ## Built With
 
