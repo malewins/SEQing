@@ -205,7 +205,7 @@ parser.add_argument('-splice_data',
                     metavar = 'FILE')
 
 
-args=parser.parse_args();
+args=parser.parse_args()
 
 useCfg = False
 if args.cfg != None:
@@ -226,7 +226,7 @@ checksums = dict(sums)
 
 plotColors = []
 
-spliceSitePaths = args.splice_data
+
      
 if useCfg == False: #use command line arguments for setup  
     port = args.port
@@ -235,6 +235,7 @@ if useCfg == False: #use command line arguments for setup
     bindingSiteRawPaths = args.bsraw
     fastaPaths = args.fastas
     sortKeys = args.keys
+    spliceSitePaths = args.splice_data
     try:
         descriptionPath = Path(args.desc)
     except TypeError:
@@ -629,14 +630,14 @@ globalDict = {
     'port' : port, # port the dashboard runs on
     'procAvail' : procAvail, # binding site data available True/False
     'dsElements' : dsElements, # Number of elements per dataset, can be 0,1,2
-    'spliceElements': spliceElements, 
+    'spliceElements': spliceElements, # Number of elements per rna dataset, can be 0, 1
     'bsProcDFs' : bsProcDFs, # dataframes with binding site data
     'bsRawDFs' : bsRawDFs, # dataframes with iCLIP data
-    'spliceProcDFs' : spliceProcDFs, 
+    'spliceProcDFs' : spliceProcDFs, # dataframes with rnaSeq data
     'dataSetNames' : dataSetNames, # names for the data sets
-    'spliceSetNames' : spliceSetNames,
+    'spliceSetNames' : spliceSetNames, # names for the rnaSeq data sets
     'rawAvail' : rawAvail, # iCLIP data available True/False
-    'spliceAvail' : spliceAvail,
+    'spliceAvail' : spliceAvail, # rnaSeq data available True/False
     'dropList' : dropList, # list of entries for the gene selection dropdown
     'geneDescriptions' : geneDescriptions, # dataframe with gene descriptions
     'sequences' : sequences, # list containing sequence files
