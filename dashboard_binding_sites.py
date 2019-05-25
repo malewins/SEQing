@@ -9,6 +9,7 @@ import dash_core_components as dcc
 import dash_html_components as html
 import plotly.graph_objs as go
 from plotly import tools
+import pprint
 
 __author__ = "Yannik Bramkamp"
 
@@ -464,17 +465,16 @@ def rnaPlot(clicks, clicks2, geneName, dataSets, seqDisp, colors):
         seqDisp -- Display mode for dna sequence trace
         """
 
-    # Sort the list of selected data tracks to keep consistent order
-    # sortKeys = [['lambda x : x[-2:]', 'True'], ['lambda x : x[:1]', 'False']]
+
+    #Sort the list of selected data tracks to keep consistent order
     for i in sortKeys:
         try:
-            dataSets.sort(key=eval(i[0], {'__builtins__': None}, {}), reverse=eval(i[1], {'__builtins__': None}, {}))
+            dataSets.sort(key = eval(i[0],{'__builtins__':None},{}), reverse = eval(i[1],{'__builtins__':None},{}))
         except:
-            print(
-                'Please check your keys. Each key should be added similar to this: -k \'lambda x : x[-2:]\' \'False\'	. For multiple keys use multiple instances of -k')
-    numParams = len(dataSets)  # number of selected data tracks
-    rowOffset = 4  # relative size of data tracks compared to gene model tracks
-    baseHeight = 30  # size of gene model row, for plot scaling
+            print('Please check your keys. Each key should be added similar to this: -k \'lambda x : x[-2:]\' \'False\'	. For multiple keys use multiple instances of -k')
+    numParams = len(dataSets) # number of selected data tracks
+    rowOffset = 4 #relative size of data tracks compared to gene model tracks
+    baseHeight = 30 # size of gene model row, for plot scaling
     # select appropriate data from either the coding or non-coding set
     currentGene = pandas.DataFrame()
     for index, elem in enumerate(geneAnnotations):
@@ -482,20 +482,14 @@ def rnaPlot(clicks, clicks2, geneName, dataSets, seqDisp, colors):
         if not currentGene.empty:
             break
     # row heights and spacing
-    if rawAvail == True:
-        rawDataRows = numParams * rowOffset
-    else:
-        rawDataRows = 0
-    if procAvail == True and rawDataRows > 0:
+    if procAvail == True:
         procDataRows = numParams * 0.5
     else:
         procDataRows = 0
-    numRowsW = rawDataRows + procDataRows + (
-        len(currentGene)) + 1  # Big data rows + significant sites + isoforms + sequence
-    numRows = numParams * dsElements + len(
-        currentGene) + 1  # number of rows without weights for specific sizes, +1 for dna sequence track
-    plotSpace = 0.8  # Room taken up by data tracks
-    spacingSpace = 1.0 - plotSpace  # room left for spacing tracks
+    numRowsW = procDataRows + (len(currentGene)) + 1 # Big data rows + significant sites + isoforms + sequence
+    numRows = numParams * dsElements + len(currentGene) + 1 # number of rows without weights for specific sizes, +1 for dna sequence track
+    plotSpace = 0.8 #Room taken up by data tracks
+    spacingSpace = 1.0 - plotSpace # room left for spacing tracks
     rowHeight = plotSpace / numRowsW
     if numRows > 1:
         vSpace = spacingSpace / (numRows - 1)
@@ -506,68 +500,20 @@ def rnaPlot(clicks, clicks2, geneName, dataSets, seqDisp, colors):
     dataSetHeights = []
     if procAvail == True:
         dataSetHeights.append(rowHeight / 2)
-    if rawAvail == True:
-        dataSetHeights.append(rowHeight * rowOffset)
     rowHeights = [rowHeight] * len(currentGene) + dataSetHeights * numParams + [rowHeight]
-    nameList = currentGene['name'].tolist()  # used for gene model titles
-    fig = tools.make_subplots(rows=numRows, cols=1, shared_xaxes=True, vertical_spacing=vSpace, row_width=rowHeights)
-    fig['layout']['xaxis'].update(nticks=6)
-    fig['layout']['xaxis'].update(tickmode='array')
-    fig['layout']['xaxis'].update(showgrid=True)
-    fig['layout']['xaxis'].update(ticks='outside')
-    fig['layout']['xaxis'].update(ticksuffix='b')
-    fig['layout'].update(hovermode='x')
+    nameList = currentGene['name'].tolist() # used for gene model titles
 
     xAxisMax = currentGene['chromEnd'].max()
     xAxisMin = currentGene['chromStart'].min()
     strand = currentGene['strand'].any()
-    # setup some variables to build master sequence from isoform-sequences
-    if ensembl == False:
-        if len(currentGene.loc[currentGene['chromEnd'].idxmax()]['name'].split('_')) > 1:
-            nameRightSeq = currentGene.loc[currentGene['chromEnd'].idxmax()]['name'].split('.')[1].replace('_', '.')
-            nameLeftSeq = currentGene.loc[currentGene['chromStart'].idxmin()]['name'].split('.')[1].replace('_', '.')
-        else:
-            nameRightSeq = currentGene.loc[currentGene['chromEnd'].idxmax()]['name']
-            nameLeftSeq = currentGene.loc[currentGene['chromStart'].idxmin()]['name']
-    else:
-        if len(currentGene.loc[currentGene['chromEnd'].idxmax()]['name'].split('_')) > 1:
-            nameRightSeq = currentGene.loc[currentGene['chromEnd'].idxmax()]['name'].split('.')[1].replace('_', '.')
-            nameLeftSeq = currentGene.loc[currentGene['chromStart'].idxmin()]['name'].split('.')[1].replace('_', '.')
-        else:
-            nameRightSeq = currentGene.loc[currentGene['chromEnd'].idxmax()]['name']
-            nameLeftSeq = currentGene.loc[currentGene['chromStart'].idxmin()]['name']
-    rightStart = currentGene.loc[currentGene['chromEnd'].idxmax()]['chromStart']
-    leftEnd = currentGene.loc[currentGene['chromStart'].idxmin()]['chromEnd']
-    combinedSeq = ''
-
-    if rightStart <= leftEnd:  # left and right sequence have overlap, we don't need more parts to create master
-        for i in sequences:
-            try:
-                combinedSeq = str(i[nameLeftSeq].seq) + str(i[nameRightSeq].seq)[(leftEnd - rightStart):]
-            except KeyError:
-                pass
-    try:  # Create Scattergl traces for sequence display. Four traces for different color
-        traces = generateSequenceTrace(seqDisp, strand, combinedSeq, xAxisMin, xAxisMax)
-        for i in traces:
-            fig.append_trace(i, 1, 1)
-    except IndexError:
-        pass
-    except TypeError:
-        pass
-    #       pass
 
     chrom = currentGene[
         'chrom'].any()  # save strand info, necessary for arrow annotations. Should be same for all isoforms, so any will do
     chromEnds = []  # used for arrow positioning
 
     counter = 2
-    for i in range(len(dataSets)):
-        bsTraces = plotRaw(dataSets[i], xAxisMax, xAxisMin, chrom, strand, colors)  # plot Binding site data
-        fig.append_trace(bsTraces[0], counter, 1)
-        if len(bsTraces[1]) > 0:
-            for j in range(len(bsTraces[1])):
-                fig.append_trace(bsTraces[1][j], counter + 1, 1)
-        counter += dsElements
+
+    pprint.pprint(currentGene)
 
     # calculate gene models. We have to distinguish between coding region and non-coding region
     for i in currentGene.iterrows():
@@ -578,20 +524,68 @@ def rnaPlot(clicks, clicks2, geneName, dataSets, seqDisp, colors):
         genemodel = generateGeneModel(int(i[1]['chromStart']), int(i[1]['thickStart']), int(i[1]['thickEnd'] - 1),
                                       blockStarts, blockSizes,
                                       0.4, i[1]['name'])
-        for j in range(len(genemodel)):
-            fig.append_trace(genemodel[j], counter, 1)
-            # move on to the next gene model
+        posScore = {}
+        for pos in range(i[1]['chromStart'], i[1]['chromEnd']):
+            posScore[pos] = 0
+        for index, row in spliceProcDFs['AtGRP7_LL18'].iterrows():
+            chrom = row['chrom']
+            chromStart = row['chromStart']
+            chromEnd = row['chromEnd']
+            spliceType = row['type']
+            score = row['score']
+            strand = row['strand']
+            if (chromStart >= i[1]['chromStart']) and (chromEnd <= i[1]['chromEnd']):
+                for posExon in range(chromStart, chromEnd):
+                    posScore[posExon] += 1
+
         counter += 1
 
-    # the trailing ',' actually matters for some reason, don't remove
-    fig['layout'].update(
-        barmode='relative',
-        margin=go.layout.Margin(l=30, r=40, t=25, b=60),
+    fig = createAreaChart(posScore, currentGene['name'])
+    return fig
+
+def createAreaChart(posScore, geneName):
+    xAxis = []
+    yAxis = []
+    for pos in sorted(posScore.keys()):
+        xAxis.append(pos)
+        yAxis.append(posScore[pos])
+    trace0 = go.Scatter(
+        x=xAxis,
+        y=yAxis,
+        fill='toself',
+        fillcolor='#528b8b',
+        hoveron='points+fills',
+        line=dict(
+            color='#528b8b'
+        ),
+        text=geneName,
+        hoverinfo='text'
     )
-    fig['layout']['yaxis'].update(visible=False, showticklabels=False, showgrid=False, zeroline=False)
-    if procAvail:
-        for i in range(0, numParams * dsElements, 2):
-            fig['layout']['yaxis' + str(i + 3)].update(showticklabels=False, showgrid=False, zeroline=False)
+    data = [trace0]
+    layout = go.Layout(
+        title="The size of area per position represents how often there was an exon measured. \n ",
+        xaxis=dict(
+            range=[min(posScore.keys()), max(posScore.keys())]
+        ),
+        yaxis=dict(
+            range=[0, 1.5*max(posScore.values())]
+        )
+    )
+    fig = go.Figure(data=data, layout=layout)
+    return fig
+
+
+def createFig(numRows, vSpace, rowHeights):
+    fig = tools.make_subplots(rows=numRows, cols=1, shared_xaxes=True, vertical_spacing=vSpace, row_width=rowHeights)
+    fig['layout']['xaxis'].update(nticks=6)
+    fig['layout']['xaxis'].update(tickmode='array')
+    fig['layout']['xaxis'].update(showgrid=True)
+    fig['layout']['xaxis'].update(ticks='outside')
+    fig['layout']['xaxis'].update(ticksuffix='b')
+    fig['layout'].update(hovermode='x')
+    return fig
+
+def createArrow(fig, currentGene, chromEnds, numParams, dsElements, xAxisMin, xAxisMax, strand, numRows):
     arrows = []  # adding a whole list of annotations has better performance than adding them one by one
     for i in range(len(currentGene)):  # edit all y axis in gene model plots
         fig['layout']['yaxis' + str(i + numParams * dsElements + 2)].update(showticklabels=False, showgrid=False,
@@ -610,16 +604,6 @@ def rnaPlot(clicks, clicks2, geneName, dataSets, seqDisp, colors):
             ),
         )
     fig['layout']['annotations'] = arrows
-    for i in range(numRows + 1):  # prevent zoom on y axis
-        if i == 0:
-            fig['layout']['yaxis'].update(fixedrange=True)
-        else:
-            fig['layout']['yaxis' + str(i)].update(fixedrange=True)
-    # set correct graph height based on row number and type
-    fig['layout']['height'] = (baseHeight * rawDataRows
-                               + baseHeight * procDataRows
-                               + baseHeight * (len(currentGene) + 1)
-                               + 80)
     return fig
 
 
@@ -720,7 +704,7 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal):
         dataSetHeights.append(rowHeight * rowOffset)
     rowHeights = [rowHeight] * len(currentGene) + dataSetHeights * numParams + [rowHeight] 
     nameList = currentGene['name'].tolist() # used for gene model titles
-    fig = tools.make_subplots(rows = numRows,cols = 1,shared_xaxes = True, vertical_spacing = vSpace,row_width = rowHeights)  
+    fig = tools.make_subplots(rows = numRows,cols = 1,shared_xaxes = True, vertical_spacing = vSpace,row_width = rowHeights)
     fig['layout']['xaxis'].update(nticks = 6)
     fig['layout']['xaxis'].update(tickmode = 'array')
     fig['layout']['xaxis'].update(showgrid = True)
@@ -779,7 +763,7 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal):
                 combinedSeq += str(currentSequenceSet[nameRightSeq].seq)
         except KeyError:
             pass    
-        
+
     try: # create traces for sequence display, either scatter or heatmap
         traces = generateSequenceTrace(seqDisp, strand, combinedSeq, xAxisMin, xAxisMax)
         for i in traces:
