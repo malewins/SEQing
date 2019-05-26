@@ -472,138 +472,83 @@ def rnaPlot(clicks, clicks2, geneName, dataSets, seqDisp, colors):
             dataSets.sort(key = eval(i[0],{'__builtins__':None},{}), reverse = eval(i[1],{'__builtins__':None},{}))
         except:
             print('Please check your keys. Each key should be added similar to this: -k \'lambda x : x[-2:]\' \'False\'	. For multiple keys use multiple instances of -k')
-    numParams = len(dataSets) # number of selected data tracks
-    rowOffset = 4 #relative size of data tracks compared to gene model tracks
-    baseHeight = 30 # size of gene model row, for plot scaling
     # select appropriate data from either the coding or non-coding set
     currentGene = pandas.DataFrame()
     for index, elem in enumerate(geneAnnotations):
         currentGene = elem[elem['name'].str.contains(geneName)]
         if not currentGene.empty:
             break
-    # row heights and spacing
-    if procAvail == True:
-        procDataRows = numParams * 0.5
-    else:
-        procDataRows = 0
-    numRowsW = procDataRows + (len(currentGene)) + 1 # Big data rows + significant sites + isoforms + sequence
-    numRows = numParams * dsElements + len(currentGene) + 1 # number of rows without weights for specific sizes, +1 for dna sequence track
-    plotSpace = 0.8 #Room taken up by data tracks
-    spacingSpace = 1.0 - plotSpace # room left for spacing tracks
-    rowHeight = plotSpace / numRowsW
-    if numRows > 1:
-        vSpace = spacingSpace / (numRows - 1)
-    else:
-        vSpace = spacingSpace
-
-    # final height values for rows respecting type, has to be in bottom-up order
-    dataSetHeights = []
-    if procAvail == True:
-        dataSetHeights.append(rowHeight / 2)
-    rowHeights = [rowHeight] * len(currentGene) + dataSetHeights * numParams + [rowHeight]
-    nameList = currentGene['name'].tolist() # used for gene model titles
-
-    xAxisMax = currentGene['chromEnd'].max()
-    xAxisMin = currentGene['chromStart'].min()
-    strand = currentGene['strand'].any()
-
-    chrom = currentGene[
-        'chrom'].any()  # save strand info, necessary for arrow annotations. Should be same for all isoforms, so any will do
     chromEnds = []  # used for arrow positioning
-
-    counter = 2
-
-    pprint.pprint(currentGene)
 
     # calculate gene models. We have to distinguish between coding region and non-coding region
     for i in currentGene.iterrows():
         # setup various helpers to work out the different sized blocks
         chromEnds.append(i[1]['chromEnd'])
-        blockStarts = [int(x) for x in i[1]['blockStarts'].rstrip(',').split(',')]
-        blockSizes = [int(x) for x in i[1]['blockSizes'].rstrip(',').split(',')]
-        genemodel = generateGeneModel(int(i[1]['chromStart']), int(i[1]['thickStart']), int(i[1]['thickEnd'] - 1),
-                                      blockStarts, blockSizes,
-                                      0.4, i[1]['name'])
-        posScore = {}
+
+        # initialize all scores per position with 0
+        default_posScore = {}
         for pos in range(i[1]['chromStart'], i[1]['chromEnd']):
-            posScore[pos] = 0
-        for index, row in spliceProcDFs['AtGRP7_LL18'].iterrows():
-            chrom = row['chrom']
-            chromStart = row['chromStart']
-            chromEnd = row['chromEnd']
-            spliceType = row['type']
-            score = row['score']
-            strand = row['strand']
-            if (chromStart >= i[1]['chromStart']) and (chromEnd <= i[1]['chromEnd']):
-                for posExon in range(chromStart, chromEnd):
-                    posScore[posExon] += 1
+            default_posScore[pos] = 0
 
-        counter += 1
+        # dict of dictionaries. data set name as key, posScoreDict as value.
+        total_posScores = {}
+        maxScore = 0
+        color_dict = {} # color per mutant
+        colors = ['#B8860B', '#DAA520 ', '#BDB76B ', '#808000 ']
+        color_index = 0
+        for ds in spliceProcDFs.keys():
+            if ds.split('_')[0] not in color_dict.keys():
+                color_dict[ds.split('_')[0]] = colors[color_index]
+                color_index += 1
+            posScore = default_posScore
+            for index, row in spliceProcDFs[ds].iterrows():
+                chrom = row['chrom']
+                chromStart = row['chromStart']
+                chromEnd = row['chromEnd']
+                spliceType = row['type']
+                score = row['score']
+                strand = row['strand']
+                if (chromStart >= i[1]['chromStart']) and (chromEnd <= i[1]['chromEnd']):
+                    for posExon in range(chromStart, chromEnd):
+                        posScore[posExon] += 1
+            if maxScore < max(posScore.values()):
+                maxScore = max(posScore.values())
+            total_posScores[ds] = posScore
+    fig = createAreaChart(total_posScores, maxScore, color_dict)
 
-    fig = createAreaChart(posScore, currentGene['name'])
+
     return fig
 
-def createAreaChart(posScore, geneName):
+def createAreaChart(total_posScores, maxScore, color_dict):
     xAxis = []
     yAxis = []
-    for pos in sorted(posScore.keys()):
-        xAxis.append(pos)
-        yAxis.append(posScore[pos])
-    trace0 = go.Scatter(
-        x=xAxis,
-        y=yAxis,
-        fill='toself',
-        fillcolor='#528b8b',
-        hoveron='points+fills',
-        line=dict(
-            color='#528b8b'
-        ),
-        text=geneName,
-        hoverinfo='text'
-    )
-    data = [trace0]
-    layout = go.Layout(
-        title="The size of area per position represents how often there was an exon measured. \n ",
-        xaxis=dict(
-            range=[min(posScore.keys()), max(posScore.keys())]
-        ),
-        yaxis=dict(
-            range=[0, 1.5*max(posScore.values())]
-        )
-    )
-    fig = go.Figure(data=data, layout=layout)
-    return fig
-
-
-def createFig(numRows, vSpace, rowHeights):
-    fig = tools.make_subplots(rows=numRows, cols=1, shared_xaxes=True, vertical_spacing=vSpace, row_width=rowHeights)
-    fig['layout']['xaxis'].update(nticks=6)
-    fig['layout']['xaxis'].update(tickmode='array')
-    fig['layout']['xaxis'].update(showgrid=True)
-    fig['layout']['xaxis'].update(ticks='outside')
-    fig['layout']['xaxis'].update(ticksuffix='b')
-    fig['layout'].update(hovermode='x')
-    return fig
-
-def createArrow(fig, currentGene, chromEnds, numParams, dsElements, xAxisMin, xAxisMax, strand, numRows):
-    arrows = []  # adding a whole list of annotations has better performance than adding them one by one
-    for i in range(len(currentGene)):  # edit all y axis in gene model plots
-        fig['layout']['yaxis' + str(i + numParams * dsElements + 2)].update(showticklabels=False, showgrid=False,
-                                                                            zeroline=False)
-        arrows.append(
-            dict(
-                x=chromEnds[i] + min(50, (xAxisMax - xAxisMin) * 0.01),
-                y=0.0,
-                xref='x',
-                yref='y' + str(i + numParams * dsElements + 2),
-                text='',
-                showarrow=True,
-                arrowhead=1,
-                ax=-int(strand + '5'),  # determine arrow direction. - strand left, + strand right
-                ay=0
+    data = []
+    for ds in sorted(total_posScores.keys()):
+        organism = ds.split('_')[0]
+        org_color = color_dict[organism]
+        posScore = total_posScores[ds]
+        for pos in sorted(posScore.keys()):
+            xAxis.append(pos)
+            yAxis.append(posScore[pos])
+        trace = go.Scatter(
+            x=xAxis,
+            y=yAxis,
+            name= ds,
+            fill='toself',
+            fillcolor=org_color,
+            hoveron='points+fills',
+            line=dict(
+                color='black'
             ),
+            text=ds,
+            hoverinfo='text'
         )
-    fig['layout']['annotations'] = arrows
+        data.append(trace)
+    fig = tools.make_subplots(rows=len(data), cols=1)
+    for index, t in enumerate(data):
+        fig.append_trace(t, index+1, 1)
+    fig['layout']['height'] = 800 + (100 * maxScore)
+
     return fig
 
 
