@@ -731,6 +731,8 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal):
     xAxisMax = currentGene['chromEnd'].max()
     xAxisMin = currentGene['chromStart'].min()
     strand = currentGene['strand'].any()
+    if strand == '-':
+        fig['layout']['xaxis'].update(autorange = 'reversed')
     # setup some variables to build master sequence from isoform-sequences
     if ensembl == False:
          if len(currentGene.loc[currentGene['chromEnd'].idxmax()]['name'].split('_')) > 1:
@@ -844,7 +846,7 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal):
                 ay = 0
             ),
         )
-    fig['layout']['annotations'] = arrows               
+    #fig['layout']['annotations'] = arrows               
     for i in range(numRows+1): #prevent zoom on y axis
         if i == 0:
             fig['layout']['yaxis'].update(fixedrange = True)
