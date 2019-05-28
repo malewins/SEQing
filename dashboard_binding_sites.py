@@ -478,17 +478,9 @@ def rnaPlot(clicks, clicks2, geneName, dataSets, seqDisp, colors):
         currentGene = elem[elem['name'].str.contains(geneName)]
         if not currentGene.empty:
             break
-    chromEnds = []  # used for arrow positioning
 
     # calculate gene models. We have to distinguish between coding region and non-coding region
     for i in currentGene.iterrows():
-        # setup various helpers to work out the different sized blocks
-        chromEnds.append(i[1]['chromEnd'])
-
-        # initialize all scores per position with 0
-        default_posScore = {}
-        for pos in range(i[1]['chromStart'], i[1]['chromEnd']):
-            default_posScore[pos] = 0
 
         # dict of dictionaries. data set name as key, posScoreDict as value.
         total_posScores = {}
@@ -496,11 +488,11 @@ def rnaPlot(clicks, clicks2, geneName, dataSets, seqDisp, colors):
         color_dict = {} # color per mutant
         colors = ['#B8860B', '#DAA520 ', '#BDB76B ', '#808000 ']
         color_index = 0
-        for ds in spliceProcDFs.keys():
+        for ds in sorted(spliceProcDFs.keys()):
             if ds.split('_')[0] not in color_dict.keys():
                 color_dict[ds.split('_')[0]] = colors[color_index]
                 color_index += 1
-            posScore = default_posScore
+            posScore = {}
             for index, row in spliceProcDFs[ds].iterrows():
                 chrom = row['chrom']
                 chromStart = row['chromStart']
@@ -510,9 +502,18 @@ def rnaPlot(clicks, clicks2, geneName, dataSets, seqDisp, colors):
                 strand = row['strand']
                 if (chromStart >= i[1]['chromStart']) and (chromEnd <= i[1]['chromEnd']):
                     for posExon in range(chromStart, chromEnd):
-                        posScore[posExon] += 1
-            if maxScore < max(posScore.values()):
-                maxScore = max(posScore.values())
+                        if posExon in posScore.keys():
+                            posScore[posExon] += 1
+                        else:
+                            posScore[posExon] = 1
+            if posScore.values():
+                if maxScore < max(posScore.values()):
+                    maxScore = max(posScore.values())
+            else:
+                maxScore = 3
+            for null_pos in range(i[1]['chromStart'], i[1]['chromEnd']):
+                if null_pos not in posScore.keys():
+                    posScore[null_pos] = 0
             total_posScores[ds] = posScore
     fig = createAreaChart(total_posScores, maxScore, color_dict)
 
@@ -520,10 +521,10 @@ def rnaPlot(clicks, clicks2, geneName, dataSets, seqDisp, colors):
     return fig
 
 def createAreaChart(total_posScores, maxScore, color_dict):
-    xAxis = []
-    yAxis = []
     data = []
     for ds in sorted(total_posScores.keys()):
+        xAxis = []
+        yAxis = []
         organism = ds.split('_')[0]
         org_color = color_dict[organism]
         posScore = total_posScores[ds]
@@ -537,17 +538,15 @@ def createAreaChart(total_posScores, maxScore, color_dict):
             fill='toself',
             fillcolor=org_color,
             hoveron='points+fills',
-            line=dict(
-                color='black'
-            ),
+            line=dict(color='black'),
             text=ds,
-            hoverinfo='text'
+            hoverinfo='y'
         )
         data.append(trace)
     fig = tools.make_subplots(rows=len(data), cols=1)
     for index, t in enumerate(data):
         fig.append_trace(t, index+1, 1)
-    fig['layout']['height'] = 800 + (100 * maxScore)
+    fig['layout']['height'] = 1000 + (100 * maxScore)
 
     return fig
 
