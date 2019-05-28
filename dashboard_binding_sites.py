@@ -110,6 +110,14 @@ app.layout = html.Div(
                             children = [
                                 html.Div(
                                     children=[
+                                        html.H2("RNA Seq data to identify splice events", style={"text-align": "center"}),
+                                        html.P("The width shows how often"
+                                               " this position turned out as exon in this "
+                                               "specific experiment line.", style={"text-align": "center"})
+                                    ]
+                                ),
+                                html.Div(
+                                    children=[
                                         html.B('Data set: '),
                                         dcc.Checklist(
                                             id='check_id_',
