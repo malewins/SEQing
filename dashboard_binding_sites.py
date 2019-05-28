@@ -104,6 +104,16 @@ app.layout = html.Div(
                             ]
                         ),
                         dcc.Tab(
+                            label = 'Details',
+                            id = 'deTab',
+                            children = [
+                                html.Div(
+                                    id = 'testDiv',
+                                    children = []
+                                )
+                            ]
+                        ),
+                        dcc.Tab(
                             label = 'RNASeq',
                             id = 'rnaTab',
                             children = [
@@ -228,6 +238,30 @@ app.layout = html.Div(
         )
     ]
 )
+
+@app.callback(
+    dash.dependencies.Output('testDiv', component_property = 'children'),
+    [dash.dependencies.Input('bsGraph', 'clickData')],
+    [dash.dependencies.State('bsGraph', 'figure')]
+)
+def clickTest(clickData, figure):
+    if len(clickData['points']) == 1:
+        data = clickData['points'][0]
+        cn = data['curveNumber']
+        traceName = figure['data'][cn]['name']
+        if traceName in dataSetNames:
+            return 'iCLIP trace: ' + str(traceName)
+        else:
+            if traceName[-3:] == '_bs':
+                 return 'binding site trace: ' + str(traceName)
+            else:
+                 return 'sequence trace'
+    else:
+        data = clickData['points'][0]
+        cn = data['curveNumber']
+        traceName = figure['data'][cn]['name']
+        return 'iso form: ' + traceName
+
 
 @app.callback(
     dash.dependencies.Output('rDisp', component_property = 'children'),
@@ -921,7 +955,7 @@ def plotRaw(name, xMax, xMin, chrom, strand, colors):
                         hoverinfo = 'name',
                         legendgroup = name,
                         width = k[1]['chromEnd'] - k[1]['chromStart'],
-                        name = 'binding sites',
+                        name = name + '_bs',
                         marker = go.bar.Marker(
                             color = colors[name]
                         ), showlegend = False
@@ -1010,7 +1044,7 @@ def generateGeneModel(chromStart, codingRegionStart, codingRegionEnd, blockStart
     upper = go.Bar(
             x = blockVals,
             y = blockYs,
-            name = '',
+            name = name.split('.')[-1],
             hoverinfo = 'none',
             width = blockWidths,
             marker = go.bar.Marker(
@@ -1066,6 +1100,7 @@ def generateSequenceTrace(seqDisp, strand, combinedSeq, xAxisMin, xAxisMax):
             text = ['A']*len(xA),
             textfont = dict(color = colorA),
             mode = 'text',
+            name = 'seqA',
             y = [1]*len(xA),
             x = xA,
             showlegend = False,
@@ -1079,6 +1114,7 @@ def generateSequenceTrace(seqDisp, strand, combinedSeq, xAxisMin, xAxisMax):
             textfont = dict(color = colorC),
             y = [1]*len(xC),
             x = xC,
+            name = 'seqC',
             showlegend = False,
             opacity = 0.5,
             hoverinfo = 'x',
@@ -1089,6 +1125,7 @@ def generateSequenceTrace(seqDisp, strand, combinedSeq, xAxisMin, xAxisMax):
             textfont = dict(color = colorG),
             mode = 'text',
             y = [1]*len(xG),
+            name = 'seqG',
             x = xG,
             showlegend = False,
             opacity = 0.5,
@@ -1100,6 +1137,7 @@ def generateSequenceTrace(seqDisp, strand, combinedSeq, xAxisMin, xAxisMax):
             textfont = dict(color = colorT),
             mode = 'text',
             y = [1]*len(xT),
+            name = 'seqT',
             x = xT,
             showlegend = False,
             opacity = 0.5,
@@ -1110,6 +1148,7 @@ def generateSequenceTrace(seqDisp, strand, combinedSeq, xAxisMin, xAxisMax):
             text = ['N']*len(Err),
             textfont = dict(color = 'rgb(0,0,0)'),
             mode = 'text',
+            name = 'seqN',
             y = [1]*len(Err),
             x = Err,
             showlegend = False,
@@ -1168,6 +1207,7 @@ def generateSequenceTrace(seqDisp, strand, combinedSeq, xAxisMin, xAxisMax):
             text = [textList],
             colorscale = colors,
             showscale = False,
+            name = 'seq',
             hoverinfo = 'x+text',
             colorbar = {
                 'tick0' : 0,
