@@ -75,7 +75,7 @@ app.layout = html.Div(
                                                 dcc.Checklist(
                                                     id = 'paramList',
                                                     options = [{'label':i, 'value' : i} for i in dataSetNames],
-                                                    values = []
+                                                    values = [i for i in dataSetNames]
                                                 )
                                             ],
                                             style = {'width':'10vw','display':'table-cell'}
@@ -667,6 +667,8 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal):
     xAxisMax = currentGene['chromEnd'].max()
     xAxisMin = currentGene['chromStart'].min()
     strand = currentGene['strand'].any()
+    if strand == '-':
+        fig['layout']['xaxis'].update(autorange = 'reversed')
     # setup some variables to build master sequence from isoform-sequences
     if ensembl == False:
          if len(currentGene.loc[currentGene['chromEnd'].idxmax()]['name'].split('_')) > 1:
@@ -780,7 +782,7 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal):
                 ay = 0
             ),
         )
-    fig['layout']['annotations'] = arrows               
+    #fig['layout']['annotations'] = arrows               
     for i in range(numRows+1): #prevent zoom on y axis
         if i == 0:
             fig['layout']['yaxis'].update(fixedrange = True)
@@ -827,6 +829,7 @@ def plotRaw(name, xMax, xMin, chrom, strand, colors):
         width = countsW,
         hoverinfo = 'x+y',
         name = name,
+        legendgroup = name,
         marker = go.bar.Marker(
             color = colors[name]
         ),
@@ -852,10 +855,11 @@ def plotRaw(name, xMax, xMin, chrom, strand, colors):
                         x = [k[1]['chromStart'] + (k[1]['chromEnd'] - k[1]['chromStart']) // 2],
                         y = [0.1],
                         hoverinfo = 'name',
+                        legendgroup = name,
                         width = k[1]['chromEnd'] - k[1]['chromStart'],
                         name = 'binding sites',
                         marker = go.bar.Marker(
-                            color = colorMap[name]
+                            color = colors[name]
                         ), showlegend = False
                     )
                 )
