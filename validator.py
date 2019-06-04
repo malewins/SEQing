@@ -257,6 +257,7 @@ else: #use xml document for setup
         print(geneAnnotationPaths)
     except:
         print('Unable to load annotation files, please check your config. Exiting.')
+        exit()
     try:
         fastaPaths = [Path(i.firstChild.data) for i in configFile.getElementsByTagName('seq')]
     except:
