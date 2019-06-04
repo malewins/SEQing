@@ -203,6 +203,13 @@ parser.add_argument('-splice_data',
                     default = [],
                     type = Path,
                     metavar = 'FILE')
+parser.add_argument('-adv_desc',
+                    dest = 'advancedDesc',
+                    help = '''Tab seperated file containing additional information
+                    on genes. It needs to have a header line and a column named
+                    "gene_ids", other columns can be of your choice''',
+                    type = Path,
+                    metavar = 'FILE')
 
 
 args=parser.parse_args();
@@ -235,6 +242,10 @@ if useCfg == False: #use command line arguments for setup
     bindingSiteRawPaths = args.bsraw
     fastaPaths = args.fastas
     sortKeys = args.keys
+    try:
+        advancedDescPath = Path(args.advancedDesc)
+    except TypeError:
+        advancedDescPath = None
     try:
         descriptionPath = Path(args.desc)
     except TypeError:
@@ -487,10 +498,22 @@ try:
         print('Header for descriptions does not match specifications, ignoring description file')
         descAvail = False
 except FileNotFoundError:
-    print('description file not found, proceeding without')
+    print('Description file not found, proceeding without')
     descAvail = False
 except ValueError:
     descAvail = False
+    
+advancedDescriptions = pandas.DataFrame()
+try:
+    advancedDescriptions = pandas.read_csv(advancedDescPath, sep = '\t')
+    if 'gene_ids' not in list(advancedDescriptions.columns.values):
+        print('Advanced description file does not contain "gene_ids" column, ignoring file.')
+        advancedDescriptions = None
+except FileNotFoundError:
+    print('Adanced description file could not be found, ignoring.')
+except ValueError:
+    advancedDescriptions = None
+        
 
 #setup dropdown with gene descriptions if available
 dropList = []
@@ -642,6 +665,7 @@ globalDict = {
     'sequences' : sequences, # list containing sequence files
     'geneAnnotations' : geneAnnotations, # dataframes containing gene annotation data
     'ensembl' : ensembl, # ensembl style fasta format True/False
-    'sortKeys' : sortKeys } # arguments for the list.sort function
+    'sortKeys' : sortKeys, # arguments for the list.sort function
+    'advancedDesc' : advancedDescriptions} 
 
 runpy.run_module('dashboard_binding_sites', init_globals = globalDict, run_name = '__main__')
