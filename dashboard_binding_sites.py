@@ -16,6 +16,20 @@ if 'dropList' not in globals():
     print('Please start the program via validator.py')
     exit()
 
+if advancedDesc is None:
+    advList = []
+    advStart = None
+    advAvailable = True
+else:
+    advList = list(advancedDesc.columns.values)
+    advList.remove('gene_ids')
+    try:
+        advStart = advList[0]
+        advAvailable = False
+    except:
+        advStart = None
+        advAvailable = True
+    
 if len(sequences) == 0:
     seqDispStyle = {'display' : 'none'}
 else:
@@ -28,7 +42,7 @@ except:
     initialColor = None
     disableSettings = True
     
-print(disableSettings)
+tabStyle = {'padding' : '0', 'line-height' : '5vh'}
 
 app = dash.Dash(__name__)
 
@@ -62,9 +76,15 @@ app.layout = html.Div(
                 ),
                 dcc.Tabs(
                     id = 'tabs',
+                    style = {
+                        'width' : '50%',
+                        'height' : '5vh'
+                    },
                     children = [
                         dcc.Tab(
                             label = 'iCLIP data',
+                            style = tabStyle,
+                            selected_style = tabStyle,
                             id = 'clipTab',
                             children = [
                                 html.Div(
@@ -100,12 +120,29 @@ app.layout = html.Div(
                                         )
                                     ]
                                 ),
-                                dcc.Graph(id = 'bsGraph')
+                                dcc.Graph(id = 'bsGraph'),
+                                html.Div(
+                                    children = [
+                                        html.Div(id = 'advMem',
+                                            style = {'display' : 'none'}
+                                        ),
+                                        dcc.Dropdown(
+                                            id = 'advDescDrop',
+                                            options = [{'label':i, 'value' : i} for i in advList],
+                                            value = advStart,
+                                            disabled = advAvailable
+                                        ),
+                                        html.Div(id = 'advDisp',    
+                                        )
+                                    ]
+                                )
                             ]
                         ),
                         dcc.Tab(
                             label = 'Details',
                             id = 'deTab',
+                            style = tabStyle,
+                            selected_style = tabStyle,
                             children = [
                                 html.Div(
                                     id = 'testDiv',
@@ -116,6 +153,8 @@ app.layout = html.Div(
                         dcc.Tab(
                             label = 'RNASeq',
                             id = 'rnaTab',
+                            style = tabStyle,
+                            selected_style = tabStyle,
                             children = [
                                 html.Div(
                                     children=[
@@ -156,6 +195,8 @@ app.layout = html.Div(
                         dcc.Tab(
                             label = 'Settings',
                             id = 'settings',
+                            style = tabStyle,
+                            selected_style = tabStyle,
                             disabled = disableSettings,
                             children = [
                                 html.Div(
@@ -238,6 +279,46 @@ app.layout = html.Div(
         )
     ]
 )
+                                                
+@app.callback(
+    dash.dependencies.Output('advMem', component_property = 'children'),
+    [dash.dependencies.Input('submit', 'n_clicks')],
+    [dash.dependencies.State('geneDrop', 'value')]
+)
+def storeDesc(nclicks, geneName):
+    if advancedDesc is not None:
+        df = advancedDesc[advancedDesc['gene_ids'].str.contains(geneName)]
+        return df.to_json(orient = 'split')
+
+@app.callback(
+    dash.dependencies.Output('advDisp', component_property = 'children'),
+    [dash.dependencies.Input('advDescDrop', 'value'),
+     dash.dependencies.Input('advMem', 'children')],
+    [dash.dependencies.State('geneDrop', 'value')]    
+)
+def showDesc(column, data, name):
+    try:
+        df = pandas.read_json(data, orient = 'split')
+    except ValueError:
+        try:
+            df = advancedDesc[advancedDesc['gene_ids'].str.contains(name)]
+        except TypeError:
+            df = pandas.DataFrame()
+    try:
+        value = str(df.iloc[0][column])
+        if value == 'nan':
+            return "Unavailable for this gene."
+        else:
+            values = value.split(';')
+            result = []
+            for i in values:
+                if i != '':
+                    result.append(html.P('- ' + i))
+            return result
+    except IndexError:
+        return "Advanced descriptions unavailable."
+
+    
 
 @app.callback(
     dash.dependencies.Output('testDiv', component_property = 'children'),
@@ -245,22 +326,25 @@ app.layout = html.Div(
     [dash.dependencies.State('bsGraph', 'figure')]
 )
 def clickTest(clickData, figure):
-    if len(clickData['points']) == 1:
-        data = clickData['points'][0]
-        cn = data['curveNumber']
-        traceName = figure['data'][cn]['name']
-        if traceName in dataSetNames:
-            return 'iCLIP trace: ' + str(traceName)
-        else:
-            if traceName[-3:] == '_bs':
-                 return 'binding site trace: ' + str(traceName)
+    try:
+        if len(clickData['points']) == 1:
+            data = clickData['points'][0]
+            cn = data['curveNumber']
+            traceName = figure['data'][cn]['name']
+            if traceName in dataSetNames:
+                return 'iCLIP trace: ' + str(traceName)
             else:
-                 return 'sequence trace'
-    else:
-        data = clickData['points'][0]
-        cn = data['curveNumber']
-        traceName = figure['data'][cn]['name']
-        return 'iso form: ' + traceName
+                if traceName[-3:] == '_bs':
+                     return 'binding site trace: ' + str(traceName)
+                else:
+                     return 'sequence trace'
+        else:
+            data = clickData['points'][0]
+            cn = data['curveNumber']
+            traceName = figure['data'][cn]['name']
+            return 'iso form: ' + traceName
+    except TypeError:
+        return "Nothing selected"
 
 
 @app.callback(
