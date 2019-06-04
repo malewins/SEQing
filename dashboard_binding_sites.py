@@ -120,9 +120,9 @@ app.layout = html.Div(
                                     children=[
                                         html.B('Data set: '),
                                         dcc.Checklist(
-                                            id='check_id_',
-                                            options=[{'label': spliceSetNames[1][i], 'value': 'check'+str(i)} for i in range(len(spliceSetNames[1]))],
-                                            values=['check'+str(i) for i in range(len(spliceSetNames[1]))],
+                                            id='rnaParamList',
+                                            options=[{'label': spliceSetNames[1][i], 'value': spliceSetNames[1][i]} for i in range(len(spliceSetNames[1]))],
+                                            values=[spliceSetNames[1][i] for i in range(len(spliceSetNames[1]))],
                                         ),
                                     ],
                                     style = {'width':'20vw','display':'table-cell'}
@@ -460,11 +460,10 @@ dash.dependencies.Output('spliceGraph', 'figure'),
     [dash.dependencies.Input('submit', 'n_clicks'),
      dash.dependencies.Input('colorConfirm', 'n_clicks')],
     [dash.dependencies.State('geneDrop', 'value'),
-    dash.dependencies.State('paramList', 'values'),
-    dash.dependencies.State('sequenceRadio','value'),
+    dash.dependencies.State('rnaParamList', 'values'),
     dash.dependencies.State('colorDiv', 'children')]
 )
-def rnaPlot(clicks, clicks2, geneName, dataSets, seqDisp, colors):
+def rnaPlot(clicks, clicks2, geneName, rnaParamList, seqDisp):
     """Main callback that handles the dynamic visualisation of the rnaSeq data
 
         Positional arguments:
@@ -488,16 +487,25 @@ def rnaPlot(clicks, clicks2, geneName, dataSets, seqDisp, colors):
         if not currentGene.empty:
             break
 
+    # dict of dictionaries. data set name as key, posScoreDict as value.
+    total_posScores = {}
+
     # calculate gene models. We have to distinguish between coding region and non-coding region
     for i in currentGene.iterrows():
 
-        # dict of dictionaries. data set name as key, posScoreDict as value.
-        total_posScores = {}
         maxScore = 0
         color_dict = {} # color per mutant
         colors = ['#5f9ea0', '#6495ed', '#98f5ff', '#1e90ff']
         color_index = 0
-        for ds in sorted(spliceProcDFs.keys()):
+        rnaDataSets = sorted(spliceProcDFs.keys())
+        displayed_rnaDataSet = []
+        for rm in rnaParamList:
+            for set in rnaDataSets:
+                if rm in set:
+                    displayed_rnaDataSet.append(set)
+        print(rnaParamList)
+        print(displayed_rnaDataSet)
+        for ds in displayed_rnaDataSet:
             if ds.split('_')[0] not in color_dict.keys():
                 color_dict[ds.split('_')[0]] = colors[color_index]
                 color_index += 1
