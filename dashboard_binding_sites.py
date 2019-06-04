@@ -149,7 +149,8 @@ app.layout = html.Div(
                                     ],
                                     style = {'width':'20vw','display':'table-cell'}
                                 ),
-                                dcc.Graph(id='spliceGraph')
+                                dcc.Graph(id='spliceGraph'),
+                                dcc.Graph(id='sequenceBarChart')
                             ]
                         ),
                         dcc.Tab(
@@ -494,7 +495,7 @@ def rnaPlot(clicks, clicks2, geneName, dataSets, seqDisp, colors):
         total_posScores = {}
         maxScore = 0
         color_dict = {} # color per mutant
-        colors = ['#B8860B', '#DAA520 ', '#BDB76B ', '#808000 ']
+        colors = ['#5f9ea0', '#6495ed', '#98f5ff', '#1e90ff']
         color_index = 0
         for ds in sorted(spliceProcDFs.keys()):
             if ds.split('_')[0] not in color_dict.keys():
@@ -524,6 +525,8 @@ def rnaPlot(clicks, clicks2, geneName, dataSets, seqDisp, colors):
                     posScore[null_pos] = 0
             total_posScores[ds] = posScore
     fig = createAreaChart(total_posScores, maxScore, color_dict)
+
+
 
 
     return fig
@@ -557,6 +560,126 @@ def createAreaChart(total_posScores, maxScore, color_dict):
     fig['layout']['height'] = 1000 + (100 * maxScore)
 
     return fig
+
+
+@app.callback(
+    dash.dependencies.Output('sequenceBarChart', 'figure'),
+    [dash.dependencies.Input('submit', 'n_clicks_timestamp'),
+     dash.dependencies.Input('colorConfirm', 'n_clicks_timestamp')],
+    [dash.dependencies.State('geneDrop', 'value'),
+    dash.dependencies.State('paramList', 'values'),
+    dash.dependencies.State('sequenceRadio','value'),
+    dash.dependencies.State('colorDiv', 'children'),
+    dash.dependencies.State('colorFinal', 'children')]
+)
+def rnaSequencePlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal):
+    """Main callback that handles the dynamic visualisation of selected data
+
+    Positional arguments:
+    submit -- submit button time stamp
+    confirm -- confirm button time stamp
+    geneName -- Name of the selected gene in order to filter the data
+    dataSets -- Selected data tracks with raw binding site data
+    seqDisp -- Display mode for dna sequence trace
+    colors -- color currently being confirmed. Needed to to lack of order on callbacks
+    colorsFinal -- last confirmed color
+    """
+    # Sort the list of selected data tracks to keep consistent order
+    for i in sortKeys:
+        try:
+            dataSets.sort(key=eval(i[0], {'__builtins__': None}, {}), reverse=eval(i[1], {'__builtins__': None}, {}))
+        except:
+            print(
+                'Please check your keys. Each key should be added similar to this: -k \'lambda x : x[-2:]\' \'False\'	. For multiple keys use multiple instances of -k')
+    numParams = len(dataSets)  # number of selected data tracks
+    baseHeight = 30  # size of gene model row, for plot scaling
+    # select appropriate data from either the coding or non-coding set
+    currentGene = pandas.DataFrame()
+    for index, elem in enumerate(geneAnnotations):
+        currentGene = elem[elem['name'].str.contains(geneName)]
+        if not currentGene.empty:
+            break
+    numRows = numParams * dsElements + len(
+        currentGene) + 1  # number of rows without weights for specific sizes, +1 for dna sequence track
+    plotSpace = 0.8  # Room taken up by data tracks
+    spacingSpace = 1.0 - plotSpace  # room left for spacing tracks
+    rowHeight = plotSpace
+    if numRows > 1:
+        vSpace = spacingSpace / (numRows - 1)
+    else:
+        vSpace = spacingSpace
+
+    # final height values for rows respecting type, has to be in bottom-up order
+    dataSetHeights = []
+    fig = tools.make_subplots(rows=numRows, cols=1, shared_xaxes=True, vertical_spacing=vSpace, row_width=[plotSpace for i in range(numRows)])
+    fig['layout']['xaxis'].update(nticks=6)
+    fig['layout']['xaxis'].update(tickmode='array')
+    fig['layout']['xaxis'].update(showgrid=True)
+    fig['layout']['xaxis'].update(ticks='outside')
+    fig['layout']['xaxis'].update(ticksuffix='b')
+    fig['layout'].update(hovermode='x')
+
+    xAxisMax = currentGene['chromEnd'].max()
+    xAxisMin = currentGene['chromStart'].min()
+    strand = currentGene['strand'].any()
+
+    chromEnds = []  # used for arrow positioning
+
+    counter = 2
+    for i in range(len(dataSets)):
+        counter += dsElements
+
+    # calculate gene models. We have to distinguish between coding region and non-coding region
+    for i in currentGene.iterrows():
+        # setup various helpers to work out the different sized blocks
+        chromEnds.append(i[1]['chromEnd'])
+        blockStarts = [int(x) for x in i[1]['blockStarts'].rstrip(',').split(',')]
+        blockSizes = [int(x) for x in i[1]['blockSizes'].rstrip(',').split(',')]
+        genemodel = generateGeneModel(int(i[1]['chromStart']), int(i[1]['thickStart']), int(i[1]['thickEnd'] - 1),
+                                      blockStarts, blockSizes,
+                                      0.4, i[1]['name'])
+        for j in range(len(genemodel)):
+            fig.append_trace(genemodel[j], counter, 1)
+            fig['layout']['yaxis'].update(visible=False, showticklabels=False, showgrid=False, zeroline=False)
+            # move on to the next gene model
+        counter += 1
+
+    # the trailing ',' actually matters for some reason, don't remove
+    fig['layout'].update(
+        barmode='relative',
+        margin=go.layout.Margin(l=30, r=40, t=25, b=60),
+    )
+    fig['layout']['yaxis'].update(visible=False, showticklabels=False, showgrid=False, zeroline=False)
+    arrows = []  # adding a whole list of annotations has better performance than adding them one by one
+    for i in range(len(currentGene)):  # edit all y axis in gene model plots
+        fig['layout']['yaxis' + str(i + numParams * dsElements + 2)].update(showticklabels=False, showgrid=False,
+                                                                            zeroline=False)
+        arrows.append(
+            dict(
+                x=chromEnds[i] + min(50, (xAxisMax - xAxisMin) * 0.01),
+                y=0.0,
+                xref='x',
+                yref='y' + str(i + numParams * dsElements + 2),
+                text='',
+                showarrow=True,
+                arrowhead=1,
+                ax=-int(strand + '5'),  # determine arrow direction. - strand left, + strand right
+                ay=0
+            ),
+        )
+    fig['layout']['annotations'] = arrows
+    for i in range(numRows + 1):  # prevent zoom on y axis
+        if i == 0:
+            fig['layout']['yaxis'].update(fixedrange=True)
+        else:
+            fig['layout']['yaxis' + str(i)].update(fixedrange=True)
+    # set correct graph height based on row number and type
+    fig['layout']['height'] = (baseHeight * (len(currentGene) + 1)
+                               + 250)
+    return fig
+
+
+
 
 
 @app.callback(
