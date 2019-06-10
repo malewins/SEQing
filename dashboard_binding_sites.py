@@ -349,7 +349,7 @@ def showDetails(data, name):
                       'curator_summary', 'name']
     tableRows = [] # will contain the table rows
     for i in generalColumns:
-        if i in columns and str(df.iloc[0][i]) != 'nan':
+        if i in columns and str(df.iloc[0][i]) not in ['nan', ';""']:
             tableRows.append(html.Tr(children = [html.Td(html.B(i.replace('_', ' ').title())),
                                                  html.Td(str(df.iloc[0][i]))], 
                                     style = {'background-color' : tableColors[rowCounter%2]}))
@@ -360,44 +360,45 @@ def showDetails(data, name):
     if 'synonyms' in columns:
         synonyms = str(df.iloc[0]['synonyms'])
         usedColumns.append('synonyms')
-        if synonyms != 'nan':
+        if synonyms not in ['nan', ';""']:
             tableRows.append(createDetailRow(synonyms, 'Synonyms', rowCounter))
             rowCounter += 1
     if 'publications' in columns:
         usedColumns.append('publications')
         publications = str(df.iloc[0]['publications'])
-        if publications != 'nan':
-           tableRows.append(createDetailRow(publications, 'Publications', rowCounter))
-           rowCounter += 1
+        if publications not in ['nan', ';""']:
+            tableRows.append(createDetailRow(publications, 'Publications', rowCounter))
+            rowCounter += 1
     if 'proteins' in columns:
         usedColumns.append('proteins')
         proteins = str(df.iloc[0]['proteins'])
-        if publications != 'nan':
+        if publications not in ['nan', ';""']:
             tableRows.append(createDetailRow(proteins, 'Proteins', rowCounter))
             rowCounter += 1
     if 'gene_ontology' in columns:
         usedColumns.append('gene_ontology')
         geneOntology = str(df.iloc[0]['gene_ontology'])
-        if geneOntology != 'nan':
-           tableRows.append(createDetailRow(geneOntology, 'Gene Ontology', rowCounter))
-           rowCounter += 1
+        if geneOntology not in ['nan', ';""']:
+            tableRows.append(createDetailRow(geneOntology, 'Gene Ontology', rowCounter))
+            rowCounter += 1
     if 'pathways' in columns:
         usedColumns.append('pathways')
         pathways = str(df.iloc[0]['pathways'])
-        if pathways != 'nan':
+        if pathways not in ['nan', ';""']:
             tableRows.append(createDetailRow(pathways, 'Pathways', rowCounter))
             rowCounter += 1
     if 'plant_ontology' in columns:
         usedColumns.append('plant_ontology')
         plantOntology = str(df.iloc[0]['plant_ontology'])
-        if plantOntology != 'nan':
-           tableRows.append(createDetailRow(plantOntology, 'Plant Ontology', rowCounter))
-           rowCounter += 1
+        if plantOntology not in ['nan', ';""']:
+            print(plantOntology)
+            tableRows.append(createDetailRow(plantOntology, 'Plant Ontology', rowCounter))
+            rowCounter += 1
     # go through all remaining columns using formatting standard
     remainingColumns = [x for x in columns if x not in usedColumns]
     for i in remainingColumns:
         value = str(df.iloc[0][i])
-        if value != 'nan':
+        if value not in ['nan', ';""']:
             if len(value.split(';')) > 1:
                 subRows = []
                 for j in value.split(';'):
@@ -420,7 +421,10 @@ def showDetails(data, name):
                                            style = {'background-color' : tableColors[rowCounter%2]}))
             rowCounter += 1
             
-    content.append(html.Table(tableRows))
+    if len(tableRows) >= 1:
+        content.append(html.Table(tableRows))
+    else:
+        content.append(html.B('No additional information available for the currently selected gene'))
     return content
 
 @app.callback(
@@ -1387,7 +1391,7 @@ def createDetailRow(content, name, rowNumber):
     """
     subRows = []
     for i in content.split(';'):
-        if i != '':
+        if i != '' :
             subRows.append(html.Tr(html.Td(i)))
     if len(subRows) > 5:
         tableRow = html.Tr(children = [html.Td(html.B(name)),
