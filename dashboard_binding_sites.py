@@ -43,6 +43,7 @@ except:
     disableSettings = True
     
 tabStyle = {'padding' : '0', 'line-height' : '5vh'}
+tableColors = ['rgb(255, 255 ,255)', 'rgb(125, 244, 66)']
 
 app = dash.Dash(__name__)
 
@@ -145,7 +146,7 @@ app.layout = html.Div(
                             selected_style = tabStyle,
                             children = [
                                 html.Div(
-                                    id = 'testDiv',
+                                    id = 'detailMainDiv',
                                     children = []
                                 )
                             ]
@@ -321,31 +322,106 @@ def showDesc(column, data, name):
     
 
 @app.callback(
-    dash.dependencies.Output('testDiv', component_property = 'children'),
-    [dash.dependencies.Input('bsGraph', 'clickData')],
-    [dash.dependencies.State('bsGraph', 'figure')]
+    dash.dependencies.Output('detailMainDiv', component_property = 'children'),
+    [dash.dependencies.Input('advMem', 'children')],
+    [dash.dependencies.State('geneDrop', 'value')]
 )
-def clickTest(clickData, figure):
+def showDetails(data, name):
+    """ Create tabular view of additional data
+    
+    Positional arguments:
+    data -- data for the current gene, as json string(dict)
+    name -- gene name for initialization
+    """
     try:
-        if len(clickData['points']) == 1:
-            data = clickData['points'][0]
-            cn = data['curveNumber']
-            traceName = figure['data'][cn]['name']
-            if traceName in dataSetNames:
-                return 'iCLIP trace: ' + str(traceName)
-            else:
-                if traceName[-3:] == '_bs':
-                     return 'binding site trace: ' + str(traceName)
+        df = pandas.read_json(data, orient = 'split')
+    except ValueError:
+        try:
+            df = advancedDesc[advancedDesc['gene_ids'].str.contains(name)]
+        except TypeError:
+            df = pandas.DataFrame()
+    columns = list(df.columns.values)
+    rowCounter = 1 # keep track of the row number to alternate coloring
+    usedColumns = [] # keeps track of preset columns already added, needed later
+    usedColumns.append('gene_ids')
+    content = [] # table content to be displayed
+    generalColumns = ['symbol', 'brief_description', 'is_obsolete', 'computational_description',
+                      'curator_summary', 'name']
+    tableRows = [] # will contain the table rows
+    for i in generalColumns:
+        if i in columns and str(df.iloc[0][i]) != 'nan':
+            tableRows.append(html.Tr(children = [html.Td(html.B(i.replace('_', ' ').title())),
+                                                 html.Td(str(df.iloc[0][i]))], 
+                                    style = {'background-color' : tableColors[rowCounter%2]}))
+            usedColumns.append(i)
+            rowCounter += 1
+    print(rowCounter)
+    # go through a number of predefined columns
+    if 'synonyms' in columns:
+        synonyms = str(df.iloc[0]['synonyms'])
+        usedColumns.append('synonyms')
+        if synonyms != 'nan':
+            tableRows.append(createDetailRow(synonyms, 'Synonyms', rowCounter))
+            rowCounter += 1
+    if 'publications' in columns:
+        usedColumns.append('publications')
+        publications = str(df.iloc[0]['publications'])
+        if publications != 'nan':
+           tableRows.append(createDetailRow(publications, 'Publications', rowCounter))
+           rowCounter += 1
+    if 'proteins' in columns:
+        usedColumns.append('proteins')
+        proteins = str(df.iloc[0]['proteins'])
+        if publications != 'nan':
+            tableRows.append(createDetailRow(proteins, 'Proteins', rowCounter))
+            rowCounter += 1
+    if 'gene_ontology' in columns:
+        usedColumns.append('gene_ontology')
+        geneOntology = str(df.iloc[0]['gene_ontology'])
+        if geneOntology != 'nan':
+           tableRows.append(createDetailRow(geneOntology, 'Gene Ontology', rowCounter))
+           rowCounter += 1
+    if 'pathways' in columns:
+        usedColumns.append('pathways')
+        pathways = str(df.iloc[0]['pathways'])
+        if pathways != 'nan':
+            tableRows.append(createDetailRow(pathways, 'Pathways', rowCounter))
+            rowCounter += 1
+    if 'plant_ontology' in columns:
+        usedColumns.append('plant_ontology')
+        plantOntology = str(df.iloc[0]['plant_ontology'])
+        if plantOntology != 'nan':
+           tableRows.append(createDetailRow(plantOntology, 'Plant Ontology', rowCounter))
+           rowCounter += 1
+    # go through all remaining columns using formatting standard
+    remainingColumns = [x for x in columns if x not in usedColumns]
+    for i in remainingColumns:
+        value = str(df.iloc[0][i])
+        if value != 'nan':
+            if len(value.split(';')) > 1:
+                subRows = []
+                for j in value.split(';'):
+                    if j != '':
+                        subRows.append(html.Tr(html.Td(j)))    
+                if len(subRows) > 5:
+                    tableRow = html.Tr(children = [html.Td(html.B(i.replace('_', ' ').title())),
+                                       html.Td(html.Details(title = str(len(subRows)) + ' ' + i.replace('_', ' ').title() , children = html.Table(children = 
+                                               subRows)))],
+                                                            style = {'background-color' : tableColors[rowCounter%2]} )
                 else:
-                     return 'sequence trace'
-        else:
-            data = clickData['points'][0]
-            cn = data['curveNumber']
-            traceName = figure['data'][cn]['name']
-            return 'iso form: ' + traceName
-    except TypeError:
-        return "Nothing selected"
-
+                    tableRow = html.Tr(children = [html.Td(html.B(i.replace('_', ' ').title())),
+                                       html.Td(html.Table(children = 
+                                               subRows))], 
+                                                          style = {'background-color' : tableColors[rowCounter%2]})  
+                tableRows.append(tableRow)               
+            else:
+                tableRows.append(html.Tr(children = [html.Td(html.B(i.replace('_', ' ').title())),
+                                                 html.Td(str(df.iloc[0][i]))],
+                                           style = {'background-color' : tableColors[rowCounter%2]}))
+            rowCounter += 1
+            
+    content.append(html.Table(tableRows))
+    return content
 
 @app.callback(
     dash.dependencies.Output('rDisp', component_property = 'children'),
@@ -1300,6 +1376,28 @@ def generateSequenceTrace(seqDisp, strand, combinedSeq, xAxisMin, xAxisMax):
         )
         return [heatTrace]
 
+def createDetailRow(content, name, rowNumber):
+    """ returns a single row for the details table
+    
+    Positional arguments:
+    content -- the attribute data as String
+    name -- name for the attribute
+    combinedSeq -- sequence for display
+    rowNumber -- used for odd/even coloring
+    """
+    subRows = []
+    for i in content.split(';'):
+        if i != '':
+            subRows.append(html.Tr(html.Td(i)))
+    if len(subRows) > 5:
+        tableRow = html.Tr(children = [html.Td(html.B(name)),
+                               html.Td(html.Details(title = str(len(subRows)) + ' values' , children = html.Table(children = 
+                                       subRows)))], style = {'background-color' : tableColors[rowNumber%2]})
+    else:
+        tableRow = html.Tr(children = [html.Td(html.B(name)),
+                               html.Td(html.Table(children = 
+                                       subRows))], style = {'background-color' : tableColors[rowNumber%2]})
+    return(tableRow)
 
 if __name__ == '__main__':
     app.run_server(debug = True, host = '0.0.0.0', port = port, use_reloader = False)
