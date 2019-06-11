@@ -199,6 +199,7 @@ app.layout = html.Div(
                             style = tabStyle,
                             selected_style = tabStyle,
                             disabled = disableSettings,
+                            disabled_style = tabStyle,
                             children = [
                                 html.Div(
                                     children = [
@@ -351,117 +352,53 @@ def showDetails(data, name):
     for i in generalColumns:
         if i in columns and str(df.iloc[0][i]) not in ['nan', ';""']:
             tableRows.append(html.Tr(children = [html.Td(html.B(i.replace('_', ' ').title())),
-                                                 html.Td(str(df.iloc[0][i]))], 
+                                                 html.Td(str(df.iloc[0][i]).strip())], 
                                     style = {'background-color' : tableColors[rowCounter%2]}))
             usedColumns.append(i)
             rowCounter += 1
-    print(rowCounter)
     # go through a number of predefined columns
     if 'synonyms' in columns:
         synonyms = str(df.iloc[0]['synonyms'])
         usedColumns.append('synonyms')
         if synonyms not in ['nan', ';""']:
-            tableRows.append(createDetailRow(synonyms, 'Synonyms', rowCounter))
+            tableRows.append(createDetailRow(synonyms, 'synonyms', rowCounter))
             rowCounter += 1
     if 'publications' in columns:
         usedColumns.append('publications')
         publications = str(df.iloc[0]['publications'])
         if publications not in ['nan', ';""']:
-            tableRows.append(createDetailRow(publications, 'Publications', rowCounter))
+            tableRows.append(createDetailRow(publications, 'publications', rowCounter))
             rowCounter += 1
     if 'proteins' in columns:
         usedColumns.append('proteins')
         proteins = str(df.iloc[0]['proteins'])
         if publications not in ['nan', ';""']:
-            tableRows.append(createDetailRow(proteins, 'Proteins', rowCounter))
+            tableRows.append(createDetailRow(proteins, 'proteins', rowCounter))
             rowCounter += 1
     if 'gene_ontology' in columns:
         usedColumns.append('gene_ontology')
         geneOntology = str(df.iloc[0]['gene_ontology'])
         if geneOntology not in ['nan', ';""']:
-            tableRows.append(createDetailRow(geneOntology, 'Gene Ontology', rowCounter))
+            tableRows.append(createDetailRow(geneOntology, 'gene_ontology', rowCounter))
             rowCounter += 1
     if 'pathways' in columns:
         usedColumns.append('pathways')
         pathways = str(df.iloc[0]['pathways'])
         if pathways not in ['nan', ';""']:
-            tableRows.append(createDetailRow(pathways, 'Pathways', rowCounter))
+            tableRows.append(createDetailRow(pathways, 'pathways', rowCounter))
             rowCounter += 1
     if 'plant_ontology' in columns:
         usedColumns.append('plant_ontology')
         plantOntology = str(df.iloc[0]['plant_ontology'])
         if plantOntology not in ['nan', ';""']:
-            tableRows.append(createDetailRow(plantOntology, 'Plant Ontology', rowCounter))
+            tableRows.append(createDetailRow(plantOntology, 'plant_ontology', rowCounter))
             rowCounter += 1
     # go through all remaining columns using formatting standard
     remainingColumns = [x for x in columns if x not in usedColumns]
     for i in remainingColumns:
         value = str(df.iloc[0][i])
         if value not in ['nan', ';""']:
-            if len(value.split(';')) > 0:
-                subRows = []
-                
-                colName = i.replace('_', ' ').title()
-                subTable = []
-                subColumns = 0
-                for index, j in enumerate(value.split(';')):
-                    if index == 0 and j != '':
-                        if j[0] == '!':
-                            subSubRow = []
-                            for k in j.split(','):
-                                if k != '':
-                                    if k[0] == '!':
-                                        subSubRow.append(html.Th(k[1:]))
-                                    else:
-                                        subSubRow.append(html.Th(k))  
-                            subColumns = len(subSubRow)
-                            subTable.append(html.Tr(children = subSubRow))
-                        else:
-                            if j != '' :
-                                subRows.append(html.Tr(html.Td(j)))                
-                    else:
-                        if subColumns > 0:
-                            subSubRow = []
-                            for k in j.split(','):
-                                if k != '':
-                                    subSubRow.append(html.Td(k))
-                            if len(subSubRow) == subColumns:
-                                subTable.append(html.Tr(children = subSubRow))
-                        else:
-                            if j != '' :
-                                subRows.append(html.Tr(html.Td(j)))
-                if len(subRows) > 5:
-                    tableRow = html.Tr(children = [html.Td(html.B(colName)),
-                                           html.Td(html.Details(title = str(len(subRows)) + ' values' , children = html.Table(children = 
-                                                   subRows)))], style = {'background-color' : tableColors[rowCounter%2]})
-                else:
-                    tableRow = html.Tr(children = [html.Td(html.B(colName)),
-                                           html.Td(html.Table(children = 
-                                                   subRows))], style = {'background-color' : tableColors[rowCounter%2]})
-                if len(subTable) > 0:
-                    tableRows.append(html.Tr(children = [html.Td(html.B(colName)),html.Td(html.Table(children = subTable))],
-                                               style = {'background-color' : tableColors[rowCounter%2]}))
-                else:
-                    tableRows.append(tableRow)
-                
-#                for j in value.split(';'):
-#                    if j != '':
-#                        subRows.append(html.Tr(html.Td(j)))    
-#                if len(subRows) > 5:
-#                    tableRow = html.Tr(children = [html.Td(html.B(i.replace('_', ' ').title())),
-#                                       html.Td(html.Details(title = str(len(subRows)) + ' ' + i.replace('_', ' ').title() , children = html.Table(children = 
-#                                               subRows)))],
-#                                                            style = {'background-color' : tableColors[rowCounter%2]} )
-#                else:
-#                    tableRow = html.Tr(children = [html.Td(html.B(i.replace('_', ' ').title())),
-#                                       html.Td(html.Table(children = 
-#                                               subRows))], 
-#                                                          style = {'background-color' : tableColors[rowCounter%2]})  
-#                tableRows.append(tableRow)               
-#            else:
-#                tableRows.append(html.Tr(children = [html.Td(html.B(i.replace('_', ' ').title())),
-#                                                 html.Td(str(df.iloc[0][i]))],
-#                                           style = {'background-color' : tableColors[rowCounter%2]}))
+            tableRows.append(createDetailRow(value, i, rowCounter))
             rowCounter += 1
             
     if len(tableRows) >= 1:
@@ -1432,45 +1369,57 @@ def createDetailRow(content, name, rowNumber):
     combinedSeq -- sequence for display
     rowNumber -- used for odd/even coloring
     """
+    try:
+        headerLine = subTables[subTables['column_id'].str.contains(name)]
+    except:
+        headerLine = None
+    try:
+        headers = str(headerLine.iloc[0]['columns']).split(';')
+    except:
+        headers = None
     subRows = []
     subTable = []
-    subColumns = 0
-    for index, i in enumerate(content.split(';')):
-        if index == 0 and i != '':
-            if i[0] == '!':
-                subSubRow = []
+    if headers != None:
+        headerRow = []
+        for k in headers:
+            headerRow.append(html.Th(k))
+        subTable.append(html.Tr(children = headerRow))
+        for i in content.split(';'):
+            subSubRow = []
+            if len(i.split(',')) == len(headers):
                 for j in i.split(','):
                     if j != '':
-                        if j[0] == '!':
-                            subSubRow.append(html.Th(j[1:]))
+                        if j[0] == '?':
+                            subSubRow.append(html.Td(html.A(j[1:], href = j[1:].strip(), target = '_blank')))
                         else:
-                            subSubRow.append(html.Th(j))  
-                subColumns = len(subSubRow)
+                            subSubRow.append(html.Td(j.strip()))    
                 subTable.append(html.Tr(children = subSubRow))
-            else:
-                if i != '' :
-                    subRows.append(html.Tr(html.Td(i)))                
-        else:
-            if subColumns > 0:
-                subSubRow = []
-                for j in i.split(','):
-                    if j != '':
-                        subSubRow.append(html.Td(j))
-                if len(subSubRow) == subColumns:
-                    subTable.append(html.Tr(children = subSubRow))
-            else:
-                if i != '' :
-                    subRows.append(html.Tr(html.Td(i)))
+        if len(subTable) == 1:
+            print('Warning: Number of columns specified in sub table file do not match number of columns in description file')
+            subTable = []
+            for l in content.split(';'):
+                if l != '' :
+                    if l[0] == '?':
+                        subRows.append(html.Tr(html.Td(html.A(l[1:], href = l[1:].strip(), target = '_blank'))))
+                    else:
+                        subRows.append(html.Tr(html.Td(l.strip())))
+    else:
+        for i in content.split(';'):
+            if i != '' :
+                    if i[0] == '?':
+                        subRows.append(html.Tr(html.Td(html.A(i[1:], href = i[1:].strip(), target = '_blank'))))
+                    else:
+                        subRows.append(html.Tr(html.Td(i.strip())))
     if len(subRows) > 5:
-        tableRow = html.Tr(children = [html.Td(html.B(name)),
+        tableRow = html.Tr(children = [html.Td(html.B(name.replace('_',' ').title())),
                                html.Td(html.Details(title = str(len(subRows)) + ' values' , children = html.Table(children = 
                                        subRows)))], style = {'background-color' : tableColors[rowNumber%2]})
     else:
-        tableRow = html.Tr(children = [html.Td(html.B(name)),
+        tableRow = html.Tr(children = [html.Td(html.B(name.replace('_',' ').title())),
                                html.Td(html.Table(children = 
                                        subRows))], style = {'background-color' : tableColors[rowNumber%2]})
     if len(subTable) > 0:
-        return html.Tr(children = [html.Td(html.B(name)),html.Table(children = subTable)],
+        return html.Tr(children = [html.Td(html.B(name.replace('_',' ').title())),html.Td(html.Table(children = subTable))],
                                    style = {'background-color' : tableColors[rowNumber%2]})
     else:
         return tableRow

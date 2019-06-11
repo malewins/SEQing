@@ -207,7 +207,23 @@ parser.add_argument('-adv_desc',
                     dest = 'advancedDesc',
                     help = '''Tab seperated file containing additional information
                     on genes. It needs to have a header line and a column named
-                    "gene_ids", other columns can be of your choice''',
+                    "gene_ids", other columns can be of your choice.
+                    For multi value attributes, such as synonyms you can 
+                    seperate them by semicolon. Additionally, if you have complex
+                    attributes like pulbications, you cam seperate the sub-values by
+                    comma and use the -sub_tables argument to create a sub table
+                    with specified heaser. Example: author1,year1,title1;author2,
+                    year2,title2''',
+                    type = Path,
+                    metavar = 'FILE')
+parser.add_argument('-sub_tables',
+                    dest = 'subTables',
+                    help = ''''Tab seperated file containing header information to 
+                    create sub tables in the advanced description tab. Has two columns,
+                    one containing applicable column names from your advanced description file,
+                    the other containing semicolon seperated Strings to be used as 
+                    header for the sub table. Application example: Publications with author,
+                    year, etc. Also see the help for _adv_desc.''',
                     type = Path,
                     metavar = 'FILE')
 
@@ -246,6 +262,10 @@ if useCfg == False: #use command line arguments for setup
         advancedDescPath = Path(args.advancedDesc)
     except TypeError:
         advancedDescPath = None
+    try:
+        subTablePath = Path(args.subTables)
+    except TypeError:
+        subTablePath = None
     try:
         descriptionPath = Path(args.desc)
     except TypeError:
@@ -514,6 +534,15 @@ except FileNotFoundError:
     print('Adanced description file could not be found, ignoring.')
 except ValueError:
     advancedDescriptions = None
+
+subTables = pandas.DataFrame()
+try:
+    subTables = pandas.read_csv(subTablePath, sep = '\t', names = ['column_id', 'columns'])
+except FileNotFoundError:
+    print('Sub table file could not be found, ignoring.')
+except ValueError:
+    subTables = None
+
         
 
 #setup dropdown with gene descriptions if available
@@ -667,6 +696,7 @@ globalDict = {
     'geneAnnotations' : geneAnnotations, # dataframes containing gene annotation data
     'ensembl' : ensembl, # ensembl style fasta format True/False
     'sortKeys' : sortKeys, # arguments for the list.sort function
-    'advancedDesc' : advancedDescriptions} 
+    'advancedDesc' : advancedDescriptions,
+    'subTables' : subTables} 
 
 runpy.run_module('dashboard_binding_sites', init_globals = globalDict, run_name = '__main__')
