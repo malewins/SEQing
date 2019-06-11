@@ -391,7 +391,6 @@ def showDetails(data, name):
         usedColumns.append('plant_ontology')
         plantOntology = str(df.iloc[0]['plant_ontology'])
         if plantOntology not in ['nan', ';""']:
-            print(plantOntology)
             tableRows.append(createDetailRow(plantOntology, 'Plant Ontology', rowCounter))
             rowCounter += 1
     # go through all remaining columns using formatting standard
@@ -399,26 +398,70 @@ def showDetails(data, name):
     for i in remainingColumns:
         value = str(df.iloc[0][i])
         if value not in ['nan', ';""']:
-            if len(value.split(';')) > 1:
+            if len(value.split(';')) > 0:
                 subRows = []
-                for j in value.split(';'):
-                    if j != '':
-                        subRows.append(html.Tr(html.Td(j)))    
+                
+                colName = i.replace('_', ' ').title()
+                subTable = []
+                subColumns = 0
+                for index, j in enumerate(value.split(';')):
+                    if index == 0 and j != '':
+                        if j[0] == '!':
+                            subSubRow = []
+                            for k in j.split(','):
+                                if k != '':
+                                    if k[0] == '!':
+                                        subSubRow.append(html.Th(k[1:]))
+                                    else:
+                                        subSubRow.append(html.Th(k))  
+                            subColumns = len(subSubRow)
+                            subTable.append(html.Tr(children = subSubRow))
+                        else:
+                            if j != '' :
+                                subRows.append(html.Tr(html.Td(j)))                
+                    else:
+                        if subColumns > 0:
+                            subSubRow = []
+                            for k in j.split(','):
+                                if k != '':
+                                    subSubRow.append(html.Td(k))
+                            if len(subSubRow) == subColumns:
+                                subTable.append(html.Tr(children = subSubRow))
+                        else:
+                            if j != '' :
+                                subRows.append(html.Tr(html.Td(j)))
                 if len(subRows) > 5:
-                    tableRow = html.Tr(children = [html.Td(html.B(i.replace('_', ' ').title())),
-                                       html.Td(html.Details(title = str(len(subRows)) + ' ' + i.replace('_', ' ').title() , children = html.Table(children = 
-                                               subRows)))],
-                                                            style = {'background-color' : tableColors[rowCounter%2]} )
+                    tableRow = html.Tr(children = [html.Td(html.B(colName)),
+                                           html.Td(html.Details(title = str(len(subRows)) + ' values' , children = html.Table(children = 
+                                                   subRows)))], style = {'background-color' : tableColors[rowCounter%2]})
                 else:
-                    tableRow = html.Tr(children = [html.Td(html.B(i.replace('_', ' ').title())),
-                                       html.Td(html.Table(children = 
-                                               subRows))], 
-                                                          style = {'background-color' : tableColors[rowCounter%2]})  
-                tableRows.append(tableRow)               
-            else:
-                tableRows.append(html.Tr(children = [html.Td(html.B(i.replace('_', ' ').title())),
-                                                 html.Td(str(df.iloc[0][i]))],
-                                           style = {'background-color' : tableColors[rowCounter%2]}))
+                    tableRow = html.Tr(children = [html.Td(html.B(colName)),
+                                           html.Td(html.Table(children = 
+                                                   subRows))], style = {'background-color' : tableColors[rowCounter%2]})
+                if len(subTable) > 0:
+                    tableRows.append(html.Tr(children = [html.Td(html.B(colName)),html.Td(html.Table(children = subTable))],
+                                               style = {'background-color' : tableColors[rowCounter%2]}))
+                else:
+                    tableRows.append(tableRow)
+                
+#                for j in value.split(';'):
+#                    if j != '':
+#                        subRows.append(html.Tr(html.Td(j)))    
+#                if len(subRows) > 5:
+#                    tableRow = html.Tr(children = [html.Td(html.B(i.replace('_', ' ').title())),
+#                                       html.Td(html.Details(title = str(len(subRows)) + ' ' + i.replace('_', ' ').title() , children = html.Table(children = 
+#                                               subRows)))],
+#                                                            style = {'background-color' : tableColors[rowCounter%2]} )
+#                else:
+#                    tableRow = html.Tr(children = [html.Td(html.B(i.replace('_', ' ').title())),
+#                                       html.Td(html.Table(children = 
+#                                               subRows))], 
+#                                                          style = {'background-color' : tableColors[rowCounter%2]})  
+#                tableRows.append(tableRow)               
+#            else:
+#                tableRows.append(html.Tr(children = [html.Td(html.B(i.replace('_', ' ').title())),
+#                                                 html.Td(str(df.iloc[0][i]))],
+#                                           style = {'background-color' : tableColors[rowCounter%2]}))
             rowCounter += 1
             
     if len(tableRows) >= 1:
@@ -1390,9 +1433,34 @@ def createDetailRow(content, name, rowNumber):
     rowNumber -- used for odd/even coloring
     """
     subRows = []
-    for i in content.split(';'):
-        if i != '' :
-            subRows.append(html.Tr(html.Td(i)))
+    subTable = []
+    subColumns = 0
+    for index, i in enumerate(content.split(';')):
+        if index == 0 and i != '':
+            if i[0] == '!':
+                subSubRow = []
+                for j in i.split(','):
+                    if j != '':
+                        if j[0] == '!':
+                            subSubRow.append(html.Th(j[1:]))
+                        else:
+                            subSubRow.append(html.Th(j))  
+                subColumns = len(subSubRow)
+                subTable.append(html.Tr(children = subSubRow))
+            else:
+                if i != '' :
+                    subRows.append(html.Tr(html.Td(i)))                
+        else:
+            if subColumns > 0:
+                subSubRow = []
+                for j in i.split(','):
+                    if j != '':
+                        subSubRow.append(html.Td(j))
+                if len(subSubRow) == subColumns:
+                    subTable.append(html.Tr(children = subSubRow))
+            else:
+                if i != '' :
+                    subRows.append(html.Tr(html.Td(i)))
     if len(subRows) > 5:
         tableRow = html.Tr(children = [html.Td(html.B(name)),
                                html.Td(html.Details(title = str(len(subRows)) + ' values' , children = html.Table(children = 
@@ -1401,7 +1469,11 @@ def createDetailRow(content, name, rowNumber):
         tableRow = html.Tr(children = [html.Td(html.B(name)),
                                html.Td(html.Table(children = 
                                        subRows))], style = {'background-color' : tableColors[rowNumber%2]})
-    return(tableRow)
+    if len(subTable) > 0:
+        return html.Tr(children = [html.Td(html.B(name)),html.Table(children = subTable)],
+                                   style = {'background-color' : tableColors[rowNumber%2]})
+    else:
+        return tableRow
 
 if __name__ == '__main__':
     app.run_server(debug = True, host = '0.0.0.0', port = port, use_reloader = False)
