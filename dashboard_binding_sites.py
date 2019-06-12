@@ -126,14 +126,14 @@ app.layout = html.Div(
                                     children = [
                                         html.Div(id = 'advMem',
                                             style = {'display' : 'none'}
-                                        ),
-                                        dcc.Dropdown(
-                                            id = 'advDescDrop',
-                                            options = [{'label':i, 'value' : i} for i in advList],
-                                            value = advStart,
-                                            disabled = advAvailable
-                                        ),
-                                        html.Div(id = 'advDisp',    
+                                      #  ),
+                               #         dcc.Dropdown(
+                                #            id = 'advDescDrop',
+                                 #           options = [{'label':i, 'value' : i} for i in advList],
+                                  #          value = advStart,
+                                   #         disabled = advAvailable
+                                    #    ),
+                                     #   html.Div(id = 'advDisp',    
                                         )
                                     ]
                                 )
@@ -306,33 +306,33 @@ def storeDesc(nclicks, geneName):
         df = advancedDesc[advancedDesc['gene_ids'].str.contains(geneName)]
         return df.to_json(orient = 'split')
 
-@app.callback(
-    dash.dependencies.Output('advDisp', component_property = 'children'),
-    [dash.dependencies.Input('advDescDrop', 'value'),
-     dash.dependencies.Input('advMem', 'children')],
-    [dash.dependencies.State('geneDrop', 'value')]    
-)
-def showDesc(column, data, name):
-    try:
-        df = pandas.read_json(data, orient = 'split')
-    except ValueError:
-        try:
-            df = advancedDesc[advancedDesc['gene_ids'].str.contains(name)]
-        except TypeError:
-            df = pandas.DataFrame()
-    try:
-        value = str(df.iloc[0][column])
-        if value == 'nan':
-            return "Unavailable for this gene."
-        else:
-            values = value.split(';')
-            result = []
-            for i in values:
-                if i != '':
-                    result.append(html.P('- ' + i))
-            return result
-    except IndexError:
-        return "Advanced descriptions unavailable."
+#@app.callback(
+#    dash.dependencies.Output('advDisp', component_property = 'children'),
+#    [dash.dependencies.Input('advDescDrop', 'value'),
+#     dash.dependencies.Input('advMem', 'children')],
+#    [dash.dependencies.State('geneDrop', 'value')]    
+#)
+#def showDesc(column, data, name):
+#    try:
+#        df = pandas.read_json(data, orient = 'split')
+#    except ValueError:
+#        try:
+#            df = advancedDesc[advancedDesc['gene_ids'].str.contains(name)]
+#        except TypeError:
+#            df = pandas.DataFrame()
+#    try:
+#        value = str(df.iloc[0][column])
+#        if value == 'nan':
+#            return "Unavailable for this gene."
+#        else:
+#            values = value.split(';')
+#            result = []
+#            for i in values:
+#                if i != '':
+#                   result.append(html.P('- ' + i))
+#            return result
+#   except IndexError:
+#        return "Advanced descriptions unavailable."
 
     
 
@@ -683,17 +683,9 @@ def rnaPlot(clicks, clicks2, geneName, rnaParamList):
         Positional arguments:
         clicks -- Needed to trigger callback with button, not needed otherwise
         geneName -- Name of the selected gene in order to filter the data
-        dataSets -- Selected data tracks with raw binding site data
         seqDisp -- Display mode for dna sequence trace
         """
 
-    # Sort the list of selected data tracks to keep consistent order
-    for i in sortKeys:
-        try:
-            dataSets.sort(key=eval(i[0], {'__builtins__': None}, {}), reverse=eval(i[1], {'__builtins__': None}, {}))
-        except:
-            print(
-                'Please check your keys. Each key should be added similar to this: -k \'lambda x : x[-2:]\' \'False\'	. For multiple keys use multiple instances of -k')
     # select appropriate data from either the coding or non-coding set
     currentGene = pandas.DataFrame()
     for index, elem in enumerate(geneAnnotations):
