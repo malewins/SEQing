@@ -16,6 +16,20 @@ if 'dropList' not in globals():
     print('Please start the program via validator.py')
     exit()
 
+if advancedDesc is None:
+    advList = []
+    advStart = None
+    advAvailable = True
+else:
+    advList = list(advancedDesc.columns.values)
+    advList.remove('gene_ids')
+    try:
+        advStart = advList[0]
+        advAvailable = False
+    except:
+        advStart = None
+        advAvailable = True
+    
 if len(sequences) == 0:
     seqDispStyle = {'display': 'none'}
 else:
@@ -27,8 +41,9 @@ try:
 except:
     initialColor = None
     disableSettings = True
-
-print(disableSettings)
+    
+tabStyle = {'padding' : '0', 'line-height' : '5vh'}
+tableColors = ['rgb(255, 255 ,255)', 'rgb(125, 244, 66)']
 
 app = dash.Dash(__name__)
 
@@ -61,12 +76,18 @@ app.layout = html.Div(
                     ]
                 ),
                 dcc.Tabs(
-                    id='tabs',
-                    children=[
+                    id = 'tabs',
+                    style = {
+                        'width' : '50%',
+                        'height' : '5vh'
+                    },
+                    children = [
                         dcc.Tab(
-                            label='iCLIP data',
-                            id='clipTab',
-                            children=[
+                            label = 'iCLIP data',
+                            style = tabStyle,
+                            selected_style = tabStyle,
+                            id = 'clipTab',
+                            children = [
                                 html.Div(
                                     children=[
                                         html.Div(
@@ -100,11 +121,40 @@ app.layout = html.Div(
                                         )
                                     ]
                                 ),
-                                dcc.Graph(id='bsGraph')
+                                 dcc.Graph(id = 'bsGraph'),
+                                html.Div(
+                                    children = [
+                                        html.Div(id = 'advMem',
+                                            style = {'display' : 'none'}
+                                        ),
+                                        dcc.Dropdown(
+                                            id = 'advDescDrop',
+                                            options = [{'label':i, 'value' : i} for i in advList],
+                                            value = advStart,
+                                            disabled = advAvailable
+                                        ),
+                                        html.Div(id = 'advDisp',    
+                                        )
+                                    ]
+                                )
+                            ]
+                        ),
+                        dcc.Tab(
+                            label = 'Details',
+                            id = 'deTab',
+                            style = tabStyle,
+                            selected_style = tabStyle,
+                            children = [
+                                html.Div(
+                                    id = 'detailMainDiv',
+                                    children = []
+                                )
                             ]
                         ),
                         dcc.Tab(
                             label='RNASeq',
+                            style = tabStyle,
+                            selected_style = tabStyle,
                             id='rnaTab',
                             children=[
                                 html.Div(
@@ -155,10 +205,13 @@ app.layout = html.Div(
                             ]
                         ),
                         dcc.Tab(
-                            label='Settings',
-                            id='settings',
-                            disabled=disableSettings,
-                            children=[
+                            label = 'Settings',
+                            id = 'settings',
+                            style = tabStyle,
+                            selected_style = tabStyle,
+                            disabled = disableSettings,
+                            disabled_style = tabStyle,
+                            children = [
                                 html.Div(
                                     children=[
                                         html.Div(
@@ -242,6 +295,131 @@ app.layout = html.Div(
         )
     ]
 )
+                                                
+@app.callback(
+    dash.dependencies.Output('advMem', component_property = 'children'),
+    [dash.dependencies.Input('submit', 'n_clicks')],
+    [dash.dependencies.State('geneDrop', 'value')]
+)
+def storeDesc(nclicks, geneName):
+    if advancedDesc is not None:
+        df = advancedDesc[advancedDesc['gene_ids'].str.contains(geneName)]
+        return df.to_json(orient = 'split')
+
+@app.callback(
+    dash.dependencies.Output('advDisp', component_property = 'children'),
+    [dash.dependencies.Input('advDescDrop', 'value'),
+     dash.dependencies.Input('advMem', 'children')],
+    [dash.dependencies.State('geneDrop', 'value')]    
+)
+def showDesc(column, data, name):
+    try:
+        df = pandas.read_json(data, orient = 'split')
+    except ValueError:
+        try:
+            df = advancedDesc[advancedDesc['gene_ids'].str.contains(name)]
+        except TypeError:
+            df = pandas.DataFrame()
+    try:
+        value = str(df.iloc[0][column])
+        if value == 'nan':
+            return "Unavailable for this gene."
+        else:
+            values = value.split(';')
+            result = []
+            for i in values:
+                if i != '':
+                    result.append(html.P('- ' + i))
+            return result
+    except IndexError:
+        return "Advanced descriptions unavailable."
+
+    
+
+@app.callback(
+    dash.dependencies.Output('detailMainDiv', component_property = 'children'),
+    [dash.dependencies.Input('advMem', 'children')],
+    [dash.dependencies.State('geneDrop', 'value')]
+)
+def showDetails(data, name):
+    """ Create tabular view of additional data
+    
+    Positional arguments:
+    data -- data for the current gene, as json string(dict)
+    name -- gene name for initialization
+    """
+    try:
+        df = pandas.read_json(data, orient = 'split')
+    except ValueError:
+        try:
+            df = advancedDesc[advancedDesc['gene_ids'].str.contains(name)]
+        except TypeError:
+            df = pandas.DataFrame()
+    columns = list(df.columns.values)
+    rowCounter = 1 # keep track of the row number to alternate coloring
+    usedColumns = [] # keeps track of preset columns already added, needed later
+    usedColumns.append('gene_ids')
+    content = [] # table content to be displayed
+    generalColumns = ['symbol', 'brief_description', 'is_obsolete', 'computational_description',
+                      'curator_summary', 'name']
+    tableRows = [] # will contain the table rows
+    for i in generalColumns:
+        if i in columns and str(df.iloc[0][i]) not in ['nan', ';""']:
+            tableRows.append(html.Tr(children = [html.Td(html.B(i.replace('_', ' ').title())),
+                                                 html.Td(str(df.iloc[0][i]).strip())], 
+                                    style = {'background-color' : tableColors[rowCounter%2]}))
+            usedColumns.append(i)
+            rowCounter += 1
+    # go through a number of predefined columns
+    if 'synonyms' in columns:
+        synonyms = str(df.iloc[0]['synonyms'])
+        usedColumns.append('synonyms')
+        if synonyms not in ['nan', ';""']:
+            tableRows.append(createDetailRow(synonyms, 'synonyms', rowCounter))
+            rowCounter += 1
+    if 'publications' in columns:
+        usedColumns.append('publications')
+        publications = str(df.iloc[0]['publications'])
+        if publications not in ['nan', ';""']:
+            tableRows.append(createDetailRow(publications, 'publications', rowCounter))
+            rowCounter += 1
+    if 'proteins' in columns:
+        usedColumns.append('proteins')
+        proteins = str(df.iloc[0]['proteins'])
+        if publications not in ['nan', ';""']:
+            tableRows.append(createDetailRow(proteins, 'proteins', rowCounter))
+            rowCounter += 1
+    if 'gene_ontology' in columns:
+        usedColumns.append('gene_ontology')
+        geneOntology = str(df.iloc[0]['gene_ontology'])
+        if geneOntology not in ['nan', ';""']:
+            tableRows.append(createDetailRow(geneOntology, 'gene_ontology', rowCounter))
+            rowCounter += 1
+    if 'pathways' in columns:
+        usedColumns.append('pathways')
+        pathways = str(df.iloc[0]['pathways'])
+        if pathways not in ['nan', ';""']:
+            tableRows.append(createDetailRow(pathways, 'pathways', rowCounter))
+            rowCounter += 1
+    if 'plant_ontology' in columns:
+        usedColumns.append('plant_ontology')
+        plantOntology = str(df.iloc[0]['plant_ontology'])
+        if plantOntology not in ['nan', ';""']:
+            tableRows.append(createDetailRow(plantOntology, 'plant_ontology', rowCounter))
+            rowCounter += 1
+    # go through all remaining columns using formatting standard
+    remainingColumns = [x for x in columns if x not in usedColumns]
+    for i in remainingColumns:
+        value = str(df.iloc[0][i])
+        if value not in ['nan', ';""']:
+            tableRows.append(createDetailRow(value, i, rowCounter))
+            rowCounter += 1
+            
+    if len(tableRows) >= 1:
+        content.append(html.Table(tableRows))
+    else:
+        content.append(html.B('No additional information available for the currently selected gene'))
+    return content
 
 
 @app.callback(
@@ -1030,20 +1208,20 @@ def plotRaw(name, xMax, xMin, chrom, strand, colors):
         # plot binding sites
 
         for k in bindingSites.iterrows():
-            procSitesList.append(
-                go.Bar(
-                    opacity=0.5,
-                    x=[k[1]['chromStart'] + (k[1]['chromEnd'] - k[1]['chromStart']) // 2],
-                    y=[0.1],
-                    hoverinfo='name',
-                    legendgroup=name,
-                    width=k[1]['chromEnd'] - k[1]['chromStart'],
-                    name='binding sites',
-                    marker=go.bar.Marker(
-                        color=colors[name]
-                    ), showlegend=False
+                procSitesList.append(
+                    go.Bar(
+                        opacity = 0.5,
+                        x = [k[1]['chromStart'] + (k[1]['chromEnd'] - k[1]['chromStart']) // 2],
+                        y = [0.1],
+                        hoverinfo = 'name',
+                        legendgroup = name,
+                        width = k[1]['chromEnd'] - k[1]['chromStart'],
+                        name = name + '_bs',
+                        marker = go.bar.Marker(
+                            color = colors[name]
+                        ), showlegend = False
+                    )
                 )
-            )
     except KeyError:
         pass
     except Exception as e:
@@ -1126,17 +1304,17 @@ def generateGeneModel(chromStart, codingRegionStart, codingRegionEnd, blockStart
         legendgroup=name.split('.')[-1]
     )
     upper = go.Bar(
-        x=blockVals,
-        y=blockYs,
-        name='',
-        hoverinfo='none',
-        width=blockWidths,
-        marker=go.bar.Marker(
-            color='rgb(0, 0, 0)'
-        ),
-        showlegend=False,
-        legendgroup=name.split('.')[-1]
-    )
+            x = blockVals,
+            y = blockYs,
+            name = name.split('.')[-1],
+            hoverinfo = 'none',
+            width = blockWidths,
+            marker = go.bar.Marker(
+                color = 'rgb(0, 0, 0)'
+            ),
+            showlegend = False,
+            legendgroup = name.split('.')[-1]
+        )
     lower = go.Bar(
         x=blockVals,
         name=name.split('.')[-1],
@@ -1182,59 +1360,64 @@ def generateSequenceTrace(seqDisp, strand, combinedSeq, xAxisMin, xAxisMax):
             except KeyError:
                 Err.append(i)
         aTrace = go.Scatter(
-            text=['A'] * len(xA),
-            textfont=dict(color=colorA),
-            mode='text',
-            y=[1] * len(xA),
-            x=xA,
-            showlegend=False,
-            opacity=0.5,
-            hoverinfo='x',
-            textposition="bottom center"
+            text = ['A']*len(xA),
+            textfont = dict(color = colorA),
+            mode = 'text',
+            name = 'seqA',
+            y = [1]*len(xA),
+            x = xA,
+            showlegend = False,
+            opacity = 0.5,
+            hoverinfo = 'x',
+            textposition = "bottom center"
         )
         cTrace = go.Scatter(
-            text=['C'] * len(xC),
-            mode='text',
-            textfont=dict(color=colorC),
-            y=[1] * len(xC),
-            x=xC,
-            showlegend=False,
-            opacity=0.5,
-            hoverinfo='x',
-            textposition="bottom center"
+            text = ['C']*len(xC),
+            mode = 'text',
+            textfont = dict(color = colorC),
+            y = [1]*len(xC),
+            x = xC,
+            name = 'seqC',
+            showlegend = False,
+            opacity = 0.5,
+            hoverinfo = 'x',
+            textposition = "bottom center"     
         )
         gTrace = go.Scatter(
-            text=['G'] * len(xG),
-            textfont=dict(color=colorG),
-            mode='text',
-            y=[1] * len(xG),
-            x=xG,
-            showlegend=False,
-            opacity=0.5,
-            hoverinfo='x',
-            textposition="bottom center"
+            text = ['G']*len(xG),
+            textfont = dict(color = colorG),
+            mode = 'text',
+            y = [1]*len(xG),
+            name = 'seqG',
+            x = xG,
+            showlegend = False,
+            opacity = 0.5,
+            hoverinfo = 'x',
+            textposition = "bottom center"
         )
         tTrace = go.Scatter(
-            text=['T'] * len(xT),
-            textfont=dict(color=colorT),
-            mode='text',
-            y=[1] * len(xT),
-            x=xT,
-            showlegend=False,
-            opacity=0.5,
-            hoverinfo='x',
-            textposition="bottom center"
+            text = ['T']*len(xT),
+            textfont = dict(color = colorT),
+            mode = 'text',
+            y = [1]*len(xT),
+            name = 'seqT',
+            x = xT,
+            showlegend = False,
+            opacity = 0.5,
+            hoverinfo = 'x',
+            textposition = "bottom center"
         )
         errorTrace = go.Scatter(
-            text=['N'] * len(Err),
-            textfont=dict(color='rgb(0,0,0)'),
-            mode='text',
-            y=[1] * len(Err),
-            x=Err,
-            showlegend=False,
-            opacity=0.5,
-            hoverinfo='x',
-            textposition="bottom center"
+            text = ['N']*len(Err),
+            textfont = dict(color = 'rgb(0,0,0)'),
+            mode = 'text',
+            name = 'seqN',
+            y = [1]*len(Err),
+            x = Err,
+            showlegend = False,
+            opacity = 0.5,
+            hoverinfo = 'x',
+            textposition = "bottom center"
         )
         return [aTrace, cTrace, gTrace, tTrace, errorTrace]
     if seqDisp == 'heatSeq':
@@ -1282,19 +1465,83 @@ def generateSequenceTrace(seqDisp, strand, combinedSeq, xAxisMin, xAxisMax):
             ]
 
         heatTrace = go.Heatmap(
-            z=[zlist],
-            x=list(range(xAxisMin, xAxisMax)),
-            text=[textList],
-            colorscale=colors,
-            showscale=False,
-            hoverinfo='x+text',
-            colorbar={
-                'tick0': 0,
-                'dtick': 1
+            z = [zlist],
+            x = list(range(xAxisMin,xAxisMax)),
+            text = [textList],
+            colorscale = colors,
+            showscale = False,
+            name = 'seq',
+            hoverinfo = 'x+text',
+            colorbar = {
+                'tick0' : 0,
+                'dtick' : 1
             }
         )
         return [heatTrace]
 
+def createDetailRow(content, name, rowNumber):
+    """ returns a single row for the details table
+    
+    Positional arguments:
+    content -- the attribute data as String
+    name -- name for the attribute
+    combinedSeq -- sequence for display
+    rowNumber -- used for odd/even coloring
+    """
+    try:
+        headerLine = subTables[subTables['column_id'].str.contains(name)]
+    except:
+        headerLine = None
+    try:
+        headers = str(headerLine.iloc[0]['columns']).split(';')
+    except:
+        headers = None
+    subRows = []
+    subTable = []
+    if headers != None:
+        headerRow = []
+        for k in headers:
+            headerRow.append(html.Th(k))
+        subTable.append(html.Tr(children = headerRow))
+        for i in content.split(';'):
+            subSubRow = []
+            if len(i.split(',')) == len(headers):
+                for j in i.split(','):
+                    if j != '':
+                        if j[0] == '?':
+                            subSubRow.append(html.Td(html.A(j[1:], href = j[1:].strip(), target = '_blank')))
+                        else:
+                            subSubRow.append(html.Td(j.strip()))    
+                subTable.append(html.Tr(children = subSubRow))
+        if len(subTable) == 1:
+            print('Warning: Number of columns specified in sub table file do not match number of columns in description file')
+            subTable = []
+            for l in content.split(';'):
+                if l != '' :
+                    if l[0] == '?':
+                        subRows.append(html.Tr(html.Td(html.A(l[1:], href = l[1:].strip(), target = '_blank'))))
+                    else:
+                        subRows.append(html.Tr(html.Td(l.strip())))
+    else:
+        for i in content.split(';'):
+            if i != '' :
+                    if i[0] == '?':
+                        subRows.append(html.Tr(html.Td(html.A(i[1:], href = i[1:].strip(), target = '_blank'))))
+                    else:
+                        subRows.append(html.Tr(html.Td(i.strip())))
+    if len(subRows) > 5:
+        tableRow = html.Tr(children = [html.Td(html.B(name.replace('_',' ').title())),
+                               html.Td(html.Details(title = str(len(subRows)) + ' values' , children = html.Table(children = 
+                                       subRows)))], style = {'background-color' : tableColors[rowNumber%2]})
+    else:
+        tableRow = html.Tr(children = [html.Td(html.B(name.replace('_',' ').title())),
+                               html.Td(html.Table(children = 
+                                       subRows))], style = {'background-color' : tableColors[rowNumber%2]})
+    if len(subTable) > 0:
+        return html.Tr(children = [html.Td(html.B(name.replace('_',' ').title())),html.Td(html.Table(children = subTable))],
+                                   style = {'background-color' : tableColors[rowNumber%2]})
+    else:
+        return tableRow
 
 if __name__ == '__main__':
     app.run_server(debug=True, host='0.0.0.0', port=port, use_reloader=False)
