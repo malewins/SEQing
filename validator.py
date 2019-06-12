@@ -579,8 +579,8 @@ if len(spliceSitePaths) > 0:
     print('Loading splice site data')
 for i in spliceSitePaths:
         try:
-            df = pandas.read_csv(i, sep= '\t', names= bsHeader)
-            validation = validateBed(df)
+            df = pandas.read_csv(i, sep= '\t', names= rawHeader)
+            validation = validateBedGraph(df)
             file_name = i.stem.split('_')[0]+'_'+i.stem.split('_')[1]
             if validation[0]:
                 if file_name in spliceProcDFs:
