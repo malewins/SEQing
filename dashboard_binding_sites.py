@@ -1055,11 +1055,11 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal):
         try:
             combinedSeq = str(currentSequenceSet[nameLeftSeq].seq)
             currentEnd = leftEnd
-            for i in currentGene.iterrows():
-                if i[1]['chromEnd'] > currentEnd:
-                    if i[1]['chromStart'] <= currentEnd:
-                        combinedSeq += str(currentSequenceSet[i[1]['name']].seq)[(currentEnd - i[1]['chromStart']):]
-                        currentEnd = i[1]['chromEnd']
+            for i in currentGene.itertuples():
+                if i.chromEnd > currentEnd:
+                    if i.chromStart <= currentEnd:
+                        combinedSeq += str(currentSequenceSet[i.name].seq)[(currentEnd - i.chromStart):]
+                        currentEnd = i.chromEnd
                 if currentEnd >= xAxisMax:
                     break
             if currentEnd < rightStart:  # Case that there is a gap between leftmost and rightmost sequence.
@@ -1085,7 +1085,7 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal):
 
     counter = 2
     for i in range(len(dataSets)):
-        bsTraces = plotRaw(dataSets[i], xAxisMax, xAxisMin, chrom, strand, colors)  # plot Binding site data
+        bsTraces = plotICLIP(dataSets[i], xAxisMax, xAxisMin, chrom, strand, colors)  # plot Binding site data
         fig.append_trace(bsTraces[0], counter, 1)
         if len(bsTraces[1]) > 0:
             for j in range(len(bsTraces[1])):
@@ -1093,14 +1093,14 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal):
         counter += dsElements
 
     # calculate gene models. We have to distinguish between coding region and non-coding region
-    for i in currentGene.iterrows():
+    for i in currentGene.itertuples():
         # setup various helpers to work out the different sized blocks
-        chromEnds.append(i[1]['chromEnd'])
-        blockStarts = [int(x) for x in i[1]['blockStarts'].rstrip(',').split(',')]
-        blockSizes = [int(x) for x in i[1]['blockSizes'].rstrip(',').split(',')]
-        genemodel = generateGeneModel(int(i[1]['chromStart']), int(i[1]['thickStart']), int(i[1]['thickEnd'] - 1),
+        chromEnds.append(i.chromEnd)
+        blockStarts = [int(x) for x in i.blockStarts.rstrip(',').split(',')]
+        blockSizes = [int(x) for x in i.blockSizes.rstrip(',').split(',')]
+        genemodel = generateGeneModel(int(i.chromStart), int(i.thickStart), int(i.thickEnd - 1),
                                       blockStarts, blockSizes,
-                                      0.4, i[1]['name'])
+                                      0.4, i.name)
         for j in range(len(genemodel)):
             fig.append_trace(genemodel[j], counter, 1)
             # move on to the next gene model
@@ -1115,24 +1115,9 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal):
     if procAvail:
         for i in range(0, numParams * dsElements, 2):
             fig['layout']['yaxis' + str(i + 3)].update(showticklabels=False, showgrid=False, zeroline=False)
-    arrows = []  # adding a whole list of annotations has better performance than adding them one by one
     for i in range(len(currentGene)):  # edit all y axis in gene model plots
         fig['layout']['yaxis' + str(i + numParams * dsElements + 2)].update(showticklabels=False, showgrid=False,
                                                                             zeroline=False)
-        arrows.append(
-            dict(
-                x=chromEnds[i] + min(50, (xAxisMax - xAxisMin) * 0.01),
-                y=0.0,
-                xref='x',
-                yref='y' + str(i + numParams * dsElements + 2),
-                text='',
-                showarrow=True,
-                arrowhead=1,
-                ax=-int(strand + '5'),  # determine arrow direction. - strand left, + strand right
-                ay=0
-            ),
-        )
-    # fig['layout']['annotations'] = arrows
     for i in range(numRows + 1):  # prevent zoom on y axis
         if i == 0:
             fig['layout']['yaxis'].update(fixedrange=True)
@@ -1146,8 +1131,8 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal):
     return fig
 
 
-def plotRaw(name, xMax, xMin, chrom, strand, colors):
-    """Helper method to plot the subplots containing raw binding site data
+def plotICLIP(name, xMax, xMin, chrom, strand, colors):
+    """Helper method to plot the subplots containing iCLIP data
     
     Positional arguments:
     name -- name of the subplot to create a title
@@ -1169,10 +1154,10 @@ def plotRaw(name, xMax, xMin, chrom, strand, colors):
     countsX = []
     countsY = []
     countsW = []
-    for i in rawSites.iterrows():
-        countsX.append(i[1]['chromStart'])
-        countsY.append(i[1]['count'])
-        countsW.append(i[1]['chromEnd'] - i[1]['chromStart'])
+    for i in rawSites.itertuples():
+        countsX.append(i.chromStart)
+        countsY.append(i.count)
+        countsW.append(i.chromEnd - i.chromStart)
     # plot data
     rawTrace = go.Bar(
         x=countsX,
@@ -1199,15 +1184,15 @@ def plotRaw(name, xMax, xMin, chrom, strand, colors):
         bindingSites = bsProcDFs[name].loc[bcrit11 & bcrit12 & ((bcrit21 & bcrit22) | (bcrit31 & bcrit32))]
         # plot binding sites
 
-        for k in bindingSites.iterrows():
+        for k in bindingSites.itertuples():
                 procSitesList.append(
                     go.Bar(
                         opacity = 0.5,
-                        x = [k[1]['chromStart'] + (k[1]['chromEnd'] - k[1]['chromStart']) // 2],
+                        x = [k.chromStart + (k.chromEnd - k.chromStart) // 2],
                         y = [0.1],
                         hoverinfo = 'name',
                         legendgroup = name,
-                        width = k[1]['chromEnd'] - k[1]['chromStart'],
+                        width = k.chromEnd - k.chromStart,
                         name = name + '_bs',
                         marker = go.bar.Marker(
                             color = colors[name]
