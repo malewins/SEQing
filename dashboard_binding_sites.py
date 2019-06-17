@@ -214,74 +214,85 @@ app.layout = html.Div(
                             children = [
                                 html.Div(
                                     children=[
-                                        html.Div(
-                                            style={'display': 'none'},
-                                            id='colorDiv',
-                                            children=json.dumps(colorMap)
-                                        ),
-                                        html.Div(
-                                            style={'display': 'none'},
-                                            id='colorFinal',
-                                            children=json.dumps(colorMap)
-                                        ),
-                                        dcc.Dropdown(
-                                            id='colorDrop',
-                                            options=[{'label': i, 'value': i} for i in dataSetNames],
-                                            value=initialColor
-                                        ),
-                                        html.Div(
-                                            id='rDisp',
-                                            children=html.P(html.B('R: ')),
-                                            style={'width': '10vw', 'display': 'table-cell'}
-                                        ),
-                                        dcc.Slider(
-                                            id='rInput',
-                                            min=0,
-                                            max=255,
-                                            step=1,
-                                            updatemode='drag'
-                                        ),
-                                        html.Div(
-                                            id='gDisp',
-                                            children=html.P(html.B('G: ')),
-                                            style={'width': '10vw', 'display': 'table-cell'}
-                                        ),
-                                        dcc.Slider(
-                                            id='gInput',
-                                            min=0,
-                                            max=255,
-                                            step=1,
-                                            updatemode='drag'
-                                        ),
-                                        html.Div(
-                                            id='bDisp',
-                                            children=html.P(html.B('B: ')),
-                                            style={'width': '10vw', 'display': 'table-cell'}
-                                        ),
-                                        dcc.Slider(
-                                            id='bInput',
-                                            min=0,
-                                            max=255,
-                                            step=1,
-                                            updatemode='drag'
-                                        ),
-                                        html.Div(
-                                            children=[
-                                                html.Div(id='preview',
-                                                         children=html.P(html.B('Preview')),
-                                                         style={'width': '30vw', 'display': 'table-cell',
-                                                                'verticalalign': 'middle'}
-                                                         ),
+                                        html.Fieldset(title = 'iCLIP Settings', 
+                                            style = {
+                                                'border' : 'solid',
+                                                'borderWidth' : '1px',
+                                                'padding' : '10px',
+                                                'borderColor' : 'rgb(128,128,128)'
+                                            },
+                                            children = [ 
+                                                html.Legend('iCLIP Settings'),
+                                                html.Div(
+                                                    style={'display': 'none'},
+                                                    id='colorDiv',
+                                                    children=json.dumps(colorMap)
+                                                ),
+                                                html.Div(
+                                                    style={'display': 'none'},
+                                                    id='colorFinal',
+                                                    children=json.dumps(colorMap)
+                                                ),
+                                                dcc.Dropdown(
+                                                    id='colorDrop',
+                                                    options=[{'label': i, 'value': i} for i in dataSetNames],
+                                                    value=initialColor
+                                                ),
+                                                html.Div(
+                                                    id='rDisp',
+                                                    children=html.P(html.B('R: ')),
+                                                    style={'width': '10vw', 'display': 'table-cell'}
+                                                ),
+                                                dcc.Slider(
+                                                    id='rInput',
+                                                    min=0,
+                                                    max=255,
+                                                    step=1,
+                                                    updatemode='drag'
+                                                ),
+                                                html.Div(
+                                                    id='gDisp',
+                                                    children=html.P(html.B('G: ')),
+                                                    style={'width': '10vw', 'display': 'table-cell'}
+                                                ),
+                                                dcc.Slider(
+                                                    id='gInput',
+                                                    min=0,
+                                                    max=255,
+                                                    step=1,
+                                                    updatemode='drag'
+                                                ),
+                                                html.Div(
+                                                    id='bDisp',
+                                                    children=html.P(html.B('B: ')),
+                                                    style={'width': '10vw', 'display': 'table-cell'}
+                                                ),
+                                                dcc.Slider(
+                                                    id='bInput',
+                                                    min=0,
+                                                    max=255,
+                                                    step=1,
+                                                    updatemode='drag'
+                                                ),
                                                 html.Div(
                                                     children=[
-                                                        html.Button(id='colorConfirm', n_clicks_timestamp=0,
-                                                                    children='confirm')
+                                                        html.Div(id='preview',
+                                                                 children=html.P(html.B('Preview')),
+                                                                 style={'width': '30vw', 'display': 'table-cell',
+                                                                        'verticalalign': 'middle'}
+                                                                 ),
+                                                        html.Div(
+                                                            children=[
+                                                                html.Button(id='colorConfirm', n_clicks_timestamp=0,
+                                                                            children='confirm')
+                                                            ],
+                                                            style={'width': '10vw', 'display': 'table-cell',
+                                                                   'verticalalign': 'middle'}
+                                                        )
                                                     ],
-                                                    style={'width': '10vw', 'display': 'table-cell',
-                                                           'verticalalign': 'middle'}
+                                                    style={'width': '10vw', 'display': 'table-cell'}
                                                 )
-                                            ],
-                                            style={'width': '10vw', 'display': 'table-cell'}
+                                            ]
                                         )
                                     ],
                                     style={'width': '30vw', 'display': 'table-cell', 'verticalalign': 'middle'}
@@ -1508,8 +1519,8 @@ def createDetailRow(content, name, rowNumber):
                         subRows.append(html.Tr(html.Td(i.strip())))
     if len(subRows) > 5:
         tableRow = html.Tr(children = [html.Td(html.B(name.replace('_',' ').title())),
-                               html.Td(html.Details(title = str(len(subRows)) + ' values' , children = html.Table(children = 
-                                       subRows)))], style = {'background-color' : tableColors[rowNumber%2]})
+                               html.Td(html.Details(title = str(len(subRows)) + ' values', children = [html.Summary(str(len(subRows)) + ' values'), html.Table(children = 
+                                       subRows)]))], style = {'background-color' : tableColors[rowNumber%2]})
     else:
         tableRow = html.Tr(children = [html.Td(html.B(name.replace('_',' ').title())),
                                html.Td(html.Table(children = 
