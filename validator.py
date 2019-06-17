@@ -533,6 +533,7 @@ try:
         advancedDescriptions = None
 except FileNotFoundError:
     print('Adanced description file could not be found, ignoring.')
+    advancedDescriptions = None
 except ValueError:
     advancedDescriptions = None
 
