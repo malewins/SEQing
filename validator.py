@@ -279,18 +279,13 @@ if useCfg == False: #use command line arguments for setup
         else:
             print('Color string ' + str(i) + ' is not valid')
 else: #use xml document for setup
+    geneAnnotationPaths = args.geneAnno
     try:
         port = configFile.getElementsByTagName('port')[0].firstChild.data
         print(port)
     except:
         print('No port specified, using 8060')
         port = 8060
-    try:
-        geneAnnotationPaths = [Path(i.firstChild.data) for i in configFile.getElementsByTagName('anno')]
-        print(geneAnnotationPaths)
-    except:
-        print('Unable to load annotation files, please check your config. Exiting.')
-        exit()
     try:
         fastaPaths = [Path(i.firstChild.data) for i in configFile.getElementsByTagName('seq')]
     except:
@@ -331,6 +326,20 @@ else: #use xml document for setup
                     plotColors.append(color)
             except:
                 pass
+    try:
+        advancedDescPath = Path(configFile.getElementsByTagName('advDesc')[0].firstChild.data)
+    except:
+        advancedDescPath = None
+    try:
+        subTablePath = Path(configFile.getElementsByTagName('subtables')[0].firstChild.data)
+    except:
+        subTablePath = None
+    try:
+        spliceSitePaths = [Path(i.firstChild.data) for i in configFile.getElementsByTagName('splice')]
+    except:
+        spliceSitePaths = []
+    
+
 
 if len(plotColors) == 0:
     print('No valid color strings provided, using defaults')
