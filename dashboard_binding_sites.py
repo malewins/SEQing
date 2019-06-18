@@ -16,6 +16,7 @@ if 'dropList' not in globals():
     print('Please start the program via validator.py')
     exit()
 
+# Set defaults if no advanced descriptions are available
 if advancedDesc is None:
     advList = []
     advStart = None
@@ -29,20 +30,24 @@ else:
     except:
         advStart = None
         advAvailable = True
-    
+
+# Hide sequence related controls if no sequence data is available
 if len(sequences) == 0:
     seqDispStyle = {'display': 'none'}
 else:
     seqDispStyle = {'width': '20vw', 'display': 'table-cell'}
 
+# Try to setup color picker
 try:
     initialColor = dataSetNames[0]
     disableSettings = False
 except:
     initialColor = None
     disableSettings = True
-    
+
+# default tab style
 tabStyle = {'padding' : '0', 'line-height' : '5vh'}
+#colors for the alternating coloring in Details
 tableColors = ['rgb(255, 255 ,255)', 'rgb(125, 244, 66)']
 
 app = dash.Dash(__name__)
@@ -126,14 +131,6 @@ app.layout = html.Div(
                                     children = [
                                         html.Div(id = 'advMem',
                                             style = {'display' : 'none'}
-                                      #  ),
-                               #         dcc.Dropdown(
-                                #            id = 'advDescDrop',
-                                 #           options = [{'label':i, 'value' : i} for i in advList],
-                                  #          value = advStart,
-                                   #         disabled = advAvailable
-                                    #    ),
-                                     #   html.Div(id = 'advDisp',    
                                         )
                                     ]
                                 )
@@ -313,39 +310,16 @@ app.layout = html.Div(
     [dash.dependencies.State('geneDrop', 'value')]
 )
 def storeDesc(nclicks, geneName):
+    """ Save description data to hidden div for display
+    
+    Positional arguments:
+    nlicks -- button parameter
+    geneName -- name of the currently selected gene
+    """
+    
     if advancedDesc is not None:
         df = advancedDesc[advancedDesc['gene_ids'].str.contains(geneName)]
         return df.to_json(orient = 'split')
-
-#@app.callback(
-#    dash.dependencies.Output('advDisp', component_property = 'children'),
-#    [dash.dependencies.Input('advDescDrop', 'value'),
-#     dash.dependencies.Input('advMem', 'children')],
-#    [dash.dependencies.State('geneDrop', 'value')]    
-#)
-#def showDesc(column, data, name):
-#    try:
-#        df = pandas.read_json(data, orient = 'split')
-#    except ValueError:
-#        try:
-#            df = advancedDesc[advancedDesc['gene_ids'].str.contains(name)]
-#        except TypeError:
-#            df = pandas.DataFrame()
-#    try:
-#        value = str(df.iloc[0][column])
-#        if value == 'nan':
-#            return "Unavailable for this gene."
-#        else:
-#            values = value.split(';')
-#            result = []
-#            for i in values:
-#                if i != '':
-#                   result.append(html.P('- ' + i))
-#            return result
-#   except IndexError:
-#        return "Advanced descriptions unavailable."
-
-    
 
 @app.callback(
     dash.dependencies.Output('detailMainDiv', component_property = 'children'),
@@ -968,11 +942,13 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal):
     colors -- color currently being confirmed. Needed to to lack of order on callbacks
     colorsFinal -- last confirmed color
     """
-
+    
+    # check which of the two triggering buttons was pressed last
     if submit > confirm:
         colors = colorsFinal
     else:
         colors = colors
+        
     # Sort the list of selected data tracks to keep consistent order
     for i in sortKeys:
         try:
@@ -985,7 +961,7 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal):
     baseHeight = 30  # size of gene model row, for plot scaling
     # select appropriate data from either the coding or non-coding set
     currentGene = pandas.DataFrame()
-    for index, elem in enumerate(geneAnnotations):
+    for elem in geneAnnotations:
         currentGene = elem[elem['name'].str.contains(geneName)]
         if not currentGene.empty:
             break
@@ -1090,9 +1066,8 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal):
         pass
     #       pass
 
-    chrom = currentGene[
-        'chrom'].any()  # save strand info, necessary for arrow annotations. Should be same for all isoforms, so any will do
-    chromEnds = []  # used for arrow positioning
+    # save strand info, necessary for arrow annotations. Should be same for all isoforms, so any will do
+    chrom = currentGene['chrom'].any() 
 
     counter = 2
     for i in range(len(dataSets)):
@@ -1106,7 +1081,6 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal):
     # calculate gene models. We have to distinguish between coding region and non-coding region
     for i in currentGene.itertuples():
         # setup various helpers to work out the different sized blocks
-        chromEnds.append(i.chromEnd)
         blockStarts = [int(x) for x in i.blockStarts.rstrip(',').split(',')]
         blockSizes = [int(x) for x in i.blockSizes.rstrip(',').split(',')]
         genemodel = generateGeneModel(int(i.chromStart), int(i.thickStart), int(i.thickEnd - 1),
@@ -1194,7 +1168,6 @@ def plotICLIP(name, xMax, xMin, chrom, strand, colors):
         bcrit32 = bsProcDFs[name]['chromEnd'] <= xMax
         bindingSites = bsProcDFs[name].loc[bcrit11 & bcrit12 & ((bcrit21 & bcrit22) | (bcrit31 & bcrit32))]
         # plot binding sites
-
         for k in bindingSites.itertuples():
                 procSitesList.append(
                     go.Bar(
@@ -1233,6 +1206,7 @@ def generateGeneModel(chromStart, codingRegionStart, codingRegionEnd, blockStart
     blockVals = []
     blockWidths = []
     blockYs = []
+    # calculte blocks from block start and end positions, as well as thickness
     for j in range(len(blockStarts)):
         blockStart = chromStart + blockStarts[j]
         blockEnd = chromStart + blockStarts[j] + blockSizes[j] - 1  # same as codingRegionEnd
@@ -1275,6 +1249,7 @@ def generateGeneModel(chromStart, codingRegionStart, codingRegionEnd, blockStart
             blockWidths.append(blockEnd - codingRegionEnd + 1)
             blockYs.append(blockHeight / 2)
 
+    # find first and last block o draw line properly
     f = lambda i: blockVals[i]
     amaxBlockVals = max(range(len(blockVals)), key=f)
     aminBlockVals = min(range(len(blockVals)), key=f)
@@ -1473,9 +1448,9 @@ def createDetailRow(content, name, rowNumber):
     Positional arguments:
     content -- the attribute data as String
     name -- name for the attribute
-    combinedSeq -- sequence for display
     rowNumber -- used for odd/even coloring
     """
+    # Check subtable information
     try:
         headerLine = subTables[subTables['column_id'].str.contains(name)]
     except:
@@ -1484,40 +1459,44 @@ def createDetailRow(content, name, rowNumber):
         headers = str(headerLine.iloc[0]['columns']).split(';')
     except:
         headers = None
-    subRows = []
-    subTable = []
-    if headers != None:
+        
+    subRows = [] # holds elements for multivalue attributes
+    subTable = [] # holds elements for subtables
+    if headers != None: # we have subtable information, so try and create one
         headerRow = []
-        for k in headers:
+        for k in headers: # build table header line
             headerRow.append(html.Th(k))
         subTable.append(html.Tr(children = headerRow))
-        for i in content.split(';'):
-            subSubRow = []
+        tableError = False
+        for i in content.split(';'): # build subtable rows dictated by ; delimitation
+            subSubRow = [] 
             if len(i.split(',')) == len(headers):
-                for j in i.split(','):
+                for j in i.split(','): # build subtable columns dictated by , delimitation
                     if j != '':
                         if j[0] == '?':
                             subSubRow.append(html.Td(html.A(j[1:], href = j[1:].strip(), target = '_blank')))
                         else:
                             subSubRow.append(html.Td(j.strip()))    
                 subTable.append(html.Tr(children = subSubRow))
-        if len(subTable) == 1:
-            print('Warning: Number of columns specified in sub table file do not match number of columns in description file')
+            else: 
+                tableError = True
+        if tableError == True: # Column numbers didn't match, default display
+            print('Warning: Number of columns specified in subtable file do not match number of columns in description file')
             subTable = []
             for l in content.split(';'):
                 if l != '' :
-                    if l[0] == '?':
+                    if l[0] == '?': # create hyperlinks
                         subRows.append(html.Tr(html.Td(html.A(l[1:], href = l[1:].strip(), target = '_blank'))))
                     else:
                         subRows.append(html.Tr(html.Td(l.strip())))
-    else:
+    else: # No subtable information
         for i in content.split(';'):
             if i != '' :
                     if i[0] == '?':
                         subRows.append(html.Tr(html.Td(html.A(i[1:], href = i[1:].strip(), target = '_blank'))))
                     else:
                         subRows.append(html.Tr(html.Td(i.strip())))
-    if len(subRows) > 5:
+    if len(subRows) > 5: # Hide values in details element if more than 5 values
         tableRow = html.Tr(children = [html.Td(html.B(name.replace('_',' ').title())),
                                html.Td(html.Details(title = str(len(subRows)) + ' values', children = [html.Summary(str(len(subRows)) + ' values'), html.Table(children = 
                                        subRows)]))], style = {'background-color' : tableColors[rowNumber%2]})

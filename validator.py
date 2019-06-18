@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-""" Interactive visualizaton for binding site data"""
+""" Interactive visualizaton for iCLIP-seq and RNA-seq data"""
 import runpy
 from argparse import ArgumentParser
 from pathlib import Path
@@ -146,7 +146,7 @@ def isRGB(color):
             return False
     return True
 
-parser = ArgumentParser(description = '''Interactive, web based visualization for iCLIP data.
+parser = ArgumentParser(description = '''Interactive, web based visualization for iCLIP and rna-seq data.
                         Atleast one gene annotaiton file in bed12 or gtf format is required for execution.
                         These files need to be unzipped and have the proper file extension.
                         The -bsraw and -bsdata options can be used to provide iCLIP and binding site data
@@ -230,6 +230,7 @@ parser.add_argument('-sub_tables',
 
 args=parser.parse_args()
 
+# check if xml config file was provided
 useCfg = False
 if args.cfg != None:
     try:
@@ -348,7 +349,7 @@ descAvail = True
 print('Loading gene annotation files.')
 geneAnnotations = []
 
-counter = 0
+# Load gene annotations from either bed or gtf files. also handle pickling
 for idx, i in enumerate(geneAnnotationPaths):
     print('Loading file ' + str(idx+1) )
     try:
@@ -474,10 +475,12 @@ if len(geneAnnotations) == 0:
     print('No valid gene annotation files found, terminating.')
     exit()
 
+# write new checksums file
 out = open('checksums', 'wb')
 pickle.dump(checksums, out)
 out.close()
 
+# read dna sequences from fasta
 geneNames = list(set().union([x[0] for y in [i['name'].str.split('.') for i in geneAnnotations] for x in y]))
 print('Done.')
 print('Loading description and sequence data if provided.')
@@ -510,6 +513,7 @@ try:
 except TypeError:
     pass
 
+# read gene descriptions from csv
 geneDescriptions = pandas.DataFrame()
 try:
     geneDescriptions = pandas.read_csv(descriptionPath, sep = '\t')
@@ -525,6 +529,7 @@ except FileNotFoundError:
 except ValueError:
     descAvail = False
     
+# advanced descriptions for the Details tab
 advancedDescriptions = pandas.DataFrame()
 try:
     advancedDescriptions = pandas.read_csv(advancedDescPath, sep = '\t')
@@ -537,6 +542,7 @@ except FileNotFoundError:
 except ValueError:
     advancedDescriptions = None
 
+# subtatbles for the Details tab
 subTables = pandas.DataFrame()
 try:
     subTables = pandas.read_csv(subTablePath, sep = '\t', names = ['column_id', 'columns'])
@@ -544,8 +550,6 @@ except FileNotFoundError:
     print('Sub table file could not be found, ignoring.')
 except ValueError:
     subTables = None
-
-        
 
 #setup dropdown with gene descriptions if available
 dropList = []
@@ -655,11 +659,13 @@ if len(spliceProcDFs) > 0:
         spliceElements += 1
         spliceAvail = True
 
+# Colors for dna sequence display
 colorA = 'rgb(0, 150, 0)'
 colorC = 'rgb(15,15,255)'
 colorG = 'rgb(209, 113, 5)'
 colorT = 'rgb(255, 9, 9)'
 
+# Keys for sorting of dataset names in iCLIP tab
 if sortKeys == None:
     sortKeys = [['lambda x : x[:1]', 'False']]
 else:
@@ -673,7 +679,7 @@ for i in range(len(dataSetNames)):
     
 print('preparing to start dashboard on port ' + str(port) + '.')
 
-
+# setup gloabl variables for the dashboard
 globalDict = {
     'colorMap' : colorMap, #Contains colors for the data traces
     'descAvail' : descAvail, #description file present yes/no
@@ -698,7 +704,7 @@ globalDict = {
     'geneAnnotations' : geneAnnotations, # dataframes containing gene annotation data
     'ensembl' : ensembl, # ensembl style fasta format True/False
     'sortKeys' : sortKeys, # arguments for the list.sort function
-    'advancedDesc' : advancedDescriptions,
-    'subTables' : subTables} 
+    'advancedDesc' : advancedDescriptions, # advanced descriptions for Details tab
+    'subTables' : subTables} # subtable information for Details tab
 
 runpy.run_module('dashboard_binding_sites', init_globals = globalDict, run_name = '__main__')
