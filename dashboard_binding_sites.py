@@ -776,9 +776,9 @@ def createAreaChart(xVals, yVals, color_dict):
         barmode='relative',
         margin=go.layout.Margin(l=30, r=40, t=25, b=60),
     )
-    if spliceAvail:
-        for i in range(2, len(data) + 1, 2):
-            fig['layout']['yaxis' + str(i)].update(showticklabels=False, showgrid=False, zeroline=False)
+    # if spliceAvail:
+    #     for i in range(2, len(data) + 1):
+    #         fig['layout']['yaxis' + str(i)].update(showticklabels=False, showgrid=False, zeroline=False)
 
     for index, t in enumerate(data):
         fig.append_trace(t, index + 1, 1)
