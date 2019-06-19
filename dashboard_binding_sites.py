@@ -16,6 +16,7 @@ if 'dropList' not in globals():
     print('Please start the program via validator.py')
     exit()
 
+# Set defaults if no advanced descriptions are available
 if advancedDesc is None:
     advList = []
     advStart = None
@@ -30,11 +31,14 @@ else:
         advStart = None
         advAvailable = True
 
+
+# Hide sequence related controls if no sequence data is available
 if len(sequences) == 0:
     seqDispStyle = {'display': 'none'}
 else:
     seqDispStyle = {'width': '20vw', 'display': 'table-cell'}
 
+# Try to setup color picker
 try:
     initialColor = dataSetNames[0]
     disableSettings = False
@@ -42,7 +46,10 @@ except:
     initialColor = None
     disableSettings = True
 
-tabStyle = {'padding': '0', 'line-height': '5vh'}
+
+# default tab style
+tabStyle = {'padding' : '0', 'line-height' : '5vh'}
+#colors for the alternating coloring in Details
 tableColors = ['rgb(255, 255 ,255)', 'rgb(125, 244, 66)']
 
 app = dash.Dash(__name__)
@@ -123,18 +130,10 @@ app.layout = html.Div(
                                 ),
                                 dcc.Graph(id='bsGraph'),
                                 html.Div(
-                                    children=[
-                                        html.Div(id='advMem',
-                                                 style={'display': 'none'}
-                                                 #  ),
-                                                 #         dcc.Dropdown(
-                                                 #            id = 'advDescDrop',
-                                                 #           options = [{'label':i, 'value' : i} for i in advList],
-                                                 #          value = advStart,
-                                                 #         disabled = advAvailable
-                                                 #    ),
-                                                 #   html.Div(id = 'advDisp',
-                                                 )
+                                    children = [
+                                        html.Div(id = 'advMem',
+                                            style = {'display' : 'none'}
+                                        )
                                     ]
                                 )
                             ]
@@ -214,74 +213,85 @@ app.layout = html.Div(
                             children=[
                                 html.Div(
                                     children=[
-                                        html.Div(
-                                            style={'display': 'none'},
-                                            id='colorDiv',
-                                            children=json.dumps(colorMap)
-                                        ),
-                                        html.Div(
-                                            style={'display': 'none'},
-                                            id='colorFinal',
-                                            children=json.dumps(colorMap)
-                                        ),
-                                        dcc.Dropdown(
-                                            id='colorDrop',
-                                            options=[{'label': i, 'value': i} for i in dataSetNames],
-                                            value=initialColor
-                                        ),
-                                        html.Div(
-                                            id='rDisp',
-                                            children=html.P(html.B('R: ')),
-                                            style={'width': '10vw', 'display': 'table-cell'}
-                                        ),
-                                        dcc.Slider(
-                                            id='rInput',
-                                            min=0,
-                                            max=255,
-                                            step=1,
-                                            updatemode='drag'
-                                        ),
-                                        html.Div(
-                                            id='gDisp',
-                                            children=html.P(html.B('G: ')),
-                                            style={'width': '10vw', 'display': 'table-cell'}
-                                        ),
-                                        dcc.Slider(
-                                            id='gInput',
-                                            min=0,
-                                            max=255,
-                                            step=1,
-                                            updatemode='drag'
-                                        ),
-                                        html.Div(
-                                            id='bDisp',
-                                            children=html.P(html.B('B: ')),
-                                            style={'width': '10vw', 'display': 'table-cell'}
-                                        ),
-                                        dcc.Slider(
-                                            id='bInput',
-                                            min=0,
-                                            max=255,
-                                            step=1,
-                                            updatemode='drag'
-                                        ),
-                                        html.Div(
-                                            children=[
-                                                html.Div(id='preview',
-                                                         children=html.P(html.B('Preview')),
-                                                         style={'width': '30vw', 'display': 'table-cell',
-                                                                'verticalalign': 'middle'}
-                                                         ),
+                                        html.Fieldset(title = 'iCLIP Settings', 
+                                            style = {
+                                                'border' : 'solid',
+                                                'borderWidth' : '1px',
+                                                'padding' : '10px',
+                                                'borderColor' : 'rgb(128,128,128)'
+                                            },
+                                            children = [ 
+                                                html.Legend('iCLIP Settings'),
+                                                html.Div(
+                                                    style={'display': 'none'},
+                                                    id='colorDiv',
+                                                    children=json.dumps(colorMap)
+                                                ),
+                                                html.Div(
+                                                    style={'display': 'none'},
+                                                    id='colorFinal',
+                                                    children=json.dumps(colorMap)
+                                                ),
+                                                dcc.Dropdown(
+                                                    id='colorDrop',
+                                                    options=[{'label': i, 'value': i} for i in dataSetNames],
+                                                    value=initialColor
+                                                ),
+                                                html.Div(
+                                                    id='rDisp',
+                                                    children=html.P(html.B('R: ')),
+                                                    style={'width': '10vw', 'display': 'table-cell'}
+                                                ),
+                                                dcc.Slider(
+                                                    id='rInput',
+                                                    min=0,
+                                                    max=255,
+                                                    step=1,
+                                                    updatemode='drag'
+                                                ),
+                                                html.Div(
+                                                    id='gDisp',
+                                                    children=html.P(html.B('G: ')),
+                                                    style={'width': '10vw', 'display': 'table-cell'}
+                                                ),
+                                                dcc.Slider(
+                                                    id='gInput',
+                                                    min=0,
+                                                    max=255,
+                                                    step=1,
+                                                    updatemode='drag'
+                                                ),
+                                                html.Div(
+                                                    id='bDisp',
+                                                    children=html.P(html.B('B: ')),
+                                                    style={'width': '10vw', 'display': 'table-cell'}
+                                                ),
+                                                dcc.Slider(
+                                                    id='bInput',
+                                                    min=0,
+                                                    max=255,
+                                                    step=1,
+                                                    updatemode='drag'
+                                                ),
                                                 html.Div(
                                                     children=[
-                                                        html.Button(id='colorConfirm', n_clicks_timestamp=0,
-                                                                    children='confirm')
+                                                        html.Div(id='preview',
+                                                                 children=html.P(html.B('Preview')),
+                                                                 style={'width': '30vw', 'display': 'table-cell',
+                                                                        'verticalalign': 'middle'}
+                                                                 ),
+                                                        html.Div(
+                                                            children=[
+                                                                html.Button(id='colorConfirm', n_clicks_timestamp=0,
+                                                                            children='confirm')
+                                                            ],
+                                                            style={'width': '10vw', 'display': 'table-cell',
+                                                                   'verticalalign': 'middle'}
+                                                        )
                                                     ],
-                                                    style={'width': '10vw', 'display': 'table-cell',
-                                                           'verticalalign': 'middle'}
+                                                    style={'width': '10vw', 'display': 'table-cell'}
                                                 )
-                                            ],
-                                            style={'width': '10vw', 'display': 'table-cell'}
+                                            ]
                                         )
                                     ],
                                     style={'width': '30vw', 'display': 'table-cell', 'verticalalign': 'middle'}
@@ -303,42 +313,20 @@ app.layout = html.Div(
     [dash.dependencies.State('geneDrop', 'value')]
 )
 def storeDesc(nclicks, geneName):
+    """ Save description data to hidden div for display
+    
+    Positional arguments:
+    nlicks -- button parameter
+    geneName -- name of the currently selected gene
+    """
+    
     if advancedDesc is not None:
         df = advancedDesc[advancedDesc['gene_ids'].str.contains(geneName)]
-        return df.to_json(orient='split')
 
-
-# @app.callback(
-#    dash.dependencies.Output('advDisp', component_property = 'children'),
-#    [dash.dependencies.Input('advDescDrop', 'value'),
-#     dash.dependencies.Input('advMem', 'children')],
-#    [dash.dependencies.State('geneDrop', 'value')]
-# )
-# def showDesc(column, data, name):
-#    try:
-#        df = pandas.read_json(data, orient = 'split')
-#    except ValueError:
-#        try:
-#            df = advancedDesc[advancedDesc['gene_ids'].str.contains(name)]
-#        except TypeError:
-#            df = pandas.DataFrame()
-#    try:
-#        value = str(df.iloc[0][column])
-#        if value == 'nan':
-#            return "Unavailable for this gene."
-#        else:
-#            values = value.split(';')
-#            result = []
-#            for i in values:
-#                if i != '':
-#                   result.append(html.P('- ' + i))
-#            return result
-#   except IndexError:
-#        return "Advanced descriptions unavailable."
-
+        return df.to_json(orient = 'split')
 
 @app.callback(
-    dash.dependencies.Output('detailMainDiv', component_property='children'),
+    dash.dependencies.Output('detailMainDiv', component_property = 'children'),
     [dash.dependencies.Input('advMem', 'children')],
     [dash.dependencies.State('geneDrop', 'value')]
 )
@@ -939,11 +927,13 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal):
     colors -- color currently being confirmed. Needed to to lack of order on callbacks
     colorsFinal -- last confirmed color
     """
-
+    
+    # check which of the two triggering buttons was pressed last
     if submit > confirm:
         colors = colorsFinal
     else:
         colors = colors
+        
     # Sort the list of selected data tracks to keep consistent order
     for i in sortKeys:
         try:
@@ -956,7 +946,7 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal):
     baseHeight = 30  # size of gene model row, for plot scaling
     # select appropriate data from either the coding or non-coding set
     currentGene = pandas.DataFrame()
-    for index, elem in enumerate(geneAnnotations):
+    for elem in geneAnnotations:
         currentGene = elem[elem['name'].str.contains(geneName)]
         if not currentGene.empty:
             break
@@ -1037,11 +1027,11 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal):
         try:
             combinedSeq = str(currentSequenceSet[nameLeftSeq].seq)
             currentEnd = leftEnd
-            for i in currentGene.iterrows():
-                if i[1]['chromEnd'] > currentEnd:
-                    if i[1]['chromStart'] <= currentEnd:
-                        combinedSeq += str(currentSequenceSet[i[1]['name']].seq)[(currentEnd - i[1]['chromStart']):]
-                        currentEnd = i[1]['chromEnd']
+            for i in currentGene.itertuples():
+                if i.chromEnd > currentEnd:
+                    if i.chromStart <= currentEnd:
+                        combinedSeq += str(currentSequenceSet[i.name].seq)[(currentEnd - i.chromStart):]
+                        currentEnd = i.chromEnd
                 if currentEnd >= xAxisMax:
                     break
             if currentEnd < rightStart:  # Case that there is a gap between leftmost and rightmost sequence.
@@ -1061,13 +1051,12 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal):
         pass
     #       pass
 
-    chrom = currentGene[
-        'chrom'].any()  # save strand info, necessary for arrow annotations. Should be same for all isoforms, so any will do
-    chromEnds = []  # used for arrow positioning
+    # save strand info, necessary for arrow annotations. Should be same for all isoforms, so any will do
+    chrom = currentGene['chrom'].any() 
 
     counter = 2
     for i in range(len(dataSets)):
-        bsTraces = plotRaw(dataSets[i], xAxisMax, xAxisMin, chrom, strand, colors)  # plot Binding site data
+        bsTraces = plotICLIP(dataSets[i], xAxisMax, xAxisMin, chrom, strand, colors)  # plot Binding site data
         fig.append_trace(bsTraces[0], counter, 1)
         if len(bsTraces[1]) > 0:
             for j in range(len(bsTraces[1])):
@@ -1075,14 +1064,13 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal):
         counter += dsElements
 
     # calculate gene models. We have to distinguish between coding region and non-coding region
-    for i in currentGene.iterrows():
+    for i in currentGene.itertuples():
         # setup various helpers to work out the different sized blocks
-        chromEnds.append(i[1]['chromEnd'])
-        blockStarts = [int(x) for x in i[1]['blockStarts'].rstrip(',').split(',')]
-        blockSizes = [int(x) for x in i[1]['blockSizes'].rstrip(',').split(',')]
-        genemodel = generateGeneModel(int(i[1]['chromStart']), int(i[1]['thickStart']), int(i[1]['thickEnd'] - 1),
+        blockStarts = [int(x) for x in i.blockStarts.rstrip(',').split(',')]
+        blockSizes = [int(x) for x in i.blockSizes.rstrip(',').split(',')]
+        genemodel = generateGeneModel(int(i.chromStart), int(i.thickStart), int(i.thickEnd - 1),
                                       blockStarts, blockSizes,
-                                      0.4, i[1]['name'])
+                                      0.4, i.name)
         for j in range(len(genemodel)):
             fig.append_trace(genemodel[j], counter, 1)
             # move on to the next gene model
@@ -1097,24 +1085,9 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal):
     if procAvail:
         for i in range(0, numParams * dsElements, 2):
             fig['layout']['yaxis' + str(i + 3)].update(showticklabels=False, showgrid=False, zeroline=False)
-    arrows = []  # adding a whole list of annotations has better performance than adding them one by one
     for i in range(len(currentGene)):  # edit all y axis in gene model plots
         fig['layout']['yaxis' + str(i + numParams * dsElements + 2)].update(showticklabels=False, showgrid=False,
                                                                             zeroline=False)
-        arrows.append(
-            dict(
-                x=chromEnds[i] + min(50, (xAxisMax - xAxisMin) * 0.01),
-                y=0.0,
-                xref='x',
-                yref='y' + str(i + numParams * dsElements + 2),
-                text='',
-                showarrow=True,
-                arrowhead=1,
-                ax=-int(strand + '5'),  # determine arrow direction. - strand left, + strand right
-                ay=0
-            ),
-        )
-    # fig['layout']['annotations'] = arrows
     for i in range(numRows + 1):  # prevent zoom on y axis
         if i == 0:
             fig['layout']['yaxis'].update(fixedrange=True)
@@ -1128,9 +1101,8 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal):
     return fig
 
 
-def plotRaw(name, xMax, xMin, chrom, strand, colors):
-    """Helper method to plot the subplots containing raw binding site data
-
+def plotICLIP(name, xMax, xMin, chrom, strand, colors):
+    """Helper method to plot the subplots containing iCLIP data
     Positional arguments:
     name -- name of the subplot to create a title
     xMax -- maximum x-axis value, used to select relevant data
@@ -1151,10 +1123,10 @@ def plotRaw(name, xMax, xMin, chrom, strand, colors):
     countsX = []
     countsY = []
     countsW = []
-    for i in rawSites.iterrows():
-        countsX.append(i[1]['chromStart'])
-        countsY.append(i[1]['count'])
-        countsW.append(i[1]['chromEnd'] - i[1]['chromStart'])
+    for i in rawSites.itertuples():
+        countsX.append(i.chromStart)
+        countsY.append(i.count)
+        countsW.append(i.chromEnd - i.chromStart)
     # plot data
     rawTrace = go.Bar(
         x=countsX,
@@ -1180,22 +1152,21 @@ def plotRaw(name, xMax, xMin, chrom, strand, colors):
         bcrit32 = bsProcDFs[name]['chromEnd'] <= xMax
         bindingSites = bsProcDFs[name].loc[bcrit11 & bcrit12 & ((bcrit21 & bcrit22) | (bcrit31 & bcrit32))]
         # plot binding sites
-
-        for k in bindingSites.iterrows():
-            procSitesList.append(
-                go.Bar(
-                    opacity=0.5,
-                    x=[k[1]['chromStart'] + (k[1]['chromEnd'] - k[1]['chromStart']) // 2],
-                    y=[0.1],
-                    hoverinfo='name',
-                    legendgroup=name,
-                    width=k[1]['chromEnd'] - k[1]['chromStart'],
-                    name=name + '_bs',
-                    marker=go.bar.Marker(
-                        color=colors[name]
-                    ), showlegend=False
+        for k in bindingSites.itertuples():
+                procSitesList.append(
+                    go.Bar(
+                        opacity = 0.5,
+                        x = [k.chromStart + (k.chromEnd - k.chromStart) // 2],
+                        y = [0.1],
+                        hoverinfo = 'name',
+                        legendgroup = name,
+                        width = k.chromEnd - k.chromStart,
+                        name = name + '_bs',
+                        marker = go.bar.Marker(
+                            color = colors[name]
+                        ), showlegend = False
+                    )
                 )
-            )
     except KeyError:
         pass
     except Exception as e:
@@ -1219,6 +1190,7 @@ def generateGeneModel(chromStart, codingRegionStart, codingRegionEnd, blockStart
     blockVals = []
     blockWidths = []
     blockYs = []
+    # calculte blocks from block start and end positions, as well as thickness
     for j in range(len(blockStarts)):
         blockStart = chromStart + blockStarts[j]
         blockEnd = chromStart + blockStarts[j] + blockSizes[j] - 1  # same as codingRegionEnd
@@ -1261,6 +1233,7 @@ def generateGeneModel(chromStart, codingRegionStart, codingRegionEnd, blockStart
             blockWidths.append(blockEnd - codingRegionEnd + 1)
             blockYs.append(blockHeight / 2)
 
+    # find first and last block o draw line properly
     f = lambda i: blockVals[i]
     amaxBlockVals = max(range(len(blockVals)), key=f)
     aminBlockVals = min(range(len(blockVals)), key=f)
@@ -1460,9 +1433,9 @@ def createDetailRow(content, name, rowNumber):
     Positional arguments:
     content -- the attribute data as String
     name -- name for the attribute
-    combinedSeq -- sequence for display
     rowNumber -- used for odd/even coloring
     """
+    # Check subtable information
     try:
         headerLine = subTables[subTables['column_id'].str.contains(name)]
     except:
@@ -1471,46 +1444,47 @@ def createDetailRow(content, name, rowNumber):
         headers = str(headerLine.iloc[0]['columns']).split(';')
     except:
         headers = None
-    subRows = []
-    subTable = []
-    if headers != None:
+        
+    subRows = [] # holds elements for multivalue attributes
+    subTable = [] # holds elements for subtables
+    if headers != None: # we have subtable information, so try and create one
         headerRow = []
-        for k in headers:
+        for k in headers: # build table header line
             headerRow.append(html.Th(k))
-        subTable.append(html.Tr(children=headerRow))
-        for i in content.split(';'):
+        subTable.append(html.Tr(children = headerRow))
+        tableError = False
+        for i in content.split(';'): # build subtable rows dictated by ; delimitation
             subSubRow = []
             if len(i.split(',')) == len(headers):
-                for j in i.split(','):
+                for j in i.split(','): # build subtable columns dictated by , delimitation
                     if j != '':
                         if j[0] == '?':
                             subSubRow.append(html.Td(html.A(j[1:], href=j[1:].strip(), target='_blank')))
                         else:
-                            subSubRow.append(html.Td(j.strip()))
-                subTable.append(html.Tr(children=subSubRow))
-        if len(subTable) == 1:
-            print(
-                'Warning: Number of columns specified in sub table file do not match number of columns in description file')
+                            subSubRow.append(html.Td(j.strip()))    
+                subTable.append(html.Tr(children = subSubRow))
+            else: 
+                tableError = True
+        if tableError == True: # Column numbers didn't match, default display
+            print('Warning: Number of columns specified in subtable file do not match number of columns in description file')
             subTable = []
             for l in content.split(';'):
-                if l != '':
-                    if l[0] == '?':
-                        subRows.append(html.Tr(html.Td(html.A(l[1:], href=l[1:].strip(), target='_blank'))))
+                if l != '' :
+                    if l[0] == '?': # create hyperlinks
+                        subRows.append(html.Tr(html.Td(html.A(l[1:], href = l[1:].strip(), target = '_blank'))))
                     else:
                         subRows.append(html.Tr(html.Td(l.strip())))
-    else:
+    else: # No subtable information
         for i in content.split(';'):
-            if i != '':
-                if i[0] == '?':
-                    subRows.append(html.Tr(html.Td(html.A(i[1:], href=i[1:].strip(), target='_blank'))))
-                else:
-                    subRows.append(html.Tr(html.Td(i.strip())))
-    if len(subRows) > 5:
-        tableRow = html.Tr(children=[html.Td(html.B(name.replace('_', ' ').title())),
-                                     html.Td(
-                                         html.Details(title=str(len(subRows)) + ' values', children=html.Table(children=
-                                                                                                               subRows)))],
-                           style={'background-color': tableColors[rowNumber % 2]})
+            if i != '' :
+                    if i[0] == '?':
+                        subRows.append(html.Tr(html.Td(html.A(i[1:], href = i[1:].strip(), target = '_blank'))))
+                    else:
+                        subRows.append(html.Tr(html.Td(i.strip())))
+    if len(subRows) > 5: # Hide values in details element if more than 5 values
+        tableRow = html.Tr(children = [html.Td(html.B(name.replace('_',' ').title())),
+                               html.Td(html.Details(title = str(len(subRows)) + ' values', children = [html.Summary(str(len(subRows)) + ' values'), html.Table(children = 
+                                       subRows)]))], style = {'background-color' : tableColors[rowNumber%2]})
     else:
         tableRow = html.Tr(children=[html.Td(html.B(name.replace('_', ' ').title())),
                                      html.Td(html.Table(children=
