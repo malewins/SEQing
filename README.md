@@ -84,6 +84,30 @@ python validator.py some_gene_annotation_file -bsraw 8pref26_iCLIP 8pref30_iCLIP
 ```
 Take note of the -k option. It allows you to provide arguments for the list.sort function of python. In this case we provide 2 different sets of arguments, the first sorts the prefixes by the last two characters, descending and the second sorts them by the first character, in ascending order. Each -k has to be followed by a string containing the desired lambda expression and a bool telling the program wether to revert the order(default is ascending).
 
+### Advanced Description
+
+Using the -adv_desc option you can provide additional information for the genes in your dataset which will be displayed in the "Details" tab. The option takes a single tab seperated file which needs to have a header line and a column named gene_ids. Another constraint is that the file should only contain one row of data per gene, thus multi value attributes such as synonyms need to be combined into one, semicolon delimited field. All other columns can have names of your choosing. Example:
+```
+gene_ids	synonyms
+AT1G01010	ANAC001;NAC domain containing protein 1
+```
+As an additional feature it is possible to create subtables for complex attributes like publications. Say you have author, year and title information. In that case you can use additional comma based delimitations and the -sub_tables option to create a tabular view of your publication data. Example for the field in your advanced description file:
+```
+gene_ids	publications
+AT1G10670	author1,year1,title1;author2,year2,title2
+```
+As you can see you can mix comma and semicolon delimitations for this. The -sub_tables option takes an additional file which is responsible for telling the dashboard that you want a table for the specific attribute. The structure is very simple, it is a tab delimited file cotaining 2 columns, one containing the attribute names you want subtables for and the other containing the semicolon delimited column headers for said table:
+```
+publications	Author;Year;Title
+```
+This file does not need a header line. Should the number of columns not match the number of comma seperated entries in your advanced description file the data will be displayed as the comma seperated string without a table.
+
+Finally you can use ? before a value to mark it as a hyperlink:
+```
+gene_ids	ext_link
+AT1G01010	?http://araport.org
+```
+This will also work for semicolon seperated values as well as in subtables, but not in comma seperated Strings.
 ### Screenshot
 ![SEQing example](SEQing_At2G21660.PNG)
 
