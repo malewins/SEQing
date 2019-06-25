@@ -20,16 +20,16 @@ if 'dropList' not in globals():
 if advancedDesc is None:
     advList = []
     advStart = None
-    advAvailable = True
+    advDisabled = True
 else:
     advList = list(advancedDesc.columns.values)
     advList.remove('gene_ids')
     try:
         advStart = advList[0]
-        advAvailable = False
+        advDisabled = False
     except:
         advStart = None
-        advAvailable = True
+        advDisabled = True
 
 # Hide sequence related controls if no sequence data is available
 if len(sequences) == 0:
@@ -139,8 +139,10 @@ app.layout = html.Div(
                         dcc.Tab(
                             label = 'Details',
                             id = 'deTab',
+                            disabled = advDisabled,
                             style = tabStyle,
                             selected_style = tabStyle,
+                            disabled_style = tabStyle,
                             children = [
                                 html.Div(
                                     id = 'detailMainDiv',
