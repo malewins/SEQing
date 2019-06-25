@@ -22,7 +22,7 @@ def validateGTF(df):
     else returns false and an error message.
     
     Positional arguments:
-    df -- dataframe to be validated
+    df -- Dataframe to be validated
     """
     
     msg = ''
@@ -30,13 +30,13 @@ def validateGTF(df):
         msg = 'Missing values' + '\n' + str(df.isnull().sum())
         return [False, msg]
     if df['start'].map(lambda x: type(x)).values.any() != int:
-        msg = 'column start contains non int values'
+        msg = 'Column start contains non int values'
         return [False, msg]
     if df['end'].map(lambda x: type(x)).values.any() != int:
-        msg = 'column end contains non int values'
+        msg = 'Column end contains non int values'
         return [False, msg]
     if df['strand'].map(lambda x: x in ['+', '-']).values.all() != True:
-        msg = 'bad strand symbol(has to be + or -'
+        msg = 'Bad strand symbol(has to be + or -'
         return [False, msg]
     return [True, msg] 
 
@@ -45,7 +45,7 @@ def validateBed12(df):
     else returns false and an error message.
     
     Positional arguments:
-    df -- dataframe to be validated
+    df -- Dataframe to be validated
     """
     
     msg = ''
@@ -53,28 +53,28 @@ def validateBed12(df):
         msg = 'Missing values' + '\n' + str(df.isnull().sum())
         return [False, msg]
     if df['strand'].map(lambda x: x in ['+', '-']).values.all() != True:
-        msg = 'bad strand symbol(has to be + or -'
+        msg = 'Bad strand symbol(has to be + or -'
         return [False, msg]
     if df['chromStart'].map(lambda x: type(x)).values.any() != int:
-        msg = 'column chromStart contains non int values'
+        msg = 'Column chromStart contains non int values'
         return [False, msg]
     if df['chromEnd'].map(lambda x: type(x)).values.any() != int:
-        msg = 'column chromEnd contains non int values'
+        msg = 'Column chromEnd contains non int values'
         return [False, msg]    
     if df['thickStart'].map(lambda x: type(x)).values.any() != int:
-        msg = 'column thickStart contains non int values'
+        msg = 'Column thickStart contains non int values'
         return [False, msg]
     if df['thickEnd'].map(lambda x: type(x)).values.any() != int:
-        msg = 'column thickEnd contains non int values'
+        msg = 'Column thickEnd contains non int values'
         return [False, msg]
     if df['blockCount'].map(lambda x: type(x)).values.any() != int:
-        msg = 'column blockCount contains non int values'
+        msg = 'Column blockCount contains non int values'
         return [False, msg]
     if all(y.isdigit() for z in df['blockSizes'].map(lambda x: x.split(',')[:-1]).tolist()[0] for y in z ) == False:
-        msg = 'column blockSizes contains non int values'
+        msg = 'Column blockSizes contains non int values'
         return [False, msg]    
     if all(y.isdigit() for z in df['blockStarts'].map(lambda x: x.split(',')[:-1]).tolist()[0] for y in z ) == False:
-        msg = 'column blockStarts contains non int values'
+        msg = 'Column blockStarts contains non int values'
         return [False, msg]
     return [True, msg]
 
@@ -83,7 +83,7 @@ def validateBedGraph(df):
     else returns false and an error message.
     
     Positional arguments:
-    df -- dataframe to be validated
+    df -- Dataframe to be validated
     """
     
     msg = ''
@@ -91,13 +91,13 @@ def validateBedGraph(df):
         msg = 'Missing values' + '\n' + str(df.isnull().sum())
         return [False, msg]
     if df['chromStart'].map(lambda x: type(x)).values.any() != int:
-        msg = 'column chromStart contains non int values'
+        msg = 'Column chromStart contains non int values'
         return [False, msg]
     if df['chromEnd'].map(lambda x: type(x)).values.any() != int:
-        msg = 'column chromEnd contains non int values'
+        msg = 'Column chromEnd contains non int values'
         return [False, msg]    
     if df['count'].map(lambda x: type(x)).values.any() != int:
-        msg = 'column count contains non int values'
+        msg = 'Column count contains non int values'
         return [False, msg]
     return [True, msg]
 
@@ -106,7 +106,7 @@ def validateBed(df):
     else returns false and an error message.
     
     Positional arguments:
-    df -- dataframe to be validated
+    df -- Dataframe to be validated
     """
     
     msg = ''
@@ -114,16 +114,16 @@ def validateBed(df):
         msg = 'Missing values' + '\n' + str(df.isnull().sum())
         return [False, msg]
     if df['strand'].map(lambda x: x in ['+', '-']).values.all() != True:
-        msg = 'bad strand symbol(has to be + or -'
+        msg = 'Bad strand symbol(has to be + or -)'
         return [False, msg]
     if df['chromStart'].map(lambda x: type(x)).values.any() != int:
-        msg = 'column chromStart contains non int values'
+        msg = 'Column chromStart contains non int values'
         return [False, msg]
     if df['chromEnd'].map(lambda x: type(x)).values.any() != int:
-        msg = 'column chromEnd contains non int values'
+        msg = 'Column chromEnd contains non int values'
         return [False, msg]    
     if df['score'].map(lambda x: type(x)).values.any() != float:
-        msg = 'column score contains non float values'
+        msg = 'Column score contains non float values'
         return [False, msg]    
     return [True, msg]
 
@@ -161,7 +161,6 @@ parser = ArgumentParser(description = '''Interactive, web based visualization fo
 parser.add_argument(dest='geneAnno', help = '''files containing gene annotations in bed12 or gtf format,
                     atleast one such file is required for execution. These files should not include a header.''',
                     nargs = '+', type = Path,metavar = 'GENE ANNOTATION FILE')
-#parser.add_argument(dest='nonCoding', help = 'file containing information on non protein coding genes')
 parser.add_argument('-bsdata', dest = 'bsdata', help = '''files containing binding site data in 6 column bed format. 
                     Everything before the first underscore _ in the file name will be treated as prefix 
                     and used to match iCLIP files to files containing binding sites.
@@ -230,7 +229,7 @@ parser.add_argument('-sub_tables',
 
 args=parser.parse_args()
 
-# check if xml config file was provided
+# Check if xml config file was provided
 useCfg = False
 if args.cfg != None:
     try:
@@ -252,7 +251,7 @@ plotColors = []
 
 
      
-if useCfg == False: #use command line arguments for setup  
+if useCfg == False: # Use command line arguments for setup  
     port = args.port
     geneAnnotationPaths = args.geneAnno
     bindingSitePaths = args.bsdata
@@ -278,7 +277,7 @@ if useCfg == False: #use command line arguments for setup
             plotColors.append(i)
         else:
             print('Color string ' + str(i) + ' is not valid')
-else: #use xml document for setup
+else: # Use xml document for setup
     geneAnnotationPaths = args.geneAnno
     try:
         port = configFile.getElementsByTagName('port')[0].firstChild.data
@@ -346,7 +345,7 @@ if len(plotColors) == 0:
     plotColors = ['rgb( 88, 24, 69 )', 'rgb( 199, 0, 57 )', 'rgb(46, 214, 26)', 'rgb(255, 87, 51)']
 
 
-# headers for the datafiles, files obviously need to conform to these headers for the visualization to work
+# Headers for the data files, files obviously need to conform to these headers for the visualization to work
 bedHeader = ['chrom','chromStart','chromEnd','name','score','strand','thickStart',
              'thickEnd','itemRGB','blockCount','blockSizes','blockStarts']
 bsHeader = ['chrom', 'chromStart','chromEnd','type', 'score', 'strand']
@@ -484,12 +483,12 @@ if len(geneAnnotations) == 0:
     print('No valid gene annotation files found, terminating.')
     exit()
 
-# write new checksums file
+# Write new checksums file
 out = open('checksums', 'wb')
 pickle.dump(checksums, out)
 out.close()
 
-# read dna sequences from fasta
+# Read dna sequences from fasta
 geneNames = list(set().union([x[0] for y in [i['name'].str.split('.') for i in geneAnnotations] for x in y]))
 print('Done.')
 print('Loading description and sequence data if provided.')
@@ -522,7 +521,7 @@ try:
 except TypeError:
     pass
 
-# read gene descriptions from csv
+# Read gene descriptions from csv
 geneDescriptions = pandas.DataFrame()
 try:
     geneDescriptions = pandas.read_csv(descriptionPath, sep = '\t')
@@ -538,7 +537,7 @@ except FileNotFoundError:
 except ValueError:
     descAvail = False
     
-# advanced descriptions for the Details tab
+# Advanced descriptions for the Details tab
 advancedDescriptions = pandas.DataFrame()
 try:
     advancedDescriptions = pandas.read_csv(advancedDescPath, sep = '\t')
@@ -551,7 +550,7 @@ except FileNotFoundError:
 except ValueError:
     advancedDescriptions = None
 
-# subtatbles for the Details tab
+# Subtatbles for the Details tab
 subTables = pandas.DataFrame()
 try:
     subTables = pandas.read_csv(subTablePath, sep = '\t', names = ['column_id', 'columns'])
@@ -560,7 +559,7 @@ except FileNotFoundError:
 except ValueError:
     subTables = None
 
-#setup dropdown with gene descriptions if available
+# Setup dropdown with gene descriptions if available
 dropList = []
 if descAvail == True:
     geneDict = geneDescriptions.to_dict(orient = 'records')
@@ -583,7 +582,7 @@ rawAvail = False # Raw data available
 procAvail = False # proc data available
 spliceAvail = False # splice data available
 
-#setup iCLIP data
+# Setup iCLIP data
 bsRawDFs = {}
 dataSetNames = []
 if len(bindingSiteRawPaths) > 0:
@@ -610,7 +609,7 @@ if len(bsRawDFs) > 0:
     dsElements += 1
 
 
-#setup data for binding sites
+# Setup data for binding sites
 bsProcDFs = {}
 if len(bindingSitePaths) > 0:
     print('Loading bindings site data.')
@@ -638,7 +637,7 @@ if len(bsProcDFs) > 0:
     procAvail = True
 
 
-#setup data for splice sites
+# Setup data for splice sites
 spliceProcDFs = {}
 spliceSetNames = [[],[]]
 spliceElements = 0
@@ -681,39 +680,39 @@ else:
     if len(sortKeys) == 0:
         sortKeys.append(['lambda x : x[:1]', 'False'])
 
-# map for data track colors
+# Map for data track colors
 colorMap = {}
 for i in range(len(dataSetNames)):
     colorMap.update({dataSetNames[i] : plotColors[i%len(plotColors)]})
     
 print('preparing to start dashboard on port ' + str(port) + '.')
 
-# setup gloabl variables for the dashboard
+# Setup gloabl variables for the dashboard
 globalDict = {
-    'colorMap' : colorMap, #Contains colors for the data traces
-    'descAvail' : descAvail, #description file present yes/no
-    'colorA' : colorA, #colors for sequence display
+    'colorMap' : colorMap, # Contains colors for the data traces
+    'descAvail' : descAvail, # Description file present yes/no
+    'colorA' : colorA, # Colors for sequence display
     'colorC' : colorC,
     'colorG' : colorG,
     'colorT' : colorT,
-    'port' : port, # port the dashboard runs on
-    'procAvail' : procAvail, # binding site data available True/False
+    'port' : port, # Port the dashboard runs on
+    'procAvail' : procAvail, # Binding site data available True/False
     'dsElements' : dsElements, # Number of elements per dataset, can be 0,1,2
     'spliceElements': spliceElements, # Number of elements per rna dataset, can be 0, 1
-    'bsProcDFs' : bsProcDFs, # dataframes with binding site data
-    'bsRawDFs' : bsRawDFs, # dataframes with iCLIP data
-    'spliceProcDFs' : spliceProcDFs, # dataframes with rnaSeq data
-    'dataSetNames' : dataSetNames, # names for the data sets
-    'spliceSetNames' : spliceSetNames, # names for the rnaSeq data sets
+    'bsProcDFs' : bsProcDFs, # Dataframes with binding site data
+    'bsRawDFs' : bsRawDFs, # Dataframes with iCLIP data
+    'spliceProcDFs' : spliceProcDFs, # Dataframes with rnaSeq data
+    'dataSetNames' : dataSetNames, # Names for the data sets
+    'spliceSetNames' : spliceSetNames, # Names for the rnaSeq data sets
     'rawAvail' : rawAvail, # iCLIP data available True/False
-    'spliceAvail' : spliceAvail, # rnaSeq data available True/False
-    'dropList' : dropList, # list of entries for the gene selection dropdown
-    'geneDescriptions' : geneDescriptions, # dataframe with gene descriptions
-    'sequences' : sequences, # list containing sequence files
-    'geneAnnotations' : geneAnnotations, # dataframes containing gene annotation data
-    'ensembl' : ensembl, # ensembl style fasta format True/False
-    'sortKeys' : sortKeys, # arguments for the list.sort function
-    'advancedDesc' : advancedDescriptions, # advanced descriptions for Details tab
-    'subTables' : subTables} # subtable information for Details tab
+    'spliceAvail' : spliceAvail, # Rna-Seq data available True/False
+    'dropList' : dropList, # List of entries for the gene selection dropdown
+    'geneDescriptions' : geneDescriptions, # Dataframe with gene descriptions
+    'sequences' : sequences, # List containing sequence files
+    'geneAnnotations' : geneAnnotations, # Dataframes containing gene annotation data
+    'ensembl' : ensembl, # Ensembl style fasta format True/False
+    'sortKeys' : sortKeys, # Arguments for the list.sort function
+    'advancedDesc' : advancedDescriptions, # Advanced descriptions for Details tab
+    'subTables' : subTables} # Subtable information for Details tab
 
 runpy.run_module('dashboard_binding_sites', init_globals = globalDict, run_name = '__main__')
