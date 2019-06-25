@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-""" Interactive visualizaton for binding site data"""
+""" Interactive visualizaton for iClIP-Seq and RNA-Seq data"""
 import json
 import pandas
 import dash
@@ -47,9 +47,9 @@ except:
     disableSettings = True
 
 
-# default tab style
+# Default tab style
 tabStyle = {'padding' : '0', 'line-height' : '5vh'}
-#colors for the alternating coloring in Details
+# Colors for the alternating coloring in Details
 tableColors = ['rgb(255, 255 ,255)', 'rgb(125, 244, 66)']
 
 app = dash.Dash(__name__)
@@ -318,8 +318,8 @@ def storeDesc(nclicks, geneName):
     """ Save description data to hidden div for display
     
     Positional arguments:
-    nlicks -- button parameter
-    geneName -- name of the currently selected gene
+    nlicks -- Button parameter
+    geneName -- Name of the currently selected gene
     """
     
     if advancedDesc is not None:
@@ -336,8 +336,8 @@ def showDetails(data, name):
     """ Create tabular view of additional data
 
     Positional arguments:
-    data -- data for the current gene, as json string(dict)
-    name -- gene name for initialization
+    data -- Data for the current gene, as json string(dict)
+    name -- Gene name for initialization
     """
     try:
         df = pandas.read_json(data, orient='split')
@@ -347,13 +347,13 @@ def showDetails(data, name):
         except TypeError:
             df = pandas.DataFrame()
     columns = list(df.columns.values)
-    rowCounter = 1  # keep track of the row number to alternate coloring
-    usedColumns = []  # keeps track of preset columns already added, needed later
+    rowCounter = 1  # Keep track of the row number to alternate coloring
+    usedColumns = []  # Keeps track of preset columns already added, needed later
     usedColumns.append('gene_ids')
-    content = []  # table content to be displayed
+    content = []  # Table content to be displayed
     generalColumns = ['symbol', 'brief_description', 'is_obsolete', 'computational_description',
                       'curator_summary', 'name']
-    tableRows = []  # will contain the table rows
+    tableRows = []  # Will contain the table rows
     for i in generalColumns:
         if i in columns and str(df.iloc[0][i]) not in ['nan', ';""']:
             tableRows.append(html.Tr(children=[html.Td(html.B(i.replace('_', ' ').title())),
@@ -361,7 +361,7 @@ def showDetails(data, name):
                                      style={'background-color': tableColors[rowCounter % 2]}))
             usedColumns.append(i)
             rowCounter += 1
-    # go through a number of predefined columns
+    # Go through a number of predefined columns
     if 'synonyms' in columns:
         synonyms = str(df.iloc[0]['synonyms'])
         usedColumns.append('synonyms')
@@ -398,7 +398,7 @@ def showDetails(data, name):
         if plantOntology not in ['nan', ';""']:
             tableRows.append(createDetailRow(plantOntology, 'plant_ontology', rowCounter))
             rowCounter += 1
-    # go through all remaining columns using formatting standard
+    # Go through all remaining columns using formatting standard
     remainingColumns = [x for x in columns if x not in usedColumns]
     for i in remainingColumns:
         value = str(df.iloc[0][i])
@@ -421,7 +421,7 @@ def showR(r):
     """Callback to display current value for red
 
     Positional arguments:
-    r -- value for red
+    r -- Value for red
     """
 
     return html.P(html.B('R: ' + str(r)))
@@ -435,7 +435,7 @@ def showG(g):
     """Callback to display current value for green
 
     Positional arguments:
-    g -- value for green
+    g -- Value for green
     """
 
     return html.P(html.B('G: ' + str(g)))
@@ -449,7 +449,7 @@ def showB(b):
     """Callback to display current value for blue
 
     Positional arguments:
-    b -- value for blue
+    b -- Value for blue
     """
 
     return html.P(html.B('B: ' + str(b)))
@@ -465,9 +465,9 @@ def previewColor(r, g, b):
     """Callback for rgb color preview
 
     Positional arguments:
-    r -- value for red
-    g -- value for green
-    b -- value for blue
+    r -- Value for red
+    g -- Value for green
+    b -- Value for blue
     """
 
     if r == None or b == None or g == None:
@@ -487,8 +487,8 @@ def rCallback(dataset, colors):
     """Callback to set initial value of red slider from dict
 
     Positional arguments:
-    dataset -- currently selected dataset
-    colors -- dictionary containing the color values(json string)
+    dataset -- Currently selected dataset
+    colors -- Dictionary containing the color values(json string)
     """
 
     colorsDict = json.loads(colors)
@@ -508,8 +508,8 @@ def gCallback(dataset, colors):
     """Callback to set initial value of green slider from dict
 
     Positional arguments:
-    dataset -- currently selected dataset
-    colors -- dictionary containing the color values(json string)
+    dataset -- Currently selected dataset
+    colors -- Dictionary containing the color values(json string)
     """
     colorsDict = json.loads(colors)
     try:
@@ -528,8 +528,8 @@ def bCallback(dataset, colors):
     """Callback to set initial value of blue slider from dict
 
     Positional arguments:
-    dataset -- currently selected dataset
-    colors -- dictionary containing the color values(json string)
+    dataset -- Currently selected dataset
+    colors -- Dictionary containing the color values(json string)
     """
     colorsDict = json.loads(colors)
     try:
@@ -552,12 +552,12 @@ def conFirmColor(nclicks, r, g, b, dataset, backup):
     """ Callback to confirm a color. This will overwrite the previous one.
 
     Positional arguments:
-    nclicks -- button
-    r -- red value
-    g -- green value
-    b -- blue value
-    dataset -- dataset to overwrite color of
-    backup -- previous value in case of error
+    nclicks -- Button value
+    r -- Red value
+    g -- Green value
+    b -- Blue value
+    dataset -- Dataset to overwrite color of
+    backup -- Previous value in case of error
     """
     if r == None or b == None or g == None:
         return backup
@@ -580,11 +580,11 @@ def changeColor(r, g, b, dataset, oldColors):
     """Callback to set new color values and save them as json string
 
     Positional arguments:
-    r -- red value
-    g -- green value
-    b -- blue value
-    dataset -- currently selected dataset
-    oldColors -- previous colors in case none values are provided for r/g/b
+    r -- Red value
+    g -- Green value
+    b -- Blue value
+    dataset -- Currently selected dataset
+    oldColors -- Previous colors in case none values are provided for r/g/b
     """
     if r == None or b == None or g == None:
         return oldColors
@@ -604,8 +604,8 @@ def setHeadline(clicks, name):
     """Callback to set the headline
 
     Positional arguments:
-    clicks -- related to button, not needed otherwise
-    name -- name of the currently selected gene
+    clicks -- Related to button, not needed otherwise
+    name -- Name of the currently selected gene
     """
     for i in geneAnnotations:
         currentGene = i[i['name'].str.contains(name)]
@@ -887,8 +887,8 @@ def setDesc(clicks, name):
     """Callback to update gene description
 
     Positional arguments:
-    clicks -- related to button, not needed in code
-    name -- name of the currently selected gene
+    clicks -- Related to button, not needed in code
+    name -- Name of the currently selected gene
     """
     if descAvail:
         try:
@@ -921,16 +921,16 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal):
     """Main callback that handles the dynamic visualisation of selected data
 
     Positional arguments:
-    submit -- submit button time stamp
-    confirm -- confirm button time stamp
+    submit -- Submit button time stamp
+    confirm -- Confirm button time stamp
     geneName -- Name of the selected gene in order to filter the data
     dataSets -- Selected data tracks with raw binding site data
     seqDisp -- Display mode for dna sequence trace
-    colors -- color currently being confirmed. Needed to to lack of order on callbacks
-    colorsFinal -- last confirmed color
+    colors -- Color currently being confirmed. Needed due to lack of order on callbacks
+    colorsFinal -- Last confirmed color
     """
     
-    # check which of the two triggering buttons was pressed last
+    # Check which of the two triggering buttons was pressed last
     if submit > confirm:
         colors = colorsFinal
     else:
@@ -943,16 +943,16 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal):
         except:
             print(
                 'Please check your keys. Each key should be added similar to this: -k \'lambda x : x[-2:]\' \'False\'	. For multiple keys use multiple instances of -k')
-    numParams = len(dataSets)  # number of selected data tracks
-    rowOffset = 4  # relative size of data tracks compared to gene model tracks
-    baseHeight = 30  # size of gene model row, for plot scaling
-    # select appropriate data from either the coding or non-coding set
+    numParams = len(dataSets)  # Number of selected data tracks
+    rowOffset = 4  # Relative size of data tracks compared to gene model tracks
+    baseHeight = 30  # Size of gene model row, for plot scaling
+    # Select appropriate data from either the coding or non-coding set
     currentGene = pandas.DataFrame()
     for elem in geneAnnotations:
         currentGene = elem[elem['name'].str.contains(geneName)]
         if not currentGene.empty:
             break
-    # row heights and spacing
+    # Row heights and spacing
     if rawAvail == True:
         rawDataRows = numParams * rowOffset
     else:
@@ -964,23 +964,22 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal):
     numRowsW = rawDataRows + procDataRows + (
         len(currentGene)) + 1  # Big data rows + significant sites + isoforms + sequence
     numRows = numParams * dsElements + len(
-        currentGene) + 1  # number of rows without weights for specific sizes, +1 for dna sequence track
-    plotSpace = 0.8  # Room taken up by data tracks
-    spacingSpace = 1.0 - plotSpace  # room left for spacing tracks
+        currentGene) + 1  # Number of rows without weights for specific sizes, +1 for dna sequence track
+    plotSpace = 0.8  # Space taken up by data tracks
+    spacingSpace = 1.0 - plotSpace  # Space left for spacer tracks
     rowHeight = plotSpace / numRowsW
     if numRows > 1:
         vSpace = spacingSpace / (numRows - 1)
     else:
         vSpace = spacingSpace
 
-    # final height values for rows respecting type, has to be in bottom-up order
+    # Final height values for rows respecting type, has to be in bottom-up order
     dataSetHeights = []
     if procAvail == True:
         dataSetHeights.append(rowHeight / 2)
     if rawAvail == True:
         dataSetHeights.append(rowHeight * rowOffset)
     rowHeights = [rowHeight] * len(currentGene) + dataSetHeights * numParams + [rowHeight]
-    nameList = currentGene['name'].tolist()  # used for gene model titles
     fig = tools.make_subplots(rows=numRows, cols=1, shared_xaxes=True, vertical_spacing=vSpace, row_width=rowHeights)
     fig['layout']['xaxis'].update(nticks=6)
     fig['layout']['xaxis'].update(tickmode='array')
@@ -994,7 +993,7 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal):
     strand = currentGene['strand'].any()
     if strand == '-':
         fig['layout']['xaxis'].update(autorange='reversed')
-    # setup some variables to build master sequence from isoform-sequences
+    # Setup some variables to build master sequence from isoform-sequences
     if ensembl == False:
         if len(currentGene.loc[currentGene['chromEnd'].idxmax()]['name'].split('_')) > 1:
             nameRightSeq = currentGene.loc[currentGene['chromEnd'].idxmax()]['name'].split('.')[1].replace('_', '.')
@@ -1013,7 +1012,7 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal):
     leftEnd = currentGene.loc[currentGene['chromStart'].idxmin()]['chromEnd']
     combinedSeq = ''
 
-    if rightStart <= leftEnd:  # left and right sequence have overlap, we don't need more parts to create master
+    if rightStart <= leftEnd:  # Left and right sequence have overlap, we don't need more parts to create master
         for i in sequences:
             try:
                 combinedSeq = str(i[nameLeftSeq].seq) + str(i[nameRightSeq].seq)[(leftEnd - rightStart):]
@@ -1043,7 +1042,7 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal):
         except KeyError:
             pass
 
-    try:  # create traces for sequence display, either scatter or heatmap
+    try:  # Create traces for sequence display, either scatter or heatmap
         traces = generateSequenceTrace(seqDisp, strand, combinedSeq, xAxisMin, xAxisMax)
         for i in traces:
             fig.append_trace(i, 1, 1)
@@ -1053,21 +1052,21 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal):
         pass
     #       pass
 
-    # save strand info, necessary for arrow annotations. Should be same for all isoforms, so any will do
+    # Save strand info, necessary for binding site traces. Should be same for all isoforms, so any will do
     chrom = currentGene['chrom'].any() 
 
     counter = 2
     for i in range(len(dataSets)):
-        bsTraces = plotICLIP(dataSets[i], xAxisMax, xAxisMin, chrom, strand, colors)  # plot Binding site data
+        bsTraces = plotICLIP(dataSets[i], xAxisMax, xAxisMin, chrom, strand, colors)  # Plot binding site data
         fig.append_trace(bsTraces[0], counter, 1)
         if len(bsTraces[1]) > 0:
             for j in range(len(bsTraces[1])):
                 fig.append_trace(bsTraces[1][j], counter + 1, 1)
         counter += dsElements
 
-    # calculate gene models. We have to distinguish between coding region and non-coding region
+    # Calculate gene models. We have to distinguish between coding region and non-coding region
     for i in currentGene.itertuples():
-        # setup various helpers to work out the different sized blocks
+        # Setup various helpers to work out the different sized blocks
         blockStarts = [int(x) for x in i.blockStarts.rstrip(',').split(',')]
         blockSizes = [int(x) for x in i.blockSizes.rstrip(',').split(',')]
         genemodel = generateGeneModel(int(i.chromStart), int(i.thickStart), int(i.thickEnd - 1),
@@ -1075,10 +1074,10 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal):
                                       0.4, i.name)
         for j in range(len(genemodel)):
             fig.append_trace(genemodel[j], counter, 1)
-            # move on to the next gene model
+            # Move on to the next gene model
         counter += 1
 
-    # the trailing ',' actually matters for some reason, don't remove
+    # The trailing ',' actually matters for some reason, don't remove
     fig['layout'].update(
         barmode='relative',
         margin=go.layout.Margin(l=30, r=40, t=25, b=60),
@@ -1087,15 +1086,15 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal):
     if procAvail:
         for i in range(0, numParams * dsElements, 2):
             fig['layout']['yaxis' + str(i + 3)].update(showticklabels=False, showgrid=False, zeroline=False)
-    for i in range(len(currentGene)):  # edit all y axis in gene model plots
+    for i in range(len(currentGene)):  # Edit all y axis in gene model plots
         fig['layout']['yaxis' + str(i + numParams * dsElements + 2)].update(showticklabels=False, showgrid=False,
                                                                             zeroline=False)
-    for i in range(numRows + 1):  # prevent zoom on y axis
+    for i in range(numRows + 1):  # Prevent zoom on y axis
         if i == 0:
             fig['layout']['yaxis'].update(fixedrange=True)
         else:
             fig['layout']['yaxis' + str(i)].update(fixedrange=True)
-    # set correct graph height based on row number and type
+    # Set correct graph height based on row number and type
     fig['layout']['height'] = (baseHeight * rawDataRows
                                + baseHeight * procDataRows
                                + baseHeight * (len(currentGene) + 1)
@@ -1105,6 +1104,7 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal):
 
 def plotICLIP(name, xMax, xMin, chrom, strand, colors):
     """Helper method to plot the subplots containing iCLIP data
+    
     Positional arguments:
     name -- name of the subplot to create a title
     xMax -- maximum x-axis value, used to select relevant data
@@ -1114,14 +1114,14 @@ def plotICLIP(name, xMax, xMin, chrom, strand, colors):
     colors -- json color string
     """
     colors = json.loads(colors)
-    # selection criteria
+    # Selection criteria
     crit1 = bsRawDFs[name]['chrom'] == chrom
     crit21 = bsRawDFs[name]['chromStart'] >= xMin
     crit22 = bsRawDFs[name]['chromStart'] <= xMax
     crit31 = bsRawDFs[name]['chromEnd'] >= xMin
     crit32 = bsRawDFs[name]['chromEnd'] <= xMax
     rawSites = bsRawDFs[name].loc[crit1 & ((crit21 & crit22) | (crit31 & crit32))]
-    # setup arrays to hold the values that will be needed for plotting
+    # Setup arrays to hold the values that will be needed for plotting
     countsX = []
     countsY = []
     countsW = []
@@ -1129,7 +1129,7 @@ def plotICLIP(name, xMax, xMin, chrom, strand, colors):
         countsX.append(i.chromStart)
         countsY.append(i.count)
         countsW.append(i.chromEnd - i.chromStart)
-    # plot data
+    # Plot data
     rawTrace = go.Bar(
         x=countsX,
         y=countsY,
@@ -1143,7 +1143,7 @@ def plotICLIP(name, xMax, xMin, chrom, strand, colors):
         showlegend=True
     )
 
-    # setup criteria to select binding sites that are within the current region of the genome
+    # Setup criteria to select binding sites that are within the current region of the genome
     procSitesList = []
     try:
         bcrit11 = bsProcDFs[name]['chrom'] == chrom
@@ -1153,7 +1153,7 @@ def plotICLIP(name, xMax, xMin, chrom, strand, colors):
         bcrit31 = bsProcDFs[name]['chromEnd'] >= xMin
         bcrit32 = bsProcDFs[name]['chromEnd'] <= xMax
         bindingSites = bsProcDFs[name].loc[bcrit11 & bcrit12 & ((bcrit21 & bcrit22) | (bcrit31 & bcrit32))]
-        # plot binding sites
+        # Plot binding sites
         for k in bindingSites.itertuples():
                 procSitesList.append(
                     go.Bar(
@@ -1180,22 +1180,22 @@ def generateGeneModel(chromStart, codingRegionStart, codingRegionEnd, blockStart
     """Generates gene model based on the given blocks and coding region
 
     Positional arguments:
-    chromStart -- start of the chromosome, needed to offfset block values
-    codingRegionStart -- start of the coding or thick region
-    codingRegionEnd -- end of the coding or thick region
-    blockStarts -- list of block startpoints, these are relative to ChromStart
-    blockSizes -- lengths of the various blocks
-    blockHeight -- height for the blocks, thin regions are drawn with half height
-    name -- name for the trace
+    chromStart -- Start of the chromosome, needed to offfset block values
+    codingRegionStart -- Start of the coding or thick region
+    codingRegionEnd -- End of the coding or thick region
+    blockStarts -- List of block startpoints, these are relative to ChromStart
+    blockSizes -- Lengths of the various blocks
+    blockHeight -- Height for the blocks, thin regions are drawn with half height
+    name -- Name for the trace
     """
 
     blockVals = []
     blockWidths = []
     blockYs = []
-    # calculte blocks from block start and end positions, as well as thickness
+    # Calculate blocks from block start and end positions, as well as thickness
     for j in range(len(blockStarts)):
         blockStart = chromStart + blockStarts[j]
-        blockEnd = chromStart + blockStarts[j] + blockSizes[j] - 1  # same as codingRegionEnd
+        blockEnd = chromStart + blockStarts[j] + blockSizes[j] - 1  # Same as codingRegionEnd
         if (blockStart >= codingRegionStart) & (blockEnd <= codingRegionEnd):
             blockVals.append(blockStart + (blockEnd - blockStart) / 2)
             blockWidths.append(blockEnd - blockStart + 1)
@@ -1235,7 +1235,7 @@ def generateGeneModel(chromStart, codingRegionStart, codingRegionEnd, blockStart
             blockWidths.append(blockEnd - codingRegionEnd + 1)
             blockYs.append(blockHeight / 2)
 
-    # find first and last block o draw line properly
+    # Find first and last block to draw line properly
     f = lambda i: blockVals[i]
     amaxBlockVals = max(range(len(blockVals)), key=f)
     aminBlockVals = min(range(len(blockVals)), key=f)
@@ -1283,14 +1283,14 @@ def generateGeneModel(chromStart, codingRegionStart, codingRegionEnd, blockStart
 
 
 def generateSequenceTrace(seqDisp, strand, combinedSeq, xAxisMin, xAxisMax):
-    """ Method to generate sequence display trace, either heatmap or scatter
+    """ Function to generate sequence display trace, either heatmap or scatter
 
     Positional arguments:
-    seqDisp -- determines which trace type is used
-    strand -- if on minus strand invert dna sequence
-    combinedSeq -- sequence for display
-    xAxisMin -- startpoint
-    xAxisMax -- endpoit
+    seqDisp -- Determines which trace type is used
+    strand -- If on minus strand invert dna sequence
+    combinedSeq -- Sequence for display
+    xAxisMin -- Startpoint
+    xAxisMax -- Endpoit
     """
 
     if seqDisp == 'letterSeq':
@@ -1301,7 +1301,7 @@ def generateSequenceTrace(seqDisp, strand, combinedSeq, xAxisMin, xAxisMax):
         Err = []
         if strand == '+':
             varMap = {'A': xA, 'C': xC, 'G': xG, 'T': xT}
-        else:  # reverse complement
+        else:  # Reverse complement
             varMap = {'A': xT, 'C': xG, 'G': xC, 'T': xA}
         for i in range(xAxisMin, xAxisMax):
             try:
@@ -1374,7 +1374,7 @@ def generateSequenceTrace(seqDisp, strand, combinedSeq, xAxisMin, xAxisMax):
         if strand == '+':
             valMap = {'A': 0, 'C': 2, 'G': 3, 'T': 1}
             textMap = {'A': 'A', 'C': 'C', 'G': 'G', 'T': 'T'}
-        else:  # reverse complement
+        else:  # Reverse complement
             valMap = {'A': 1, 'C': 3, 'G': 2, 'T': 0}
             textMap = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A'}
         zlist = []
@@ -1430,12 +1430,12 @@ def generateSequenceTrace(seqDisp, strand, combinedSeq, xAxisMin, xAxisMax):
 
 
 def createDetailRow(content, name, rowNumber):
-    """ returns a single row for the details table
+    """ Returns a single row for the details table
 
     Positional arguments:
-    content -- the attribute data as String
-    name -- name for the attribute
-    rowNumber -- used for odd/even coloring
+    content -- The attribute data as String
+    name -- Name for the attribute
+    rowNumber -- Used for odd/even coloring
     """
     # Check subtable information
     try:
@@ -1447,18 +1447,18 @@ def createDetailRow(content, name, rowNumber):
     except:
         headers = None
         
-    subRows = [] # holds elements for multivalue attributes
-    subTable = [] # holds elements for subtables
-    if headers != None: # we have subtable information, so try and create one
+    subRows = [] # Holds elements for multivalue attributes
+    subTable = [] # Holds elements for subtables
+    if headers != None: # We have subtable information, so try and create one
         headerRow = []
-        for k in headers: # build table header line
+        for k in headers: # Build table header line
             headerRow.append(html.Th(k))
         subTable.append(html.Tr(children = headerRow))
         tableError = False
-        for i in content.split(';'): # build subtable rows dictated by ; delimitation
+        for i in content.split(';'): # Build subtable rows dictated by ; delimitation
             subSubRow = []
             if len(i.split(',')) == len(headers):
-                for j in i.split(','): # build subtable columns dictated by , delimitation
+                for j in i.split(','): # Build subtable columns dictated by , delimitation
                     if j != '':
                         if j[0] == '?':
                             subSubRow.append(html.Td(html.A(j[1:], href=j[1:].strip(), target='_blank')))
@@ -1472,7 +1472,7 @@ def createDetailRow(content, name, rowNumber):
             subTable = []
             for l in content.split(';'):
                 if l != '' :
-                    if l[0] == '?': # create hyperlinks
+                    if l[0] == '?': # Create hyperlinks
                         subRows.append(html.Tr(html.Td(html.A(l[1:], href = l[1:].strip(), target = '_blank'))))
                     else:
                         subRows.append(html.Tr(html.Td(l.strip())))
