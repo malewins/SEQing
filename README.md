@@ -109,7 +109,7 @@ AT1G01010	?http://araport.org
 ```
 This will also work for semicolon seperated values as well as in subtables, but not in comma seperated Strings.
 ### Screenshot
-![SEQing example](SEQing_At2G21660.PNG)
+![SEQing example](SEQing_iCLIP_sample.PNG)
 
 ## Built With
 
