@@ -90,7 +90,7 @@ app.layout = html.Div(
                     },
                     children=[
                         dcc.Tab(
-                            label='iCLIP data',
+                            label='iCLIP-seq',
                             style=tabStyle,
                             selected_style=tabStyle,
                             id='clipTab',
@@ -139,21 +139,7 @@ app.layout = html.Div(
                             ]
                         ),
                         dcc.Tab(
-                            label = 'Details',
-                            id = 'deTab',
-                            disabled = advDisabled,
-                            style = tabStyle,
-                            selected_style = tabStyle,
-                            disabled_style = tabStyle,
-                            children = [
-                                html.Div(
-                                    id='detailMainDiv',
-                                    children=[]
-                                )
-                            ]
-                        ),
-                        dcc.Tab(
-                            label='RNASeq',
+                            label='RNA-seq',
                             style=tabStyle,
                             selected_style=tabStyle,
                             id='rnaTab',
@@ -203,6 +189,20 @@ app.layout = html.Div(
                                 ),
                                 dcc.Graph(id='spliceGraph'),
                                 dcc.Graph(id='sequenceBarChart')
+                            ]
+                        ),
+                        dcc.Tab(
+                            label = 'Details',
+                            id = 'deTab',
+                            disabled = advDisabled,
+                            style = tabStyle,
+                            selected_style = tabStyle,
+                            disabled_style = tabStyle,
+                            children = [
+                                html.Div(
+                                    id='detailMainDiv',
+                                    children=[]
+                                )
                             ]
                         ),
                         dcc.Tab(
