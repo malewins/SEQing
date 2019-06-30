@@ -9,8 +9,45 @@ import dash_core_components as dcc
 import dash_html_components as html
 import plotly.graph_objs as go
 from plotly import tools
+from textwrap import dedent
+
+
 
 __author__ = "Yannik Bramkamp"
+
+helpText = '''
+            ##### Help Text
+            
+            Welcome to SEQing, an interactive, web based visualisation and exploration tool for iCLIP-seq and RNA-seq data.
+            Use the drop down menu at the top to select your gene of interest. You can search by gene identifier,
+            and depending on provided data, also by gene name and partial descriptions. 
+            For more detailed information on the different tabs please consult the following paragraphs.
+            
+            ##### iCLIP-seq
+            
+            In this tab you can explore raw iCLIP-seq data and, if available, also predicted binding sites. Besides the basic
+            interactive plot controls provided by the Dash framework, which you can access by hovering over the graphs,
+            there are two main control elements:
+              -    On the left side you have checkboxes to select which datasets you wish to display, if more than one was provided to the tool.
+              -    On the right side, if dna sequence data was provided, you can select the display mode for said sequences. You can choose from
+                   heatmap, letters, and no display at all. heatmap is strongly recommended for interactive use, as 'letters' has a signifficantly
+                   higher performance impact and is recommended only for the creation of static images.
+                
+            Please note that you will have to hit the submit button for changes to be applied.
+                
+            ##### RNA-seq
+            
+            ##### Details
+            
+            In this tab you can view further information on you selected gene. Which information is available depends on what you administrator has provided
+            when setting up the tool.
+            
+            ###### Settings
+            
+            Here you can select colors for the graphs in the iCLIP-seq tab. Select a dataset from the dropdown, choose your color using
+            the sliders and hit 'confirm'. You don't need to hit 'submit' for this.
+            '''
+
 
 if 'dropList' not in globals():
     print('Please start the program via validator.py')
@@ -47,6 +84,37 @@ except:
     disableSettings = True
 
 
+def help_popup():
+ return html.Div(
+        id='help',
+        className="model",
+        style={'display': 'none'},
+        children=(
+            html.Div(
+                className="help-container",
+                children=[
+                    html.Div(
+                        className='close-container',
+                        children=html.Button(
+                            "Close",
+                            id="help_close",
+                            n_clicks=0,
+                            className="closeButton",
+                            style={'border': 'none', 'height': '100%'}
+                        )
+                    ),
+                    html.Div(
+                        className='help-text',
+                        children=[dcc.Markdown(
+                            children= dedent(helpText)
+                            )
+                        ]
+                    )
+                ]
+            )
+        )
+)
+
 # Default tab style
 tabStyle = {'padding' : '0', 'line-height' : '5vh'}
 # Colors for the alternating coloring in Details
@@ -54,9 +122,22 @@ tableColors = ['rgb(255, 255 ,255)', 'rgb(125, 244, 66)']
 
 app = dash.Dash(__name__)
 
+app.config['suppress_callback_exceptions']=True
+
 app.layout = html.Div(
     children=[
-        html.H1(id='headline', children='Report'),
+        html.Div(
+            children = [
+                html.H1(id='headline', children='Report')
+            ],
+            style={'width': '90vw', 'display': 'table-cell', 'verticalalign': 'middle'}
+        ),
+        html.Div(
+            children = [
+                html.Button(id='helpButton', n_clicks=0, n_clicks_timestamp=0, children='help'),
+            ],
+              style={'width': '10vw', 'display': 'table-cell', 'verticalalign': 'middle'}                  
+        ),
         html.Div(
             children=[
                 html.Div(
@@ -304,10 +385,21 @@ app.layout = html.Div(
                 )
 
             ]
-        )
+        ),
+        help_popup()
     ]
 )
 
+@app.callback(
+    dash.dependencies.Output('help', 'style'),
+    [dash.dependencies.Input("helpButton", "n_clicks"),
+     dash.dependencies.Input("help_close", "n_clicks")]
+)
+def update_click_output(button_click, close_click):
+    if button_click > close_click:
+        return {"display": "block"}
+    else:
+        return {"display": "none"}
 
 @app.callback(
     dash.dependencies.Output('advMem', component_property='children'),
