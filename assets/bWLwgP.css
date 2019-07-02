@@ -130,6 +130,7 @@ body {
   font-size: 1.5em; /* currently ems cause chrome bug misinterpreting rems on body element */
   line-height: 1.6;
   font-weight: 400;
+  background-color: rgb(240, 240, 240);
   font-family: "Open Sans", "HelveticaNeue", "Helvetica Neue", Helvetica, Arial, sans-serif;
   color: rgb(50, 50, 50); }
 
@@ -393,6 +394,43 @@ hr {
 ._dash-undo-redo {
 	display:none;
 	}
+
+/* table stuff
+–––––––––––––––––––––––––––––––––––––––––––––––––– */
+.table-cont {
+   display: table;
+   height: 100%;
+}
+
+.table-row {
+   display: table-row;
+   height: auto;
+   width: 100%;
+}
+
+.table-cell {
+   display: table-cell;
+}
+
+.field-set {
+   border : solid;
+   border-width : 1px;
+   border-color : rgb(128,128,128);
+   background-color: rgb(255,255,255);
+   vertical-align: top;
+   height: 99%;
+   margin: 0 5px;
+}
+
+.column-1 {
+height: 100%;
+width: 60vw;
+}
+
+.column-2 {
+height: 100%;
+width: 15vw;
+}
 
 /* Popup stuff
 –––––––––––––––––––––––––––––––––––––––––––––––––– */
