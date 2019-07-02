@@ -71,9 +71,9 @@ else:
 
 # Hide sequence related controls if no sequence data is available
 if len(sequences) == 0:
-    seqDispStyle = {'display': 'none'}
+    seqDispStyle = {'display': 'none', 'height' : '100%', 'width' : '20vw'}
 else:
-    seqDispStyle = {'width': '20vw', 'display': 'table-cell'}
+    seqDispStyle = {'height' : '100%', 'width' : '20vw'}
 
 # Try to setup color picker
 try:
@@ -218,8 +218,8 @@ app.layout = html.Div(
                                                             )
                                                         ]
                                                     ),
-                                                    html.Div(style = {'height' : '100%', 'width' : '15vw'},
-                                                        className = 'table-cell column-2',
+                                                    html.Div(style = seqDispStyle,
+                                                        className = 'table-cell column-3',
                                                         children = [
                                                             html.Fieldset(
                                                                 className = 'field-set',
@@ -243,6 +243,7 @@ app.layout = html.Div(
     
                                         ],
                                     ),
+                                    html.Div(style = {'height' : '25px'}),
                                     html.Div(
                                         children = [
                                                     dcc.Graph(id='bsGraph',
