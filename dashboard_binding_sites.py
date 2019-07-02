@@ -16,7 +16,7 @@ from textwrap import dedent
 __author__ = "Yannik Bramkamp"
 
 helpText = '''
-            ##### Help Text
+            ##### General
             
             Welcome to SEQing, an interactive, web based visualisation and exploration tool for iCLIP-seq and RNA-seq data.
             Use the drop down menu at the top to select your gene of interest. You can search by gene identifier,
@@ -133,12 +133,6 @@ app.layout = html.Div(
             style={'width': '90vw', 'display': 'table-cell', 'verticalalign': 'middle'}
         ),
         html.Div(
-            children = [
-                html.Button(id='helpButton', n_clicks=0, n_clicks_timestamp=0, children='help'),
-            ],
-              style={'width': '10vw', 'display': 'table-cell', 'verticalalign': 'middle'}                  
-        ),
-        html.Div(
             children=[
                 html.Div(
                     children=[
@@ -157,7 +151,19 @@ app.layout = html.Div(
                         ),
                         html.Div(
                             children=[
-                                html.Button(id='submit', n_clicks=0, n_clicks_timestamp=0, children='Submit')
+                                html.Button(id='submit', n_clicks=0, n_clicks_timestamp=0, children='Submit', 
+                                            style = {'backgroundColor' : 'rgb(255,255,255)'})
+                            ],
+                            style={'width': '8vw', 'display': 'table-cell', 'verticalalign': 'middle'}
+                        ),
+                        html.Div(
+                            style={'width': '3vw', 'display': 'table-cell', 'verticalalign': 'middle'}
+                        ),
+                        html.Div(
+                            children = [
+                                html.Button(id='helpButton', n_clicks=0, n_clicks_timestamp=0, children='help',
+                                        style = {'backgroundColor' : 'rgb(255,255,255)'}
+                                )
                             ],
                             style={'width': '8vw', 'display': 'table-cell', 'verticalalign': 'middle'}
                         )
@@ -176,47 +182,84 @@ app.layout = html.Div(
                             selected_style=tabStyle,
                             id='clipTab',
                             children=[
-                                html.Div(
-                                    children=[
-                                        html.Div(
-                                            children=[
-                                                dcc.Checklist(
-                                                    id='paramList',
-                                                    options=[{'label': i, 'value': i} for i in dataSetNames],
-                                                    values=[i for i in dataSetNames]
-                                                )
-                                            ],
-                                            style={'width': '10vw', 'display': 'table-cell'}
-                                        ),
-                                        html.Div(
-                                            children=html.P(html.B('Gene description: ')),
-                                            id='descDiv',
-                                            style={'width': '58vw', 'display': 'table-cell'}
-                                        ),
-                                        html.Div(
-                                            children=[
-                                                dcc.RadioItems(
-                                                    id='sequenceRadio',
-                                                    options=[
-                                                        {'label': 'Do not show dna sequence', 'value': 'noSeq'},
-                                                        {'label': 'Show dna sequence as letters', 'value': 'letterSeq'},
-                                                        {'label': 'Show dna sequence as heatmap', 'value': 'heatSeq'}
-                                                    ],
-                                                    value='heatSeq'
-                                                )
-                                            ],
-                                            style=seqDispStyle
-                                        )
-                                    ]
-                                ),
-                                dcc.Graph(id='bsGraph'),
-                                html.Div(
-                                    children = [
-                                        html.Div(id = 'advMem',
-                                            style = {'display' : 'none'}
-                                        )
-                                    ]
-                                )
+                                html.Div(children = [
+                                    html.Div(className = 'table-cont',
+                                        children=[
+                                                html.Div(className = 'table-row',
+                                                    children = [
+                                                    html.Div(
+                                                        className = 'table-cell column-1',
+                                                        children = [
+                                                            html.Fieldset(
+                                                                className = 'field-set',
+                                                                children = [ 
+                                                                    html.Legend('Gene Description'),
+                                                                    html.Div(id='descDiv',
+                                                                        children = html.P(html.B(''))
+                                                                    )
+                                                                ],
+                                                            )
+                                                        ]
+                                                    ),
+                                                    html.Div(style = {'height' : '100%', 'width' : '15vw'},
+                                                        className = 'table-cell column-2',
+                                                        children = [
+                                                            html.Fieldset(
+                                                                className = 'field-set',
+                                                                children = [
+                                                                    html.Legend('Datasets'),                                                     
+                                                                    dcc.Checklist(
+                                                                        id='paramList',
+                                                                        options=[{'label': i, 'value': i} for i in dataSetNames],
+                                                                        values=[i for i in dataSetNames]
+                                                                    )
+                                                                ]
+                                                            
+                                                            )
+                                                        ]
+                                                    ),
+                                                    html.Div(style = {'height' : '100%', 'width' : '15vw'},
+                                                        className = 'table-cell column-2',
+                                                        children = [
+                                                            html.Fieldset(
+                                                                className = 'field-set',
+                                                                children = [
+                                                                    html.Legend('DNA sequence options'),
+                                                                    dcc.RadioItems(
+                                                                        id='sequenceRadio',
+                                                                        options=[
+                                                                            {'label': 'Do not show dna sequence', 'value': 'noSeq'},
+                                                                            {'label': 'Show dna sequence as letters', 'value': 'letterSeq'},
+                                                                            {'label': 'Show dna sequence as heatmap', 'value': 'heatSeq'}
+                                                                        ],
+                                                                        value='heatSeq'
+                                                                    )
+                                                                ]
+                                                            )
+                                                        ]
+                                                    )
+                                                ]
+                                            ),
+    
+                                        ],
+                                    ),
+                                    html.Div(
+                                        children = [
+                                                    dcc.Graph(id='bsGraph',
+                                                        style = {'padding' : '3px'}),
+                                                    html.Div(
+                                                        children = [
+                                                            html.Div(id = 'advMem',
+                                                                style = {'display' : 'none'}
+                                                            )
+                                                        ]
+                                                    )    
+                                           
+                                           
+                                        ]         
+                                    )
+                                ]
+                            )
                             ]
                         ),
                         dcc.Tab(
@@ -301,7 +344,8 @@ app.layout = html.Div(
                                                 'border' : 'solid',
                                                 'borderWidth' : '1px',
                                                 'padding' : '10px',
-                                                'borderColor' : 'rgb(128,128,128)'
+                                                'borderColor' : 'rgb(128,128,128)',
+                                                'backgroundColor' : 'rgb(255,255,255)'
                                             },
                                             children = [ 
                                                 html.Legend('iCLIP Settings'),
@@ -387,7 +431,8 @@ app.layout = html.Div(
             ]
         ),
         help_popup()
-    ]
+    ],
+    style = {'backgroundColor' : 'rgb(240,240,240)'}
 )
 
 @app.callback(
@@ -985,7 +1030,6 @@ def setDesc(clicks, name):
     if descAvail:
         try:
             return [
-                html.P(html.B('Gene description: ')),
                 html.P(
                     geneDescriptions.loc[
                         geneDescriptions['ensembl_gene_id'] == name,
