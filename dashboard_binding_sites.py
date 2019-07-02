@@ -682,6 +682,7 @@ def rnaPlot(clicks, clicks2, geneName, dataSets, rnaParamList):
     # dicts for lists of axis values
     xVals = {}
     yVals = {}
+    max_yVal = 0
 
     for ds in displayed_rnaDataSet:
         if ds.split('_')[0] not in color_dict.keys():
@@ -710,9 +711,13 @@ def rnaPlot(clicks, clicks2, geneName, dataSets, rnaParamList):
         # create x-axis values
         xVal = list(range(xAxisMin, xAxisMax))
         xVals[ds] = xVal
+        if max(yVal) > max_yVal: max_yVal = max(yVal)
     fig = createAreaChart(xVals, yVals, displayed_rnaDataSet, color_dict, dataSets, geneName)
     fig['layout']['height'] = (30 * (len(currentGene) + 1)
-                               + 250)
+                               + 400)
+
+    for i in range(1,len(displayed_rnaDataSet)):  # edit all y axis in gene model plots
+        fig['layout']['yaxis' + str(i)].update(range=[0,max_yVal], showgrid=True)
     return fig
 
 
@@ -734,7 +739,7 @@ def createAreaChart(xVals, yVals, displayed, color_dict, dataSets, geneName):
             line=dict(color='black'),
             text=ds,
             hoverinfo='y',
-            cliponaxis=True,
+            cliponaxis=True
         )
         # trace1 = go.Bar(
         #     x=xAxis,
@@ -759,11 +764,7 @@ def createAreaChart(xVals, yVals, displayed, color_dict, dataSets, geneName):
         data.append(trace)
         # data.append(trace1)
 
-
-    currentGene = pandas.DataFrame()
-
-    numRows = len(dataSets) * dsElements + len(
-        currentGene) + 1
+    numRows = len(dataSets) * dsElements
     plotSpace = 0.8  # Room taken up by data tracks
     spacingSpace = 1.0 - plotSpace  # room left for spacing tracks
     rowHeight = plotSpace
@@ -771,6 +772,10 @@ def createAreaChart(xVals, yVals, displayed, color_dict, dataSets, geneName):
         vSpace = spacingSpace / (numRows - 1)
     else:
         vSpace = spacingSpace
+
+
+    for i in range(numRows):
+        subplot_titles.append("")
 
     fig = tools.make_subplots(rows=len(data)+numRows, cols=1, subplot_titles=subplot_titles,
                               vertical_spacing=vSpace, shared_xaxes=True)
@@ -870,14 +875,11 @@ def rnaSequencePlot(fig, geneName, dataSets):
             ),
         )
     fig['layout']['annotations'] = arrows
-    for i in range(numRows + 1):  # prevent zoom on y axis
+    for i in range(len(dataSets)):  # prevent zoom on y axis
         if i == 0:
             fig['layout']['yaxis'].update(fixedrange=True)
         else:
             fig['layout']['yaxis' + str(i)].update(fixedrange=True)
-    # set correct graph height based on row number and type
-    fig['layout']['height'] = (baseHeight * (len(currentGene) + 1)
-                               + 250)
     return fig
 
 
