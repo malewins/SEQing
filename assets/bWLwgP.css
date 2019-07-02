@@ -415,10 +415,12 @@ hr {
 .field-set {
    border : solid;
    border-width : 1px;
+   border-radius : 5px;
    border-color : rgb(128,128,128);
    background-color: rgb(255,255,255);
    vertical-align: top;
    height: 99%;
+   padding: 10px;
    margin: 0 5px;
 }
 
@@ -430,6 +432,11 @@ width: 60vw;
 .column-2 {
 height: 100%;
 width: 15vw;
+}
+
+.column-3 {
+height: 100%;
+width: 20vw;
 }
 
 /* Popup stuff
