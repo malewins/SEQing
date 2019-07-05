@@ -660,8 +660,6 @@ def rnaPlot(clicks, clicks2, geneName, dataSets, rnaParamList):
         if not currentGene.empty:
             break
 
-
-
     # Get axis minimum and maximum over all isoforms. Also get current chromosome
     xAxisMax = currentGene['chromEnd'].max()
     xAxisMin = currentGene['chromStart'].min()
@@ -682,6 +680,7 @@ def rnaPlot(clicks, clicks2, geneName, dataSets, rnaParamList):
     # dicts for lists of axis values
     xVals = {}
     yVals = {}
+    yVals_events = {}
     max_yVal = 0
 
     for ds in displayed_rnaDataSet:
@@ -697,7 +696,18 @@ def rnaPlot(clicks, clicks2, geneName, dataSets, rnaParamList):
         spliceSlice = spliceProcDFs[ds].loc[bcrit11 & ((bcrit21 & bcrit22) | (bcrit31 & bcrit32))]
         # pre-init y-value list
         yVal = [0] * (len(range(xAxisMin, xAxisMax)))
-        xVal = []
+        yVal_events = [0] * (len(range(xAxisMin, xAxisMax)))
+        organism = ds.split("_")[0]
+        if organism in spliceEventNames[1]:
+            for d in spliceEventDFs.keys():
+                if organism in d:
+                    # criteria to filter relevant lines from current dataframe
+                    bcrit11 = spliceEventDFs[d]['chrom'] == chrom
+                    bcrit21 = spliceEventDFs[d]['chromStart'] >= xAxisMin
+                    bcrit22 = spliceEventDFs[d]['chromStart'] <= xAxisMax
+                    bcrit31 = spliceEventDFs[d]['chromEnd'] >= xAxisMin
+                    bcrit32 = spliceEventDFs[d]['chromEnd'] <= xAxisMax
+                    spliceEvents = spliceEventDFs[d].loc[bcrit11 & ((bcrit21 & bcrit22) | (bcrit31 & bcrit32))]
         # use itertuples to iterate over rows, since itertuples is supposed to be faster
         for row in spliceSlice.itertuples():
             # increment all values covered by the current row, will overshoot when row crosses border of gene, thus try except
@@ -706,13 +716,22 @@ def rnaPlot(clicks, clicks2, geneName, dataSets, rnaParamList):
                     yVal[j - xAxisMin] += row.count
                 except IndexError:
                     pass
+        event_marker = 1
+        for row in spliceEvents.itertuples():
+            # increment all values covered by the current row, will overshoot when row crosses border of gene, thus try except
+            for j in range(row.chromStart, row.chromEnd):
+                try:
+                    yVal_events[j - xAxisMin] += event_marker
+                except IndexError:
+                    pass
             # store reference to value list in dict
         yVals[ds] = yVal
+        yVals_events[ds] = yVal_events
         # create x-axis values
         xVal = list(range(xAxisMin, xAxisMax))
         xVals[ds] = xVal
         if max(yVal) > max_yVal: max_yVal = max(yVal)
-    fig = createAreaChart(xVals, yVals, displayed_rnaDataSet, color_dict, dataSets, geneName)
+    fig = createAreaChart(xVals, yVals, yVals_events, displayed_rnaDataSet, color_dict, dataSets, geneName)
     fig['layout']['height'] = (30 * (len(currentGene) + 1)
                                + 400)
 
@@ -721,7 +740,7 @@ def rnaPlot(clicks, clicks2, geneName, dataSets, rnaParamList):
     return fig
 
 
-def createAreaChart(xVals, yVals, displayed, color_dict, dataSets, geneName):
+def createAreaChart(xVals, yVals, yVals_events, displayed, color_dict, dataSets, geneName):
     data = []
     subplot_titles = []
     for ds in displayed:
@@ -741,43 +760,40 @@ def createAreaChart(xVals, yVals, displayed, color_dict, dataSets, geneName):
             hoverinfo='y',
             cliponaxis=True
         )
-        # trace1 = go.Bar(
-        #     x=xAxis,
-        #     y=yAxis_events,
-        #     width=yAxis_width,
-        #     showlegend=False,
-        #     text=yAxis_text,
-        #     insidetextfont=dict(
-        #         family="Arial",
-        #         color="black"
-        #     ),
-        #     textposition='auto',
-        #     marker=dict(
-        #         color='yellow',
-        #         line=dict(
-        #             color='black',
-        #             width=1),
-        #     )
-        # )
+        trace1 = go.Bar(
+            x=xAxis,
+            y=yVals_events[ds],
+            showlegend=False,
+            insidetextfont=dict(
+                family="Arial",
+                color="black"
+            ),
+            textposition='auto',
+            marker=dict(
+                color='yellow',
+                line=dict(
+                    color='black',
+                    width=1),
+            )
+        )
         subplot_titles.append(ds)
-        # subplot_titles.append("")
         data.append(trace)
         # data.append(trace1)
 
-    numRows = len(dataSets) * dsElements
+    numIsoforms = len(dataSets) * dsElements
     plotSpace = 0.8  # Room taken up by data tracks
     spacingSpace = 1.0 - plotSpace  # room left for spacing tracks
     rowHeight = plotSpace
-    if numRows > 1:
-        vSpace = spacingSpace / (numRows - 1)
+    if numIsoforms > 1:
+        vSpace = spacingSpace / (numIsoforms - 1)
     else:
         vSpace = spacingSpace
 
 
-    for i in range(numRows):
+    for i in range(numIsoforms):
         subplot_titles.append("")
-
-    fig = tools.make_subplots(rows=len(data)+numRows, cols=1, subplot_titles=subplot_titles,
+    numRows = len(data)+numIsoforms
+    fig = tools.make_subplots(rows=numRows, cols=1, subplot_titles=subplot_titles,
                               vertical_spacing=vSpace, shared_xaxes=True)
     fig['layout']['xaxis'].update(ticks='outside')
     fig['layout']['xaxis'].update(ticksuffix='b')
@@ -786,20 +802,20 @@ def createAreaChart(xVals, yVals, displayed, color_dict, dataSets, geneName):
         barmode='relative',
         margin=go.layout.Margin(l=30, r=40, t=25, b=60),
     )
-    # if spliceAvail:
-    #     for i in range(2, len(data) + 1):
-    #         fig['layout']['yaxis' + str(i)].update(showticklabels=False, showgrid=False, zeroline=False)
+    if spliceAvail:
+        for i in range(2, len(data) + 1):
+            fig['layout']['yaxis' + str(i)].update(showticklabels=False, showgrid=False, zeroline=False)
 
     for index, t in enumerate(data):
         fig.append_trace(t, index + 1, 1)
 
-    rnaSequencePlot(fig, geneName, dataSets)
+    rnaSequencePlot(fig, geneName, numRows, dataSets)
 
     return fig
 
 
 
-def rnaSequencePlot(fig, geneName, dataSets):
+def rnaSequencePlot(fig, geneName, numRows, dataSets):
     """Callback that handles the dynamic visualisation of the rna data."""
 
     numParams = len(dataSets)  # number of selected data tracks
@@ -875,7 +891,7 @@ def rnaSequencePlot(fig, geneName, dataSets):
             ),
         )
     fig['layout']['annotations'] = arrows
-    for i in range(len(dataSets)):  # prevent zoom on y axis
+    for i in range(numRows):  # prevent zoom on y axis
         if i == 0:
             fig['layout']['yaxis'].update(fixedrange=True)
         else:
