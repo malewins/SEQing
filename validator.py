@@ -197,7 +197,14 @@ parser.add_argument('-config' , dest = 'cfg',
                     type = Path, metavar = 'FILE')
 parser.add_argument('-splice_data',
                     dest='splice_data',
-                    help = 'files containing splice site data in 6 column bed format.',
+                    help = 'files containing splice site data in 4 column bed format.',
+                    nargs = '+',
+                    default = [],
+                    type = Path,
+                    metavar = 'FILE')
+parser.add_argument('-splice_events',
+                    dest='splice_events',
+                    help = 'files containing splice events in 6 column bed format.',
                     nargs = '+',
                     default = [],
                     type = Path,
@@ -259,6 +266,7 @@ if useCfg == False: # Use command line arguments for setup
     fastaPaths = args.fastas
     sortKeys = args.keys
     spliceSitePaths = args.splice_data
+    spliceEventsPaths = args.splice_events
     try:
         advancedDescPath = Path(args.advancedDesc)
     except TypeError:
@@ -581,6 +589,7 @@ dsElements = 0 # number of traces per dataset, i.e Rawdata+ bindingsites = 2
 rawAvail = False # Raw data available
 procAvail = False # proc data available
 spliceAvail = False # splice data available
+spliceEventsAvail = False  # splice events available
 
 # Setup iCLIP data
 bsRawDFs = {}
@@ -667,6 +676,37 @@ if len(spliceProcDFs) > 0:
         spliceElements += 1
         spliceAvail = True
 
+spliceEventsDFs = {}
+spliceEventsElements = 0
+spliceEventNames = [[],[]]
+if len(spliceEventsPaths) > 0:
+    print('Loading splice event data')
+for i in spliceEventsPaths:
+    try:
+        df = pandas.read_csv(i, sep= '\t', names= bsHeader)
+        validation = validateBed(df)
+        file_name = i.stem.split('_')[0]+'_'+i.stem.split('_')[1]
+        if validation[0]:
+            if file_name in spliceEventsDFs:
+                print('Warning, you are using the same prefix for multiple bedgraph files, file ' + str(
+                    i) + ' will be ignored')
+            else:
+                spliceEventsDFs.update({file_name: df})
+            if i.stem.split('_')[0] not in spliceEventNames[1]:
+                    spliceEventNames[0].append(i.stem.split('_')[1])
+                    spliceEventNames[1].append(i.stem.split('_')[0])
+        else:
+            print('Error in file ' + str(i) + ':')
+            print(validation[1])
+    except FileNotFoundError:
+        print('File ' + str(i) + ' was not found')
+if len(spliceEventsPaths) > 0:
+    print('Done.')
+if len(spliceEventsDFs) > 0:
+    spliceEventsElements += 1
+    spliceEventsAvail = True
+
+
 # Colors for dna sequence display
 colorA = 'rgb(0, 150, 0)'
 colorC = 'rgb(15,15,255)'
@@ -705,14 +745,18 @@ globalDict = {
     'dataSetNames' : dataSetNames, # Names for the data sets
     'spliceSetNames' : spliceSetNames, # Names for the rnaSeq data sets
     'rawAvail' : rawAvail, # iCLIP data available True/False
-    'spliceAvail' : spliceAvail, # Rna-Seq data available True/False
-    'dropList' : dropList, # List of entries for the gene selection dropdown
-    'geneDescriptions' : geneDescriptions, # Dataframe with gene descriptions
-    'sequences' : sequences, # List containing sequence files
-    'geneAnnotations' : geneAnnotations, # Dataframes containing gene annotation data
-    'ensembl' : ensembl, # Ensembl style fasta format True/False
-    'sortKeys' : sortKeys, # Arguments for the list.sort function
-    'advancedDesc' : advancedDescriptions, # Advanced descriptions for Details tab
-    'subTables' : subTables} # Subtable information for Details tab
+    'spliceAvail' : spliceAvail, # rnaSeq data available True/False
+    'dropList' : dropList, # list of entries for the gene selection dropdown
+    'geneDescriptions' : geneDescriptions, # dataframe with gene descriptions
+    'sequences' : sequences, # list containing sequence files
+    'geneAnnotations' : geneAnnotations, # dataframes containing gene annotation data
+    'ensembl' : ensembl, # ensembl style fasta format True/False
+    'sortKeys' : sortKeys, # arguments for the list.sort function
+    'advancedDesc' : advancedDescriptions, # advanced descriptions for Details tab
+    'subTables' : subTables, # subtable information for Details tab
+    'spliceEventElements': spliceEventsElements, # Number of elements per rna dataset
+    'spliceEventDFs': spliceEventsDFs,  # Dataframes with splice event data
+    'spliceEventNames': spliceEventNames, # Names for the splice event data sets
+    'spliceEventAvail': spliceEventsAvail} # splice event data available True/False
 
 runpy.run_module('dashboard_binding_sites', init_globals = globalDict, run_name = '__main__')
