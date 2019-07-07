@@ -748,7 +748,7 @@ def setHeadline(clicks, name):
         currentGene = i[i['name'].str.contains(name)]
         if not currentGene.empty:
             break
-    strand = currentGene['strand'].any()
+    strand = currentGene['strand'].iloc[0]
     title = name + ' (' + strand + ')'
     return title
 
@@ -803,7 +803,7 @@ def rnaPlot(clicks, clicks2, geneName, dataSets, rnaParamList):
     # Get axis minimum and maximum over all isoforms. Also get current chromosome
     xAxisMax = currentGene['chromEnd'].max()
     xAxisMin = currentGene['chromStart'].min()
-    chrom = currentGene['chrom'].any()
+    chrom = currentGene['chrom'].iloc[0]
     color_dict = {}  # color per mutant
     colors = ['red', 'orange', 'yellow', 'green', 'blue', 'violet',
               'red', 'orange', 'yellow', 'green', 'blue', 'violet',
@@ -837,8 +837,10 @@ def rnaPlot(clicks, clicks2, geneName, dataSets, rnaParamList):
         # pre-init y-value list
         yVal = [0] * (len(range(xAxisMin, xAxisMax)))
         yVal_events = [0] * (len(range(xAxisMin, xAxisMax)))
+        spliceEvents = pandas.DataFrame()
         organism = ds.split("_")[0]
         if organism in spliceEventNames[1]:
+            print('jo')
             for d in spliceEventDFs.keys():
                 if organism in d:
                     # criteria to filter relevant lines from current dataframe
@@ -982,7 +984,7 @@ def rnaSequencePlot(fig, geneName, numRows, dataSets):
 
     xAxisMax = currentGene['chromEnd'].max()
     xAxisMin = currentGene['chromStart'].min()
-    strand = currentGene['strand'].any()
+    strand = currentGene['strand'].iloc[0]
 
     chromEnds = []  # used for arrow positioning
 
@@ -1150,7 +1152,7 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal):
 
     xAxisMax = currentGene['chromEnd'].max()
     xAxisMin = currentGene['chromStart'].min()
-    strand = currentGene['strand'].any()
+    strand = currentGene['strand'].iloc[0]
     if strand == '-':
         fig['layout']['xaxis'].update(autorange='reversed')
     # Setup some variables to build master sequence from isoform-sequences
@@ -1213,7 +1215,7 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal):
     #       pass
 
     # Save strand info, necessary for binding site traces. Should be same for all isoforms, so any will do
-    chrom = currentGene['chrom'].any() 
+    chrom = currentGene['chrom'].iloc[0]
 
     counter = 2
     for i in range(len(dataSets)):
