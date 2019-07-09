@@ -441,6 +441,10 @@ width: 20vw;
 
 /* Popup stuff
 –––––––––––––––––––––––––––––––––––––––––––––––––– */
+
+.helpBut {
+	background-image: url("assets/help.png")
+}
 .model {
     display: block; /*Hidden by default */
     position: fixed; /* Stay in place */
