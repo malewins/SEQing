@@ -161,7 +161,7 @@ app.layout = html.Div(
                         ),
                         html.Div(
                             children = [
-                                html.Button(id='helpButton', n_clicks=0, n_clicks_timestamp=0, children='help',
+                                html.Button(id='helpButton', className = 'helpBut', n_clicks=0, n_clicks_timestamp=0, children='help',
                                         style = {'backgroundColor' : 'rgb(255,255,255)'}
                                 )
                             ],

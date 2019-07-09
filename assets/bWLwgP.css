@@ -443,7 +443,9 @@ width: 20vw;
 –––––––––––––––––––––––––––––––––––––––––––––––––– */
 
 .helpBut {
-	background-image: url("assets/help.png")
+	background-image: url("/assets/help.png");
+    background-repeat: no-repeat;
+    background-position: center;
 }
 .model {
     display: block; /*Hidden by default */
