@@ -376,7 +376,6 @@ for idx, i in enumerate(geneAnnotationPaths):
                 dtypes = {'chrom' : 'category', 'chromStart' : 'uint32','chromEnd': 'uint32','name' : 'object','score' : 'int16','strand' : 'category','thickStart' : 'uint64',
              'thickEnd' : 'uint64', 'blockCount' : 'uint32','blockSizes' : 'object','blockStarts' : 'object'}
                 df = pandas.read_csv(i, sep = '\t', comment = '#', names = bedHeader, dtype = dtypes)
-                print(df.info(memory_usage = 'deep'))
                 validation = validateBed12(df)
                 if validation[0] == True:
                     geneAnnotations.append(df)
@@ -664,7 +663,6 @@ for i in spliceSitePaths:
         try:
             dtypes = {'chrom' : 'category' ,'chromStart' : 'uint64','chromEnd' : 'uint64', 'count' : 'uint32'}
             df = pandas.read_csv(i, sep= '\t', names= rawHeader, dtype = dtypes)
-            print(df.info(memory_usage = 'deep'))
             validation = validateBedGraph(df)
             file_name = i.stem.split('_')[0]+'_'+i.stem.split('_')[1]
             if validation[0]:
