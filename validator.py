@@ -404,8 +404,8 @@ for idx, i in enumerate(geneAnnotationPaths):
                         print(validation[1])
                 except UnicodeDecodeError:
                     print('Error decoding pickle binary file, will load from raw file instead')
-                     dtypes = {'chrom' : 'category', 'chromStart' : 'uint32','chromEnd': 'uint32','name' : 'object','score' : 'int16','strand' : 'category','thickStart' : 'uint64',
-             'thickEnd' : 'uint64', 'blockCount' : 'uint32','blockSizes' : 'object','blockStarts' : 'object'}
+                    dtypes = {'chrom' : 'category', 'chromStart' : 'uint32','chromEnd': 'uint32','name' : 'object','score' : 'int16','strand' : 'category','thickStart' : 'uint64',
+                              'thickEnd' : 'uint64', 'blockCount' : 'uint32','blockSizes' : 'object','blockStarts' : 'object'}
                     df = pandas.read_csv(i, sep = '\t', comment = '#', names = bedHeader, dtype = dtypes)                    
                     validation = validateBed12(df)
                     if validation[0] == True:
@@ -418,8 +418,9 @@ for idx, i in enumerate(geneAnnotationPaths):
                         print(validation[1])
                 except ModuleNotFoundError:
                     print('Pickle was created using different package versions, will load from raw file instead')
-                     dtypes = {'chrom' : 'category', 'chromStart' : 'uint32','chromEnd': 'uint32','name' : 'object','score' : 'int16','strand' : 'category','thickStart' : 'uint64',
-             'thickEnd' : 'uint64', 'blockCount' : 'uint32','blockSizes' : 'object','blockStarts' : 'object'}
+                    dtypes = {'chrom' : 'category', 'chromStart' : 'uint32','chromEnd': 'uint32','name' : 'object','score' : 'int16',
+                               'strand' : 'category','thickStart' : 'uint64',
+                               'thickEnd' : 'uint64', 'blockCount' : 'uint32','blockSizes' : 'object','blockStarts' : 'object'}
                     df = pandas.read_csv(i, sep = '\t', comment = '#', names = bedHeader, dtype = dtypes)                    
                     validation = validateBed12(df)
                     if validation[0] == True:
