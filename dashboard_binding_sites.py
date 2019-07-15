@@ -161,7 +161,7 @@ app.layout = html.Div(
                         ),
                         html.Div(
                             children = [
-                                html.Button(id='helpButton', className = 'helpBut', n_clicks=0, n_clicks_timestamp=0, children='help',
+                                html.Button(id='helpButton', n_clicks=0, n_clicks_timestamp=0, children='help',
                                         style = {'backgroundColor' : 'rgb(255,255,255)'}
                                 )
                             ],
@@ -247,7 +247,9 @@ app.layout = html.Div(
                                     html.Div(
                                         children = [
                                                     dcc.Graph(id='bsGraph',
-                                                        style = {'padding' : '3px'}),
+                                                        style = {'padding' : '3px'},
+                                                        config = {'toImageButtonOptions' : {'filename' : 'iCLIP', 'width' : None, 'scale' : 3.0, 'height' : None, 'format' : 'png'} }
+                                                    ),
                                                     html.Div(
                                                         children = [
                                                             html.Div(id = 'advMem',
