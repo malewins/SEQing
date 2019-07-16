@@ -922,38 +922,41 @@ def createAreaChart(xVals, yVals, yVals_events, displayed, color_dict, dataSets,
         yAxis = yVals[ds]
         organism = ds.split('_')[0]
         org_color = color_dict[organism]
-        trace = go.Scatter(
-            x=xAxis,
-            y=yAxis,
-            name=ds,
-            fill='tozeroy',
-            fillcolor=org_color,
-            hoveron='points+fills',
-            line=dict(color='black'),
-            text=ds,
-            hoverinfo='y',
-            cliponaxis=True
-        )
-        trace1 = go.Bar(
-            x=xAxis,
-            y=yVals_events[ds],
-            showlegend=False,
-            insidetextfont=dict(
-                family="Arial",
-                color="black"
-            ),
-            textposition='auto',
-            marker=dict(
-                color='darkblue',
-                line=dict(
-                    color='darkblue',
-                    width=1),
+        if spliceAvail:
+            trace = go.Scatter(
+                x=xAxis,
+                y=yAxis,
+                name=ds,
+                fill='tozeroy',
+                fillcolor=org_color,
+                hoveron='points+fills',
+                line=dict(color='black'),
+                text=ds,
+                hoverinfo='y',
+                cliponaxis=True
             )
-        )
-        subplot_titles.append(ds)
-        subplot_titles.append("")
-        data.append(trace)
-        data.append(trace1)
+            subplot_titles.append(ds)
+            data.append(trace)
+        if spliceEventAvail:
+            trace1 = go.Bar(
+                x=xAxis,
+                y=yVals_events[ds],
+                showlegend=False,
+                insidetextfont=dict(
+                    family="Arial",
+                    color="black"
+                ),
+                textposition='auto',
+                marker=dict(
+                    color='darkblue',
+                    line=dict(
+                        color='darkblue',
+                        width=1),
+                )
+            )
+            subplot_titles.append("")
+            data.append(trace1)
+
 
     currentGene = pandas.DataFrame()
     for index, elem in enumerate(geneAnnotations):
@@ -971,6 +974,12 @@ def createAreaChart(xVals, yVals, yVals_events, displayed, color_dict, dataSets,
                 row_heights.append(1/numRows)
             else:
                 row_heights.append(3/numRows)
+    else:
+        for i in range(numRows):
+            if i > len(data)-1: row_heights.append(2/numRows)
+            else:
+                row_heights.append(3/numRows)
+
     fig = tools.make_subplots(rows=numRows, cols=1, subplot_titles=subplot_titles,
                               shared_xaxes=True, row_width=row_heights[::-1])
 
