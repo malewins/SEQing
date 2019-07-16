@@ -319,7 +319,7 @@ app.layout = html.Div(
                                                                            html.Fieldset(
                                                                                className='field-set',
                                                                                children=[
-                                                                                   html.Legend('DNA sequence options'),
+                                                                                   html.Legend('Options'),
                                                                                    dcc.RadioItems(
                                                                                        id='rnaRadio',
                                                                                        options=[
@@ -845,7 +845,7 @@ def rnaPlot(clicks, clicks2, geneName, dataSets, rnaParamList):
     displayed_rnaDataSet = []
     for rm in rnaParamList:
         for set in rnaDataSets:
-            if rm in set:
+            if rm == set.split('_')[0]:
                 displayed_rnaDataSet.append(set)
 
     # dicts for lists of axis values
@@ -904,11 +904,13 @@ def rnaPlot(clicks, clicks2, geneName, dataSets, rnaParamList):
         xVals[ds] = xVal
         if max(yVal) > max_yVal: max_yVal = max(yVal)
     fig = createAreaChart(xVals, yVals, yVals_events, displayed_rnaDataSet, color_dict, dataSets, geneName)
-    fig['layout']['height'] = (30 * (len(currentGene) + 1)
-                               + 400)
 
-    for i in range(1,len(displayed_rnaDataSet)):  # edit all y axis in gene model plots
-        fig['layout']['yaxis' + str(i)].update(range=[0,max_yVal], showgrid=False)
+    if spliceEventAvail:
+        for i in range(1, len(displayed_rnaDataSet), 2):  # edit all y axis in gene model plots
+            fig['layout']['yaxis' + str(i)].update(range=[0, max_yVal])
+    else:
+        for i in range(1,len(displayed_rnaDataSet)):  # edit all y axis in gene model plots
+            fig['layout']['yaxis' + str(i)].update(range=[0,max_yVal])
     return fig
 
 
@@ -942,9 +944,9 @@ def createAreaChart(xVals, yVals, yVals_events, displayed, color_dict, dataSets,
             ),
             textposition='auto',
             marker=dict(
-                color='yellow',
+                color='darkblue',
                 line=dict(
-                    color='yellow',
+                    color='darkblue',
                     width=1),
             )
         )
@@ -953,14 +955,6 @@ def createAreaChart(xVals, yVals, yVals_events, displayed, color_dict, dataSets,
         data.append(trace)
         data.append(trace1)
 
-
-    plotSpace = 0.8  # Room taken up by data tracks
-    spacingSpace = 1.0 - plotSpace  # room left for spacing tracks
-    # rowHeight = plotSpace
-
-
-
-
     currentGene = pandas.DataFrame()
     for index, elem in enumerate(geneAnnotations):
         currentGene = elem[elem['name'].str.contains(geneName)]
@@ -968,33 +962,42 @@ def createAreaChart(xVals, yVals, yVals_events, displayed, color_dict, dataSets,
             break
     numIsoforms = len(currentGene)
     numRows = len(data)+numIsoforms
-    if numIsoforms > 1:
-        vSpace = spacingSpace / (numIsoforms - 1)
-    else:
-        vSpace = spacingSpace
-    fig = tools.make_subplots(rows=numRows, cols=1, subplot_titles=subplot_titles,
-                              shared_xaxes=True)
-    fig['layout']['xaxis'].update(ticks='outside')
-    fig['layout']['xaxis'].update(ticksuffix='b')
-    fig['layout'].update(hovermode='x')
-    fig['layout'].update(
-        barmode='relative',
-        margin=go.layout.Margin(l=30, r=40, t=25, b=60),
-    )
 
-    if spliceAvail:
-        for i in range(1, len(data) + 1):
-            fig['layout']['yaxis' + str(i)].update(showticklabels=True, showgrid=True, zeroline=True)
-    # if spliceAvail:
-    #     for i in range(2, len(data) + 1):
-    #         fig['layout']['yaxis' + str(i)].update(showticklabels=False, showgrid=False, zeroline=False)
+    row_heights = []
+    if spliceEventAvail:
+        for i in range(numRows):
+            if i > len(data)-1: row_heights.append(2/numRows)
+            elif (i % 2 != 0):
+                row_heights.append(1/numRows)
+            else:
+                row_heights.append(3/numRows)
+    fig = tools.make_subplots(rows=numRows, cols=1, subplot_titles=subplot_titles,
+                              shared_xaxes=True, row_width=row_heights[::-1])
 
     for index, t in enumerate(data):
         fig.append_trace(t, index + 1, 1)
 
-    rnaSequencePlot(fig, geneName, numRows, len(data), dataSets)
-    return fig
 
+    rnaSequencePlot(fig, geneName, numRows, len(data), dataSets)
+
+    for i in range(numRows+1):
+        if i == 0:
+            fig['layout']['yaxis'].update(showticklabels=True, showgrid=True, zeroline=True)
+
+        else:
+            if spliceEventAvail:
+                if i % 2 != 0 and i <= len(data):
+                    fig['layout']['yaxis' + str(i)].update(showticklabels=True, showgrid=True, zeroline=True)
+                else:
+                    fig['layout']['yaxis' + str(i)].update(showticklabels=False, showgrid=False, zeroline=False)
+            else:
+                if i <= len(data):
+                    fig['layout']['yaxis' + str(i)].update(showticklabels=True, showgrid=True, zeroline=True)
+                else:
+                    fig['layout']['yaxis' + str(i)].update(showticklabels=False, showgrid=False, zeroline=False)
+
+    fig['layout']['height'] = (80 * len(data) + 50 * numIsoforms)
+    return fig
 
 
 def rnaSequencePlot(fig, geneName, numRows, len_data, dataSets):
@@ -1050,10 +1053,6 @@ def rnaSequencePlot(fig, geneName, numRows, len_data, dataSets):
     fig['layout']['yaxis'].update(visible=False, showticklabels=True, showgrid=False, zeroline=False)
     if strand == '-':
         fig['layout']['xaxis'].update(autorange='reversed')
-    arrows = []  # adding a whole list of annotations has better performance than adding them one by one
-    for i in range(len(currentGene)):  # edit all y axis in gene model plots
-        fig['layout']['yaxis' + str(i + numParams + 1)].update(showticklabels=False, showgrid=False,
-                                                                            zeroline=False)
     for i in range(numRows):  # prevent zoom on y axis
         if i == 0:
             fig['layout']['yaxis'].update(fixedrange=True)
