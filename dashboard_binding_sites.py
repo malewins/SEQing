@@ -271,51 +271,83 @@ app.layout = html.Div(
                             selected_style=tabStyle,
                             id='rnaTab',
                             children=[
-                                html.Div(
-                                    children=[
-                                        html.H2("RNA Seq data to identify splice events",
-                                                style={"text-align": "center"}),
-                                        html.P("The width shows how often"
-                                               " this position turned out as exon in this "
-                                               "specific experiment line.", style={"text-align": "center"})
-                                    ]
-                                ),
-                                html.Div(
-                                    children=[
-                                        html.B('Data set: '),
-                                        dcc.Checklist(
-                                            id='rnaParamList',
-                                            options=[{'label': spliceSetNames[1][i], 'value': spliceSetNames[1][i]} for
-                                                     i in range(len(spliceSetNames[1]))],
-                                            values=[spliceSetNames[1][i] for i in range(len(spliceSetNames[1]))],
-                                        ),
-                                    ],
-                                    style={'width': '20vw', 'display': 'table-cell'}
-                                ),
+                                html.Div(children=[
+                                    html.Div(className='table-cont',
+                                             children=[
+                                                 html.Div(className='table-row',
+                                                          children=[
+                                                              html.Div(
+                                                                  className='table-cell column-1',
+                                                                  children=[
+                                                                      html.Fieldset(
+                                                                          className='field-set',
+                                                                          children=[
+                                                                              html.Legend('Gene Description'),
+                                                                              html.Div(id='rnaDescDiv',
+                                                                                       children=html.P(html.B(''))
+                                                                                       )
+                                                                          ],
+                                                                      )
+                                                                  ]
+                                                              ),
+                                                              html.Div(style={'height': '100%', 'width': '15vw'},
+                                                                       className='table-cell column-2',
+                                                                       children=[
+                                                                           html.Fieldset(
+                                                                               className='field-set',
+                                                                               children=[
+                                                                                   html.Legend('Datasets'),
+                                                                                   dcc.Checklist(
+                                                                                       id='rnaParamList',
+                                                                                       options=[{'label':
+                                                                                                     spliceSetNames[1][
+                                                                                                         i], 'value':
+                                                                                                     spliceSetNames[1][
+                                                                                                         i]} for
+                                                                                                i in range(
+                                                                                               len(spliceSetNames[1]))],
+                                                                                       values=[spliceSetNames[1][i] for
+                                                                                               i in range(
+                                                                                               len(spliceSetNames[1]))],
+                                                                                   ),
+                                                                               ]
 
-                                html.Div(
-                                    children=html.P(html.B('Gene description: ')),
-                                    id='rnaDescDiv',
-                                    style={'width': '58vw', 'display': 'table-cell'}
-                                ),
+                                                                           )
+                                                                       ]
+                                                                       ),
+                                                              html.Div(style=seqDispStyle,
+                                                                       className='table-cell column-3',
+                                                                       children=[
+                                                                           html.Fieldset(
+                                                                               className='field-set',
+                                                                               children=[
+                                                                                   html.Legend('Options'),
+                                                                                   dcc.RadioItems(
+                                                                                       id='rnaRadio',
+                                                                                       options=[
+                                                                                           {'label': 'Display type 1',
+                                                                                            'value': 'one'},
+                                                                                           {'label': 'Display type 2',
+                                                                                            'value': 'two'},
+                                                                                           {'label': 'Display type 3',
+                                                                                            'value': 'three'}
+                                                                                       ],
+                                                                                       value='one'
+                                                                                   )
+                                                                               ]
+                                                                           )
+                                                                       ]
+                                                                       )
+                                                          ]
+                                                          ),
 
-                                html.Div(
-                                    children=[
-                                        html.B('Display type: '),
-                                        dcc.RadioItems(
-                                            id='rnaRadio',
-                                            options=[
-                                                {'label': 'Display type 1', 'value': 'one'},
-                                                {'label': 'Display type 2', 'value': 'two'},
-                                                {'label': 'Display type 3', 'value': 'three'}
-                                            ],
-                                            value='one'
-                                        )
-                                    ],
-                                    style={'width': '20vw', 'display': 'table-cell'}
+                                                    ],
+
                                 ),
+                                html.Div(style = {'height' : '25px'}),
                                 dcc.Graph(id='spliceGraph')
-                            ]
+                            ])
+                        ]
                         ),
                         dcc.Tab(
                             label = 'Details',
@@ -764,7 +796,6 @@ def rnaDesc(clicks, name):
     if descAvail:
         try:
             return [
-                html.P(html.B('Gene description: ')),
                 html.P(
                     geneDescriptions.loc[
                         geneDescriptions['ensembl_gene_id'] == name,
@@ -816,7 +847,7 @@ def rnaPlot(clicks, clicks2, geneName, dataSets, rnaParamList):
     displayed_rnaDataSet = []
     for rm in rnaParamList:
         for set in rnaDataSets:
-            if rm in set:
+            if rm == set.split('_')[0]:
                 displayed_rnaDataSet.append(set)
 
     # dicts for lists of axis values
@@ -841,6 +872,7 @@ def rnaPlot(clicks, clicks2, geneName, dataSets, rnaParamList):
         yVal_events = [0] * (len(range(xAxisMin, xAxisMax)))
         spliceEvents = pandas.DataFrame()
         organism = ds.split("_")[0]
+        spliceEvents = pandas.DataFrame()
         if organism in spliceEventNames[1]:
             print('jo')
             for d in spliceEventDFs.keys():
@@ -876,11 +908,13 @@ def rnaPlot(clicks, clicks2, geneName, dataSets, rnaParamList):
         xVals[ds] = xVal
         if max(yVal) > max_yVal: max_yVal = max(yVal)
     fig = createAreaChart(xVals, yVals, yVals_events, displayed_rnaDataSet, color_dict, dataSets, geneName)
-    fig['layout']['height'] = (30 * (len(currentGene) + 1)
-                               + 400)
 
-    for i in range(1,len(displayed_rnaDataSet)):  # edit all y axis in gene model plots
-        fig['layout']['yaxis' + str(i)].update(range=[0,max_yVal], showgrid=True)
+    if spliceEventAvail:
+        for i in range(1, len(displayed_rnaDataSet), 2):  # edit all y axis in gene model plots
+            fig['layout']['yaxis' + str(i)].update(range=[0, max_yVal])
+    else:
+        for i in range(1,len(displayed_rnaDataSet)):  # edit all y axis in gene model plots
+            fig['layout']['yaxis' + str(i)].update(range=[0,max_yVal])
     return fig
 
 
@@ -892,75 +926,94 @@ def createAreaChart(xVals, yVals, yVals_events, displayed, color_dict, dataSets,
         yAxis = yVals[ds]
         organism = ds.split('_')[0]
         org_color = color_dict[organism]
-        trace = go.Scatter(
-            x=xAxis,
-            y=yAxis,
-            name=ds,
-            fill='tozeroy',
-            fillcolor=org_color,
-            hoveron='points+fills',
-            line=dict(color='black'),
-            text=ds,
-            hoverinfo='y',
-            cliponaxis=True
-        )
-        trace1 = go.Bar(
-            x=xAxis,
-            y=yVals_events[ds],
-            showlegend=False,
-            insidetextfont=dict(
-                family="Arial",
-                color="black"
-            ),
-            textposition='auto',
-            marker=dict(
-                color='yellow',
-                line=dict(
-                    color='black',
-                    width=1),
+        if spliceAvail:
+            trace = go.Scatter(
+                x=xAxis,
+                y=yAxis,
+                name=ds,
+                fill='tozeroy',
+                fillcolor=org_color,
+                hoveron='points+fills',
+                line=dict(color='black'),
+                text=ds,
+                hoverinfo='y',
+                cliponaxis=True
             )
-        )
-        subplot_titles.append(ds)
-        data.append(trace)
-        # data.append(trace1)
+            subplot_titles.append(ds)
+            data.append(trace)
+        if spliceEventAvail:
+            trace1 = go.Bar(
+                x=xAxis,
+                y=yVals_events[ds],
+                showlegend=False,
+                insidetextfont=dict(
+                    family="Arial",
+                    color="black"
+                ),
+                textposition='auto',
+                marker=dict(
+                    color='darkblue',
+                    line=dict(
+                        color='darkblue',
+                        width=1),
+                )
+            )
+            subplot_titles.append("")
+            data.append(trace1)
 
-    numIsoforms = len(dataSets) * dsElements
-    plotSpace = 0.8  # Room taken up by data tracks
-    spacingSpace = 1.0 - plotSpace  # room left for spacing tracks
-    rowHeight = plotSpace
-    if numIsoforms > 1:
-        vSpace = spacingSpace / (numIsoforms - 1)
-    else:
-        vSpace = spacingSpace
 
-
-    for i in range(numIsoforms):
-        subplot_titles.append("")
+    currentGene = pandas.DataFrame()
+    for index, elem in enumerate(geneAnnotations):
+        currentGene = elem[elem['name'].str.contains(geneName)]
+        if not currentGene.empty:
+            break
+    numIsoforms = len(currentGene)
     numRows = len(data)+numIsoforms
+
+    row_heights = []
+    if spliceEventAvail:
+        for i in range(numRows):
+            if i > len(data)-1: row_heights.append(2/numRows)
+            elif (i % 2 != 0):
+                row_heights.append(1/numRows)
+            else:
+                row_heights.append(3/numRows)
+    else:
+        for i in range(numRows):
+            if i > len(data)-1: row_heights.append(2/numRows)
+            else:
+                row_heights.append(3/numRows)
+
     fig = tools.make_subplots(rows=numRows, cols=1, subplot_titles=subplot_titles,
-                              vertical_spacing=vSpace, shared_xaxes=True)
-    fig['layout']['xaxis'].update(ticks='outside')
-    fig['layout']['xaxis'].update(ticksuffix='b')
-    fig['layout'].update(hovermode='x')
-    fig['layout'].update(
-        barmode='relative',
-        margin=go.layout.Margin(l=30, r=40, t=25, b=60),
-    )
-    if spliceAvail:
-        for i in range(2, len(data) + 1):
-            fig['layout']['yaxis' + str(i)].update(showticklabels=False, showgrid=False, zeroline=False)
+                              shared_xaxes=True, row_width=row_heights[::-1])
 
     for index, t in enumerate(data):
         fig.append_trace(t, index + 1, 1)
 
-    rnaSequencePlot(fig, geneName, numRows, dataSets)
 
+    rnaSequencePlot(fig, geneName, numRows, len(data), dataSets)
+
+    for i in range(numRows+1):
+        if i == 0:
+            fig['layout']['yaxis'].update(showticklabels=True, showgrid=True, zeroline=True)
+
+        else:
+            if spliceEventAvail:
+                if i % 2 != 0 and i <= len(data):
+                    fig['layout']['yaxis' + str(i)].update(showticklabels=True, showgrid=True, zeroline=True)
+                else:
+                    fig['layout']['yaxis' + str(i)].update(showticklabels=False, showgrid=False, zeroline=False)
+            else:
+                if i <= len(data):
+                    fig['layout']['yaxis' + str(i)].update(showticklabels=True, showgrid=True, zeroline=True)
+                else:
+                    fig['layout']['yaxis' + str(i)].update(showticklabels=False, showgrid=False, zeroline=False)
+
+    fig['layout']['height'] = (80 * len(data) + 50 * numIsoforms)
     return fig
 
 
-
-def rnaSequencePlot(fig, geneName, numRows, dataSets):
-    """Callback that handles the dynamic visualisation of the rna data."""
+def rnaSequencePlot(fig, geneName, numRows, len_data, dataSets):
 
     numParams = len(dataSets)  # number of selected data tracks
     baseHeight = 30  # size of gene model row, for plot scaling
@@ -970,8 +1023,6 @@ def rnaSequencePlot(fig, geneName, numRows, dataSets):
         currentGene = elem[elem['name'].str.contains(geneName)]
         if not currentGene.empty:
             break
-    numRows = numParams * dsElements + len(
-        currentGene) + 1  # number of rows without weights for specific sizes, +1 for dna sequence track
 
 
     # final height values for rows respecting type, has to be in bottom-up order
@@ -990,9 +1041,7 @@ def rnaSequencePlot(fig, geneName, numRows, dataSets):
 
     chromEnds = []  # used for arrow positioning
 
-    counter = 1
-    for i in range(len(dataSets)):
-        counter += dsElements
+    counter = len_data+1
 
     # calculate gene models. We have to distinguish between coding region and non-coding region
     for i in currentGene.iterrows():
@@ -1017,24 +1066,6 @@ def rnaSequencePlot(fig, geneName, numRows, dataSets):
     fig['layout']['yaxis'].update(visible=False, showticklabels=True, showgrid=False, zeroline=False)
     if strand == '-':
         fig['layout']['xaxis'].update(autorange='reversed')
-    arrows = []  # adding a whole list of annotations has better performance than adding them one by one
-    for i in range(len(currentGene)):  # edit all y axis in gene model plots
-        fig['layout']['yaxis' + str(i + numParams * dsElements + 1)].update(showticklabels=False, showgrid=False,
-                                                                            zeroline=False)
-        arrows.append(
-            dict(
-                x=chromEnds[i] + min(50, (xAxisMax - xAxisMin) * 0.01),
-                y=0.0,
-                xref='x',
-                yref='y' + str(i + numParams * dsElements + 1),
-                text='',
-                showarrow=True,
-                arrowhead=1,
-                ax=-int(strand + '5'),  # determine arrow direction. - strand left, + strand right
-                ay=0
-            ),
-        )
-    fig['layout']['annotations'] = arrows
     for i in range(numRows):  # prevent zoom on y axis
         if i == 0:
             fig['layout']['yaxis'].update(fixedrange=True)
