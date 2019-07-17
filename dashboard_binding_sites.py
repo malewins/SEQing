@@ -247,7 +247,9 @@ app.layout = html.Div(
                                     html.Div(
                                         children = [
                                                     dcc.Graph(id='bsGraph',
-                                                        style = {'padding' : '3px'}),
+                                                        style = {'padding' : '3px'},
+                                                        config = {'toImageButtonOptions' : {'filename' : 'iCLIP', 'width' : None, 'scale' : 3.0, 'height' : None, 'format' : 'png'} }
+                                                    ),
                                                     html.Div(
                                                         children = [
                                                             html.Div(id = 'advMem',
