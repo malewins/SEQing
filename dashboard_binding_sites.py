@@ -872,7 +872,7 @@ def rnaPlot(clicks, clicks2, geneName, dataSets, rnaParamList):
         spliceEvents = pandas.DataFrame()
         if organism in spliceEventNames[1]:
             for d in spliceEventDFs.keys():
-                if organism in d:
+                if ds in d:
                     # criteria to filter relevant lines from current dataframe
                     bcrit11 = spliceEventDFs[d]['chrom'] == chrom
                     bcrit21 = spliceEventDFs[d]['chromStart'] >= xAxisMin
