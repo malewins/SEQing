@@ -308,7 +308,6 @@ else: # Use xml document for setup
         for  i in keyList:
             sortKeys.append([i.getElementsByTagName('lambda')[0].firstChild.data,
                              i.getElementsByTagName('reverse')[0].firstChild.data])
-        print(sortKeys)
     except:
         sortKeys = None
     try:
@@ -342,10 +341,13 @@ else: # Use xml document for setup
     except:
         subTablePath = None
     try:
-        spliceSitePaths = [Path(i.firstChild.data) for i in configFile.getElementsByTagName('splice')]
+        spliceSitePaths = [Path(i.firstChild.data) for i in configFile.getElementsByTagName('rnaData')]
     except:
         spliceSitePaths = []
-    
+    try:
+        spliceEventsPaths = [Path(i.firstChild.data) for i in configFile.getElementsByTagName('spliceEvents')]
+    except:
+        spliceEventsPaths = []
 
 
 if len(plotColors) == 0:
@@ -373,7 +375,9 @@ for idx, i in enumerate(geneAnnotationPaths):
             checksum = hashlib.md5(open(str(i)).read().encode('utf-8'))
             if checksums.get(str(i.stem), None) != checksum.hexdigest():
                 checksums[str(i.stem)] = checksum.hexdigest()
-                df = pandas.read_csv(i, sep = '\t', comment = '#', names = bedHeader)
+                dtypes = {'chrom' : 'category', 'chromStart' : 'uint32','chromEnd': 'uint32','name' : 'object','score' : 'int16','strand' : 'category','thickStart' : 'uint64',
+             'thickEnd' : 'uint64', 'blockCount' : 'uint32','blockSizes' : 'object','blockStarts' : 'object'}
+                df = pandas.read_csv(i, sep = '\t', comment = '#', names = bedHeader, dtype = dtypes)
                 validation = validateBed12(df)
                 if validation[0] == True:
                     geneAnnotations.append(df)
@@ -402,7 +406,9 @@ for idx, i in enumerate(geneAnnotationPaths):
                         print(validation[1])
                 except UnicodeDecodeError:
                     print('Error decoding pickle binary file, will load from raw file instead')
-                    df = pandas.read_csv(i, sep = '\t', comment = '#', names = bedHeader)                    
+                    dtypes = {'chrom' : 'category', 'chromStart' : 'uint32','chromEnd': 'uint32','name' : 'object','score' : 'int16','strand' : 'category','thickStart' : 'uint64',
+                              'thickEnd' : 'uint64', 'blockCount' : 'uint32','blockSizes' : 'object','blockStarts' : 'object'}
+                    df = pandas.read_csv(i, sep = '\t', comment = '#', names = bedHeader, dtype = dtypes)                    
                     validation = validateBed12(df)
                     if validation[0] == True:
                         geneAnnotations.append(df)
@@ -414,7 +420,10 @@ for idx, i in enumerate(geneAnnotationPaths):
                         print(validation[1])
                 except ModuleNotFoundError:
                     print('Pickle was created using different package versions, will load from raw file instead')
-                    df = pandas.read_csv(i, sep = '\t', comment = '#', names = bedHeader)                    
+                    dtypes = {'chrom' : 'category', 'chromStart' : 'uint32','chromEnd': 'uint32','name' : 'object','score' : 'int16',
+                               'strand' : 'category','thickStart' : 'uint64',
+                               'thickEnd' : 'uint64', 'blockCount' : 'uint32','blockSizes' : 'object','blockStarts' : 'object'}
+                    df = pandas.read_csv(i, sep = '\t', comment = '#', names = bedHeader, dtype = dtypes)                    
                     validation = validateBed12(df)
                     if validation[0] == True:
                         geneAnnotations.append(df)
@@ -598,8 +607,8 @@ if len(bindingSiteRawPaths) > 0:
     print('Loading iCLIP data.')
     for i in bindingSiteRawPaths:
         try:
-
-            df = pandas.read_csv(i, sep = '\t', names = rawHeader)
+            dtypes = {'chrom' : 'category' ,'chromStart' : 'uint64','chromEnd' : 'uint64', 'count' : 'uint32'}
+            df = pandas.read_csv(i, sep = '\t', names = rawHeader, dtype = dtypes)
             validation = validateBedGraph(df)
             if validation[0] == True:
                 if i.stem.split('_')[0] not in dataSetNames:
@@ -625,7 +634,8 @@ if len(bindingSitePaths) > 0:
 for i in bindingSitePaths:
     if i.stem.split('_')[0] in dataSetNames:
         try:
-            df = pandas.read_csv(i, sep = '\t', names = bsHeader)
+            dtypes = {'chrom' : 'category', 'chromStart' : 'uint64','chromEnd' : 'uint64','type' : 'category', 'score' : 'float32', 'strand' : 'category'}
+            df = pandas.read_csv(i, sep = '\t', names = bsHeader, dtype = dtypes)
             validation = validateBed(df)
             if validation[0] == True:
                 if i.stem.split('_')[0] in bsProcDFs:
@@ -654,7 +664,8 @@ if len(spliceSitePaths) > 0:
     print('Loading splice site data')
 for i in spliceSitePaths:
         try:
-            df = pandas.read_csv(i, sep= '\t', names= rawHeader)
+            dtypes = {'chrom' : 'category' ,'chromStart' : 'uint64','chromEnd' : 'uint64', 'count' : 'uint32'}
+            df = pandas.read_csv(i, sep= '\t', names= rawHeader, dtype = dtypes)
             validation = validateBedGraph(df)
             file_name = i.stem.split('_')[0]+'_'+i.stem.split('_')[1]
             if validation[0]:
@@ -683,7 +694,8 @@ if len(spliceEventsPaths) > 0:
     print('Loading splice event data')
 for i in spliceEventsPaths:
     try:
-        df = pandas.read_csv(i, sep= '\t', names= bsHeader)
+        dtypes = {'chrom' : 'category', 'chromStart' : 'uint64','chromEnd' : 'uint64','type' : 'category', 'score' : 'float32', 'strand' : 'category'}
+        df = pandas.read_csv(i, sep= '\t', names= bsHeader, dtype = dtypes)
         validation = validateBed(df)
         file_name = i.stem.split('_')[0]+'_'+i.stem.split('_')[1]
         if validation[0]:

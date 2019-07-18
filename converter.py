@@ -10,6 +10,8 @@ if __name__ == '__main__':
     exit()
 
 gtfHeader = ['chrom','chromStart','chromEnd','name','score','strand','thickStart','thickEnd','itemRGB','blockCount','blockSizes','blockStarts']
+dtypes = {'chrom' : 'category', 'chromStart' : 'uint32','chromEnd': 'uint32','name' : 'object','score' : 'int16','strand' : 'category','thickStart' : 'uint64',
+             'thickEnd' : 'uint64', 'blockCount' : 'uint32','blockSizes' : 'object','blockStarts' : 'object'}
 def convertGTFToBed(df):
     """ Convert a gtf dataframe to a bed12 dataframe for internal use. Only relevant
     lines will be taken into account, in this case exon and cds can be used 
@@ -142,4 +144,4 @@ def convertGTFToBed(df):
                             thickStart = int(i[1]['start'])-1
                         if thickEnd == -1 or thickEnd < i[1]['end']:
                             thickEnd = i[1]['end']
-    return pandas.DataFrame(data = bedFile, columns = gtfHeader)
+    return pandas.DataFrame(data = bedFile, columns = gtfHeader, dtype = dtypes)
