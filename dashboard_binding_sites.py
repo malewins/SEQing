@@ -42,7 +42,7 @@ helpText = '''
             In this tab you can view further information on you selected gene. Which information is available depends on what you administrator has provided
             when setting up the tool.
             
-            ###### Settings
+            ##### Settings
             
             Here you can select colors for the graphs in the iCLIP-seq tab. Select a dataset from the dropdown, choose your color using
             the sliders and hit 'confirm'. You don't need to hit 'submit' for this.
@@ -248,7 +248,9 @@ app.layout = html.Div(
                                         children = [
                                                     dcc.Graph(id='bsGraph',
                                                         style = {'padding' : '3px'},
-                                                        config = {'toImageButtonOptions' : {'filename' : 'iCLIP', 'width' : None, 'scale' : 3.0, 'height' : None, 'format' : 'png'} }
+                                                        config = {'toImageButtonOptions' : 
+                                                            {'filename' : 'iCLIP', 'width' : None,
+                                                            'scale' : 3.0, 'height' : None, 'format' : 'png'} }
                                                     ),
                                                     html.Div(
                                                         children = [
@@ -345,7 +347,11 @@ app.layout = html.Div(
 
                                 ),
                                 html.Div(style = {'height' : '25px'}),
-                                dcc.Graph(id='spliceGraph')
+                                dcc.Graph(id='spliceGraph',
+                                    style = {'padding' : '3px'},
+                                    config = {'toImageButtonOptions' : 
+                                        {'filename' : 'iCLIP', 'width' : None, 'scale' : 3.0, 'height' : None, 'format' : 'png'} }
+                                )
                             ])
                         ]
                         ),
@@ -374,13 +380,7 @@ app.layout = html.Div(
                                 html.Div(
                                     children=[
                                         html.Fieldset(title = 'iCLIP Settings', 
-                                            style = {
-                                                'border' : 'solid',
-                                                'borderWidth' : '1px',
-                                                'padding' : '10px',
-                                                'borderColor' : 'rgb(128,128,128)',
-                                                'backgroundColor' : 'rgb(255,255,255)'
-                                            },
+                                            className = 'field-set',
                                             children = [ 
                                                 html.Legend('iCLIP Settings'),
                                                 html.Div(
@@ -874,7 +874,6 @@ def rnaPlot(clicks, clicks2, geneName, dataSets, rnaParamList):
         organism = ds.split("_")[0]
         spliceEvents = pandas.DataFrame()
         if organism in spliceEventNames[1]:
-            print('jo')
             for d in spliceEventDFs.keys():
                 if organism in d:
                     # criteria to filter relevant lines from current dataframe
