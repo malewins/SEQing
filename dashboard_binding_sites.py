@@ -42,7 +42,7 @@ helpText = '''
             In this tab you can view further information on you selected gene. Which information is available depends on what you administrator has provided
             when setting up the tool.
             
-            ###### Settings
+            ##### Settings
             
             Here you can select colors for the graphs in the iCLIP-seq tab. Select a dataset from the dropdown, choose your color using
             the sliders and hit 'confirm'. You don't need to hit 'submit' for this.
@@ -247,7 +247,11 @@ app.layout = html.Div(
                                     html.Div(
                                         children = [
                                                     dcc.Graph(id='bsGraph',
-                                                        style = {'padding' : '3px'}),
+                                                        style = {'padding' : '3px'},
+                                                        config = {'toImageButtonOptions' : 
+                                                            {'filename' : 'iCLIP', 'width' : None,
+                                                            'scale' : 3.0, 'height' : None, 'format' : 'png'} }
+                                                    ),
                                                     html.Div(
                                                         children = [
                                                             html.Div(id = 'advMem',
@@ -343,7 +347,11 @@ app.layout = html.Div(
 
                                 ),
                                 html.Div(style = {'height' : '25px'}),
-                                dcc.Graph(id='spliceGraph')
+                                dcc.Graph(id='spliceGraph',
+                                    style = {'padding' : '3px'},
+                                    config = {'toImageButtonOptions' : 
+                                        {'filename' : 'iCLIP', 'width' : None, 'scale' : 3.0, 'height' : None, 'format' : 'png'} }
+                                )
                             ])
                         ]
                         ),
@@ -372,13 +380,7 @@ app.layout = html.Div(
                                 html.Div(
                                     children=[
                                         html.Fieldset(title = 'iCLIP Settings', 
-                                            style = {
-                                                'border' : 'solid',
-                                                'borderWidth' : '1px',
-                                                'padding' : '10px',
-                                                'borderColor' : 'rgb(128,128,128)',
-                                                'backgroundColor' : 'rgb(255,255,255)'
-                                            },
+                                            className = 'field-set',
                                             children = [ 
                                                 html.Legend('iCLIP Settings'),
                                                 html.Div(
@@ -780,7 +782,7 @@ def setHeadline(clicks, name):
         currentGene = i[i['name'].str.contains(name)]
         if not currentGene.empty:
             break
-    strand = currentGene['strand'].any()
+    strand = currentGene['strand'].iloc[0]
     title = name + ' (' + strand + ')'
     return title
 
@@ -834,7 +836,7 @@ def rnaPlot(clicks, clicks2, geneName, dataSets, rnaParamList):
     # Get axis minimum and maximum over all isoforms. Also get current chromosome
     xAxisMax = currentGene['chromEnd'].max()
     xAxisMin = currentGene['chromStart'].min()
-    chrom = currentGene['chrom'].any()
+    chrom = currentGene['chrom'].iloc[0]
     color_dict = {}  # color per mutant
     colors = ['red', 'orange', 'yellow', 'green', 'blue', 'violet',
               'red', 'orange', 'yellow', 'green', 'blue', 'violet',
@@ -868,6 +870,7 @@ def rnaPlot(clicks, clicks2, geneName, dataSets, rnaParamList):
         # pre-init y-value list
         yVal = [0] * (len(range(xAxisMin, xAxisMax)))
         yVal_events = [0] * (len(range(xAxisMin, xAxisMax)))
+        spliceEvents = pandas.DataFrame()
         organism = ds.split("_")[0]
         spliceEvents = pandas.DataFrame()
         if organism in spliceEventNames[1]:
@@ -1033,7 +1036,7 @@ def rnaSequencePlot(fig, geneName, numRows, len_data, dataSets):
 
     xAxisMax = currentGene['chromEnd'].max()
     xAxisMin = currentGene['chromStart'].min()
-    strand = currentGene['strand'].any()
+    strand = currentGene['strand'].iloc[0]
 
     chromEnds = []  # used for arrow positioning
 
@@ -1181,7 +1184,7 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal):
 
     xAxisMax = currentGene['chromEnd'].max()
     xAxisMin = currentGene['chromStart'].min()
-    strand = currentGene['strand'].any()
+    strand = currentGene['strand'].iloc[0]
     if strand == '-':
         fig['layout']['xaxis'].update(autorange='reversed')
     # Setup some variables to build master sequence from isoform-sequences
@@ -1244,7 +1247,7 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal):
     #       pass
 
     # Save strand info, necessary for binding site traces. Should be same for all isoforms, so any will do
-    chrom = currentGene['chrom'].any() 
+    chrom = currentGene['chrom'].iloc[0]
 
     counter = 2
     for i in range(len(dataSets)):
