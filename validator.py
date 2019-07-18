@@ -308,7 +308,6 @@ else: # Use xml document for setup
         for  i in keyList:
             sortKeys.append([i.getElementsByTagName('lambda')[0].firstChild.data,
                              i.getElementsByTagName('reverse')[0].firstChild.data])
-        print(sortKeys)
     except:
         sortKeys = None
     try:
@@ -342,10 +341,13 @@ else: # Use xml document for setup
     except:
         subTablePath = None
     try:
-        spliceSitePaths = [Path(i.firstChild.data) for i in configFile.getElementsByTagName('splice')]
+        spliceSitePaths = [Path(i.firstChild.data) for i in configFile.getElementsByTagName('rnaData')]
     except:
         spliceSitePaths = []
-    
+    try:
+        spliceEventsPaths = [Path(i.firstChild.data) for i in configFile.getElementsByTagName('spliceEvents')]
+    except:
+        spliceEventsPaths = []
 
 
 if len(plotColors) == 0:
