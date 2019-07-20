@@ -639,7 +639,7 @@ for i in bindingSitePaths:
             validation = validateBed(df)
             if validation[0] == True:
                 if i.stem.split('_')[0] in bsProcDFs:
-                    print('Warning, you are using the same prefix for multiple bedgraph files, file ' + str(i) + ' will be ignored')
+                    print('Warning, you are using the same prefix for multiple binding site files, file ' + str(i) + ' will be ignored')
                 else:
                     bsProcDFs.update({i.stem.split('_')[0] : df})
             else:
@@ -661,7 +661,7 @@ spliceProcDFs = {}
 spliceSetNames = [[],[]]
 spliceElements = 0
 if len(spliceSitePaths) > 0:
-    print('Loading splice site data')
+    print('Loading RNA-seq data')
 for i in spliceSitePaths:
         try:
             dtypes = {'chrom' : 'category' ,'chromStart' : 'uint64','chromEnd' : 'uint64', 'count' : 'uint32'}
@@ -700,7 +700,7 @@ for i in spliceEventsPaths:
         file_name = i.stem.split('_')[0]+'_'+i.stem.split('_')[1]
         if validation[0]:
             if file_name in spliceEventsDFs:
-                print('Warning, you are using the same prefix for multiple bedgraph files, file ' + str(
+                print('Warning, you are using the same prefix for multiple bed files, file ' + str(
                     i) + ' will be ignored')
             else:
                 spliceEventsDFs.update({file_name: df})

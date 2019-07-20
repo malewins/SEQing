@@ -30,22 +30,26 @@ helpText = '''
             there are two main control elements:
               -    On the left side you have checkboxes to select which datasets you wish to display, if more than one was provided to the tool.
               -    On the right side, if dna sequence data was provided, you can select the display mode for said sequences. You can choose from
-                   heatmap, letters, and no display at all. heatmap is strongly recommended for interactive use, as 'letters' has a signifficantly
+                   heatmap, letters, and no display at all. heatmap is strongly recommended for interactive use, as letters has a signifficantly
                    higher performance impact and is recommended only for the creation of static images.
                 
             Please note that you will have to hit the submit button for changes to be applied.
                 
             ##### RNA-seq
             
+            In this tab you can view RNA-seq coverage plots as well as splice events, if the necessary data was provided.
+            Use the checkboxes in the Datasets panel to select which plots you want to view. Functionality for the Options
+            panel will be provided in the future.
+            
             ##### Details
             
-            In this tab you can view further information on you selected gene. Which information is available depends on what you administrator has provided
+            In this tab you can view further information on your selected gene. Which information is available depends on what your administrator has provided
             when setting up the tool.
             
             ##### Settings
             
             Here you can select colors for the graphs in the iCLIP-seq tab. Select a dataset from the dropdown, choose your color using
-            the sliders and hit 'confirm'. You don't need to hit 'submit' for this.
+            the sliders and hit confirm. You don't need to hit submit for this.
             '''
 
 
