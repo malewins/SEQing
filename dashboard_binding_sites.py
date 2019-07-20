@@ -78,6 +78,15 @@ if len(sequences) == 0:
     seqDispStyle = {'display': 'none', 'height' : '100%', 'width' : '20vw'}
 else:
     seqDispStyle = {'height' : '100%', 'width' : '20vw'}
+if len(dataSetNames) == 0:
+    dataSetStyle = {'display': 'none', 'height' : '100%', 'width' : '15vw'}
+else:
+    dataSetStyle = {'height' : '100%', 'width' : '15vw'}
+if len(spliceSetNames[1]) == 0:
+    rnaDataStyle = {'display': 'none', 'height' : '100%', 'width' : '15vw'}
+else:
+    rnaDataStyle = {'height' : '100%', 'width' : '15vw'}
+
 
 # Try to setup color picker
 try:
@@ -205,7 +214,7 @@ app.layout = html.Div(
                                                             )
                                                         ]
                                                     ),
-                                                    html.Div(style = {'height' : '100%', 'width' : '15vw'},
+                                                    html.Div(style = dataSetStyle,
                                                         className = 'table-cell column-2',
                                                         children = [
                                                             html.Fieldset(
@@ -296,7 +305,7 @@ app.layout = html.Div(
                                                                       )
                                                                   ]
                                                               ),
-                                                              html.Div(style={'height': '100%', 'width': '15vw'},
+                                                              html.Div(style=rnaDataStyle,
                                                                        className='table-cell column-2',
                                                                        children=[
                                                                            html.Fieldset(
@@ -321,7 +330,7 @@ app.layout = html.Div(
                                                                            )
                                                                        ]
                                                                        ),
-                                                              html.Div(style=seqDispStyle,
+                                                              html.Div(style={'height': '100%', 'width': '20vw'},
                                                                        className='table-cell column-3',
                                                                        children=[
                                                                            html.Fieldset(
