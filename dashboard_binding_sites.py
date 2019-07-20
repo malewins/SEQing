@@ -853,8 +853,8 @@ def rnaPlot(clicks, clicks2, geneName, dataSets, rnaParamList):
     # dicts for lists of axis values
     xVals = {}
     yVals = {}
-    yVals_events = {}
     max_yVal = 0
+    eventDict = {}
 
     for ds in displayed_rnaDataSet:
         if ds.split('_')[0] not in color_dict.keys():
@@ -869,13 +869,12 @@ def rnaPlot(clicks, clicks2, geneName, dataSets, rnaParamList):
         spliceSlice = spliceProcDFs[ds].loc[bcrit11 & ((bcrit21 & bcrit22) | (bcrit31 & bcrit32))]
         # pre-init y-value list
         yVal = [0] * (len(range(xAxisMin, xAxisMax)))
-        yVal_events = [0] * (len(range(xAxisMin, xAxisMax)))
-        spliceEvents = pandas.DataFrame()
+        #yVal_events = [0] * (len(range(xAxisMin, xAxisMax)))
         organism = ds.split("_")[0]
         spliceEvents = pandas.DataFrame()
         if organism in spliceEventNames[1]:
             for d in spliceEventDFs.keys():
-                if organism in d:
+                if ds in d:
                     # criteria to filter relevant lines from current dataframe
                     bcrit11 = spliceEventDFs[d]['chrom'] == chrom
                     bcrit21 = spliceEventDFs[d]['chromStart'] >= xAxisMin
@@ -891,22 +890,14 @@ def rnaPlot(clicks, clicks2, geneName, dataSets, rnaParamList):
                     yVal[j - xAxisMin] += row.count
                 except IndexError:
                     pass
-        event_marker = 1
-        for row in spliceEvents.itertuples():
-            # increment all values covered by the current row, will overshoot when row crosses border of gene, thus try except
-            for j in range(row.chromStart, row.chromEnd):
-                try:
-                    yVal_events[j - xAxisMin] += event_marker
-                except IndexError:
-                    pass
-            # store reference to value list in dict
+         # store reference to value list in dict
         yVals[ds] = yVal
-        yVals_events[ds] = yVal_events
+        eventDict[ds] = spliceEvents
         # create x-axis values
         xVal = list(range(xAxisMin, xAxisMax))
         xVals[ds] = xVal
         if max(yVal) > max_yVal: max_yVal = max(yVal)
-    fig = createAreaChart(xVals, yVals, yVals_events, displayed_rnaDataSet, color_dict, dataSets, geneName)
+    fig = createAreaChart(xVals, yVals, eventDict, displayed_rnaDataSet, color_dict, dataSets, geneName)
 
     if spliceEventAvail:
         for i in range(1, len(displayed_rnaDataSet), 2):  # edit all y axis in gene model plots
@@ -916,8 +907,10 @@ def rnaPlot(clicks, clicks2, geneName, dataSets, rnaParamList):
             fig['layout']['yaxis' + str(i)].update(range=[0,max_yVal])
     return fig
 
+def overlap(a, b):
+    return a[1] > b[0] and a[0] < b[1]
 
-def createAreaChart(xVals, yVals, yVals_events, displayed, color_dict, dataSets, geneName):
+def createAreaChart(xVals, yVals, eventData, displayed, color_dict, dataSets, geneName):
     data = []
     subplot_titles = []
     for ds in displayed:
@@ -941,9 +934,31 @@ def createAreaChart(xVals, yVals, yVals_events, displayed, color_dict, dataSets,
             subplot_titles.append(ds)
             data.append(trace)
         if spliceEventAvail:
+            intervals = []
+            eventXValues = []
+            eventWidths = []
+            eventBases = []
+            # iterate through dataframe rows and calculate stacking aswell as bar parameters
+            for row in eventData[ds].itertuples():
+                if len(intervals) == 0:
+                    intervals.append((row.chromStart, row.chromEnd))
+                    eventXValues.append(row.chromStart + (row.chromEnd - row.chromStart) / 2)
+                    eventWidths.append(row.chromEnd - row.chromStart)
+                    eventBases.append(0)
+                else:
+                    numOverlaps = 0
+                    for i in intervals:
+                        if overlap(i, (row.chromStart, row.chromEnd)) == True:
+                            numOverlaps += 1
+                    intervals.append((row.chromStart, row.chromEnd))
+                    eventXValues.append(row.chromStart + (row.chromEnd - row.chromStart) / 2)
+                    eventWidths.append(row.chromEnd - row.chromStart)
+                    eventBases.append(numOverlaps)               
             trace1 = go.Bar(
-                x=xAxis,
-                y=yVals_events[ds],
+                x=eventXValues,
+                y=[1]*len(eventXValues),
+                width = eventWidths,
+                base = eventBases,
                 showlegend=False,
                 insidetextfont=dict(
                     family="Arial",
