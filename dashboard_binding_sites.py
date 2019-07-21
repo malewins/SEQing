@@ -906,18 +906,11 @@ def rnaPlot(clicks, clicks2, geneName, dataSets, rnaParamList):
         xVal = list(range(xAxisMin, xAxisMax))
         xVals[ds] = xVal
         if max(yVal) > max_yVal: max_yVal = max(yVal)
-    fig = createAreaChart(xVals, yVals, yVals_events, displayed_rnaDataSet, color_dict, dataSets, geneName)
-
-    if spliceEventAvail:
-        for i in range(1, len(displayed_rnaDataSet), 2):  # edit all y axis in gene model plots
-            fig['layout']['yaxis' + str(i)].update(range=[0, max_yVal])
-    else:
-        for i in range(1,len(displayed_rnaDataSet)):  # edit all y axis in gene model plots
-            fig['layout']['yaxis' + str(i)].update(range=[0,max_yVal])
+    fig = createAreaChart(xVals, yVals, yVals_events, max_yVal, displayed_rnaDataSet, color_dict, dataSets, geneName)
     return fig
 
 
-def createAreaChart(xVals, yVals, yVals_events, displayed, color_dict, dataSets, geneName):
+def createAreaChart(xVals, yVals, yVals_events, max_yVal, displayed, color_dict, dataSets, geneName):
     data = []
     subplot_titles = []
     for ds in displayed:
@@ -999,11 +992,13 @@ def createAreaChart(xVals, yVals, yVals_events, displayed, color_dict, dataSets,
         else:
             if spliceEventAvail:
                 if i % 2 != 0 and i <= len(data):
+                    fig['layout']['yaxis' + str(i)].update(range=[0, max_yVal])
                     fig['layout']['yaxis' + str(i)].update(showticklabels=True, showgrid=True, zeroline=True)
                 else:
                     fig['layout']['yaxis' + str(i)].update(showticklabels=False, showgrid=False, zeroline=False)
             else:
                 if i <= len(data):
+                    fig['layout']['yaxis' + str(i)].update(range=[0, max_yVal])
                     fig['layout']['yaxis' + str(i)].update(showticklabels=True, showgrid=True, zeroline=True)
                 else:
                     fig['layout']['yaxis' + str(i)].update(showticklabels=False, showgrid=False, zeroline=False)
