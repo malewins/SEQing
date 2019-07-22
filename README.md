@@ -1,8 +1,8 @@
 ![SEQing logo](Seqing.png)
 # SEQing [seeking]
-Plotly Dash: interactive web-based tool for visualization of iCLIP-seq and RNA-seq data.
+An interactive web-based tool for visualization of iCLIP-seq and RNA-seq data.
 
-The goal of this project is to develop a generalized, web based, interactive visualisation and exploration tool for iCLP-seq and RNA-seq data. The application case is a local machine inside mounted in the users network, allowing members a web-based (browser) access to explore their experimental data omitting local installations. 
+The goal of this project is to develop a generalized, web based, interactive visualisation and exploration tool for iCLP-seq and RNA-seq data. The application case is a local machine inside the users network, allowing members a web-based (browser) access to explore their experimental data omitting any local installations. 
 
 ## Getting Started
 
@@ -10,7 +10,7 @@ These instructions will get you a copy of the project up and running on your loc
 
 ### Prerequisites
 
-The file [requirenments.txt] (requirenments.txt) can be used to install all needed needed dependencies for the project. Python 3.5 or higher is requried, it is recommend you setup a virtual environment for this project.
+The file [requirements.txt] (requirements.txt) can be used to install all needed needed dependencies for the project. Python 3.5 or higher is requried, it is recommend you setup a virtual environment for this project.
 
 Once you have setup your virtual environment run the following code to install the dependencies:
 ```
@@ -18,6 +18,32 @@ pip install -r requirenments.txt
 ```
 
 ### Installing
+
+To install `SEQing` just clone this project to the location of your choice. Make sure that the correct requirements (see Prerequisites) are installed. After cloning enter the `example_set` subfolder and run the preset bash script:
+```
+./start_sample_dashboard.sh
+```
+
+Output:
+```
+Loading gene annotation files.
+Loading file 1
+pickle not  found, loading from raw file
+Done.
+Loading description and sequence data if provided.
+Done.
+Loading iCLIP data.
+Done.
+Loading bindings site data.
+Done.
+Loading RNA-seq data
+Done.
+Loading splice event data
+Done.
+preparing to start dashboard on port 8066.
+Running on http://0.0.0.0:8066/
+Debugger PIN: XXX-XXX-XXX
+```
 
 ## Deployment
 
