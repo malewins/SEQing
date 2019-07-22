@@ -910,14 +910,14 @@ def rnaPlot(clicks, clicks2, geneName, dataSets, rnaParamList):
         xVal = list(range(xAxisMin, xAxisMax))
         xVals[ds] = xVal
         if max(yVal) > max_yVal: max_yVal = max(yVal)
-    fig = createAreaChart(xVals, yVals, yVals_events, max_yVal, displayed_rnaDataSet, color_dict, dataSets, geneName)
+    fig = createAreaChart(xVals, yVals, max_yVal, eventDict, displayed_rnaDataSet, color_dict, dataSets, geneName)
     return fig
 
 def overlap(a, b):
     return a[1] > b[0] and a[0] < b[1]
 
 
-def createAreaChart(xVals, yVals, yVals_events, max_yVal, displayed, color_dict, dataSets, geneName):
+def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict, dataSets, geneName):
     data = []
     subplot_titles = []
     for ds in displayed:

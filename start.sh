@@ -60,6 +60,6 @@ python validator.py annotations/Araport11_GFF3_genes_transposons.201606.gtf -bsr
 15)
 echo "case " $1 ": Default case with the splicing feature"
 python validator.py annotations/Araport11_protein_coding.201606.bed annotations/Araport11_non_coding.2016016.bed  -bsraw annotations/8GFPLL36_unique.merged.xlsite.bedgraph annotations/8GFPLL24_unique.merged.xlsite.bedgraph -bsdata annotations/8GFPLL36_bsites.bed annotations/8GFPLL24_bsites.bed -desc annotations/ath_gene_descriptions.csv -seqs annotations/Araport11_protein_coding.201606.fa annotations/Araport11_non_coding.2016016.fa -colors 'rgb(46, 214, 26)' 'rgb(255, 87, 51)' -port ${2:-8060} -k 'lambda x : x[-2:]' 'True' -k 'lambda x : x[:1]' 'False' -splice_data \
-../LL18_bedgraphs/9.91_LL18.bedgraph ../LL18_bedgraphs/D1c1_LL18.bedgraph ../LL18_bedgraphs/HPT61_LL18.bedgraph -splice_event ../splice_bed6/9.9_LL18.dpsi.bed
+../LL18_bedgraphs/9.9_LL18.bedgraph ../LL18_bedgraphs/D1c_LL18.bedgraph ../LL18_bedgraphs/HPT6_LL18.bedgraph -splice_event ../splice_bed6/9.9_LL18.dpsi.bed ../splice_bed6/D1c_LL18.dpsi.bed ../splice_bed6/HPT6_LL18.dpsi.bed
 ;;
 esac
