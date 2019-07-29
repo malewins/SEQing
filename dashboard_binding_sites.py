@@ -999,17 +999,16 @@ def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict, da
     row_heights = []
     if spliceEventAvail:
         for i in range(numRows):
-            if i > len(data)-1: row_heights.append(2/numRows)
+            if i > len(data)-1: row_heights.append(1/numRows)
             elif (i % 2 != 0):
                 row_heights.append(1/numRows)
             else:
                 row_heights.append(3/numRows)
     else:
         for i in range(numRows):
-            if i > len(data)-1: row_heights.append(2/numRows)
+            if i > len(data)-1: row_heights.append(1/numRows)
             else:
                 row_heights.append(3/numRows)
-
     fig = tools.make_subplots(rows=numRows, cols=1, subplot_titles=subplot_titles,
                               shared_xaxes=True, row_width=row_heights[::-1])
 
@@ -1028,12 +1027,13 @@ def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict, da
                     fig['layout']['yaxis' + str(i)].update(showticklabels=False, showgrid=False, zeroline=False)
             else:
                 if i <= len(data):
+                    print('here')
                     fig['layout']['yaxis' + str(i)].update(range=[0, max_yVal])
                     fig['layout']['yaxis' + str(i)].update(showticklabels=True, showgrid=True, zeroline=True)
                 else:
                     fig['layout']['yaxis' + str(i)].update(showticklabels=False, showgrid=False, zeroline=False)
-    fig['layout']['height'] = (80 * len(data) + 50 * numIsoforms)
 
+    fig['layout']['height'] = (80 * len(data) + 50 * numIsoforms +85)
     return fig
 
 
