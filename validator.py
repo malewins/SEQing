@@ -35,7 +35,7 @@ def validateGTF(df):
     if df['end'].map(lambda x: type(x)).values.any() != int:
         msg = 'Column end contains non int values'
         return [False, msg]
-    if df['strand'].map(lambda x: x in ['+', '-']).values.all() != True:
+    if (all(x in ['+', '-'] for x in df['strand'].cat.categories.tolist())) != True:
         msg = 'Bad strand symbol(has to be + or -'
         return [False, msg]
     return [True, msg] 
@@ -52,7 +52,7 @@ def validateBed12(df):
     if df.isnull().values.any() == True:        
         msg = 'Missing values' + '\n' + str(df.isnull().sum())
         return [False, msg]
-    if df['strand'].map(lambda x: x in ['+', '-']).values.all() != True:
+    if (all(x in ['+', '-'] for x in df['strand'].cat.categories.tolist())) != True:
         msg = 'Bad strand symbol(has to be + or -'
         return [False, msg]
     if df['chromStart'].map(lambda x: type(x)).values.any() != int:
@@ -113,7 +113,7 @@ def validateBed(df):
     if df.isnull().values.any() == True:        
         msg = 'Missing values' + '\n' + str(df.isnull().sum())
         return [False, msg]
-    if df['strand'].map(lambda x: x in ['+', '-']).values.all() != True:
+    if (all(x in ['+', '-'] for x in df['strand'].cat.categories.tolist())) != True:
         msg = 'Bad strand symbol(has to be + or -)'
         return [False, msg]
     if df['chromStart'].map(lambda x: type(x)).values.any() != int:
