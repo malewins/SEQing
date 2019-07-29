@@ -947,19 +947,24 @@ def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict, da
             eventBases = []
             # iterate through dataframe rows and calculate stacking aswell as bar parameters
             for row in eventData[ds].itertuples():
+                if row.chromStart > row.chromEnd:
+                    print('Warning; Event in dataset ' + str(ds) +' on chromosome ' + str(row.chrom) + ' at startpoint ' + str(row.chromStart) +
+                          ' startpoint is greater than endpoint.')
+                maxVal = max(row.chromStart, row.chromEnd)
+                minVal = min(row.chromStart, row.chromEnd)
                 if len(intervals) == 0:
-                    intervals.append((row.chromStart, row.chromEnd))
-                    eventXValues.append(row.chromStart + (row.chromEnd - row.chromStart) / 2)
-                    eventWidths.append(row.chromEnd - row.chromStart)
+                    intervals.append((minVal, maxVal))
+                    eventXValues.append(minVal + (maxVal - minVal) / 2)
+                    eventWidths.append(maxVal - minVal)
                     eventBases.append(0)
                 else:
                     numOverlaps = 0
                     for i in intervals:
-                        if overlap(i, (row.chromStart, row.chromEnd)) == True:
+                        if overlap(i, (minVal, maxVal)) == True:
                             numOverlaps += 1
-                    intervals.append((row.chromStart, row.chromEnd))
-                    eventXValues.append(row.chromStart + (row.chromEnd - row.chromStart) / 2)
-                    eventWidths.append(row.chromEnd - row.chromStart)
+                    intervals.append((minVal, maxVal))
+                    eventXValues.append(minVal + (maxVal - minVal) / 2)
+                    eventWidths.append(maxVal - minVal)
                     eventBases.append(numOverlaps)               
             trace1 = go.Bar(
                 x=eventXValues,
