@@ -824,22 +824,20 @@ def rnaDesc(clicks, name):
 
 @app.callback(
     dash.dependencies.Output('spliceGraph', 'figure'),
-    [dash.dependencies.Input('submit', 'n_clicks'),
-     dash.dependencies.Input('colorConfirm', 'n_clicks')],
+    [dash.dependencies.Input('submit', 'n_clicks')],
     [dash.dependencies.State('geneDrop', 'value'),
-    dash.dependencies.State('paramList', 'values'),
      dash.dependencies.State('rnaParamList', 'values')]
 )
-def rnaPlot(clicks, clicks2, geneName, dataSets, rnaParamList):
-    """Main callback that handles the dynamic visualisation of the rnaSeq data
+def rnaPlot(clicks, geneName, rnaParamList):
+    """Main callback that handles the dynamic visualisation of the RNA-seq data
 
         Positional arguments:
         clicks -- Needed to trigger callback with button, not needed otherwise
         geneName -- Name of the selected gene in order to filter the data
-        seqDisp -- Display mode for dna sequence trace
+        rnaParamList -- Selected RNA data sets to plot 
         """
 
-    # select appropriate data from either the coding or non-coding set
+    # select appropriate data from gene annotations
     currentGene = pandas.DataFrame()
     for index, elem in enumerate(geneAnnotations):
         currentGene = elem[elem['name'].str.contains(geneName)]
@@ -850,12 +848,13 @@ def rnaPlot(clicks, clicks2, geneName, dataSets, rnaParamList):
     xAxisMax = currentGene['chromEnd'].max()
     xAxisMin = currentGene['chromStart'].min()
     chrom = currentGene['chrom'].iloc[0]
-    color_dict = {}  # color per mutant
+    color_dict = {}  # Color per mutant
     colors = ['red', 'orange', 'yellow', 'green', 'blue', 'violet',
               'red', 'orange', 'yellow', 'green', 'blue', 'violet',
               'red', 'orange', 'yellow', 'green', 'blue', 'violet',
               'red', 'orange', 'yellow', 'green', 'blue', 'violet']
     color_index = 0
+    # Filter out needed datasets
     rnaDataSets = list(spliceProcDFs.keys())
     displayed_rnaDataSet = []
     for rm in rnaParamList:
@@ -863,61 +862,79 @@ def rnaPlot(clicks, clicks2, geneName, dataSets, rnaParamList):
             if rm == set.split('_')[0]:
                 displayed_rnaDataSet.append(set)
 
-    # dicts for lists of axis values
+    # Dicts for lists of axis values
     xVals = {}
     yVals = {}
-    max_yVal = 0
-    eventDict = {}
+    max_yVal = 0 # Used to scale y-axes later
+    eventDict = {} # stores dataframes with relevant splice event data
 
     for ds in displayed_rnaDataSet:
-        if ds.split('_')[0] not in color_dict.keys():
+        if ds.split('_')[0] not in color_dict.keys(): # pick a color from the list
             color_dict[ds.split('_')[0]] = colors[color_index]
             color_index += 1
-        # criteria to filter relevant lines from current dataframe
+        # Criteria to filter relevant lines from current dataframe
         bcrit11 = spliceProcDFs[ds]['chrom'] == chrom
         bcrit21 = spliceProcDFs[ds]['chromStart'] >= xAxisMin
         bcrit22 = spliceProcDFs[ds]['chromStart'] <= xAxisMax
         bcrit31 = spliceProcDFs[ds]['chromEnd'] >= xAxisMin
         bcrit32 = spliceProcDFs[ds]['chromEnd'] <= xAxisMax
         spliceSlice = spliceProcDFs[ds].loc[bcrit11 & ((bcrit21 & bcrit22) | (bcrit31 & bcrit32))]
-        # pre-init y-value list
+        # Pre-init y-value list
         yVal = [0] * (len(range(xAxisMin, xAxisMax)))
-        #yVal_events = [0] * (len(range(xAxisMin, xAxisMax)))
-        organism = ds.split("_")[0]
-        spliceEvents = pandas.DataFrame()
-        if organism in spliceEventNames[1]:
+        organism = ds.split("_")[0] # Prefix of the curret data frame, first filter
+        spliceEvents = pandas.DataFrame() # will hold splice event data for the current data set
+        if organism in spliceEventNames[1]: # Check if there are splice events for the current prefix
             for d in spliceEventDFs.keys():
-                if ds in d:
-                    # criteria to filter relevant lines from current dataframe
+                if ds in d: # Check for remaining filename, to match the correct files
+                    # Criteria to filter relevant lines from current dataframe
                     bcrit11 = spliceEventDFs[d]['chrom'] == chrom
                     bcrit21 = spliceEventDFs[d]['chromStart'] >= xAxisMin
                     bcrit22 = spliceEventDFs[d]['chromStart'] <= xAxisMax
                     bcrit31 = spliceEventDFs[d]['chromEnd'] >= xAxisMin
                     bcrit32 = spliceEventDFs[d]['chromEnd'] <= xAxisMax
                     spliceEvents = spliceEventDFs[d].loc[bcrit11 & ((bcrit21 & bcrit22) | (bcrit31 & bcrit32))]
-        # use itertuples to iterate over rows, since itertuples is supposed to be faster
+        # Use itertuples to iterate over rows, since itertuples is supposed to be faster
         for row in spliceSlice.itertuples():
-            # increment all values covered by the current row, will overshoot when row crosses border of gene, thus try except
+            # Increment all values covered by the current row, will overshoot when row crosses border of gene, thus try except
             for j in range(row.chromStart, row.chromEnd):
                 try:
                     yVal[j - xAxisMin] += row.count
                 except IndexError:
                     pass
-         # store reference to value list in dict
+         # Store reference to value list in dict
         yVals[ds] = yVal
+        # Safe event dataframe to be used in the next function
         eventDict[ds] = spliceEvents
-        # create x-axis values
+        # Create x-axis values
         xVal = list(range(xAxisMin, xAxisMax))
         xVals[ds] = xVal
+        # Find maximum y-axis value for axis scaling
         if max(yVal) > max_yVal: max_yVal = max(yVal)
-    fig = createAreaChart(xVals, yVals, max_yVal, eventDict, displayed_rnaDataSet, color_dict, dataSets, geneName)
+    fig = createAreaChart(xVals, yVals, max_yVal, eventDict, displayed_rnaDataSet, color_dict, geneName)
     return fig
 
 def overlap(a, b):
+    """check if two intervals overlap
+
+    Positional arguments:
+    a -- first interval
+    b -- second interval
+    """
     return a[1] > b[0] and a[0] < b[1]
 
 
-def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict, dataSets, geneName):
+def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict, geneName):
+    """Create the plots for both coverage and splice events
+
+    Positional arguments:
+    xVals -- x-axis values for coverage plot
+    yVals -- y-axis values for coverage plot
+    max_yVal -- maximum y value across all coverage tracks, used to scale all y-axes
+    eventData -- Dict containing the dataframes with relevant splice events
+    displayed -- displayed datasets
+    color_dict -- colors for the coverage plots
+    geneName -- name of the selected gene, needed for gene models
+    """
     data = []
     subplot_titles = []
     for ds in displayed:
@@ -941,23 +958,24 @@ def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict, da
             subplot_titles.append(ds)
             data.append(trace)
         if spliceEventAvail:
+            # Lists to store various plot parameters
             intervals = []
             eventXValues = []
             eventWidths = []
             eventBases = []
-            # iterate through dataframe rows and calculate stacking aswell as bar parameters
+            # Iterate through dataframe rows and calculate stacking aswell as bar parameters
             for row in eventData[ds].itertuples():
-                if row.chromStart > row.chromEnd:
+                if row.chromStart > row.chromEnd: # Handle errornous input where chromStart > chromEnd and print warning
                     print('Warning; Event in dataset ' + str(ds) +' on chromosome ' + str(row.chrom) + ' at startpoint ' + str(row.chromStart) +
                           ' startpoint is greater than endpoint.')
-                maxVal = max(row.chromStart, row.chromEnd)
+                maxVal = max(row.chromStart, row.chromEnd) 
                 minVal = min(row.chromStart, row.chromEnd)
-                if len(intervals) == 0:
+                if len(intervals) == 0: # Row is the first row, no comparisons
                     intervals.append((minVal, maxVal))
                     eventXValues.append(minVal + (maxVal - minVal) / 2)
                     eventWidths.append(maxVal - minVal)
                     eventBases.append(0)
-                else:
+                else: # Row is not the first row, check through already processed intervals to calculate offset
                     numOverlaps = 0
                     for i in intervals:
                         if overlap(i, (minVal, maxVal)) == True:
@@ -993,22 +1011,23 @@ def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict, da
         currentGene = elem[elem['name'].str.contains(geneName)]
         if not currentGene.empty:
             break
-    numIsoforms = len(currentGene)
+    numIsoforms = len(currentGene) # Number of isoforms in the gene model
     numRows = len(data)+numIsoforms
 
+    # Setup row heights based on available data
     row_heights = []
     if spliceEventAvail:
         for i in range(numRows):
-            if i > len(data)-1: row_heights.append(1/numRows)
+            if i > len(data)-1: row_heights.append(1/numRows) # Gene model row
             elif (i % 2 != 0):
-                row_heights.append(1/numRows)
+                row_heights.append(1/numRows) # Splice event row
             else:
-                row_heights.append(3/numRows)
+                row_heights.append(3/numRows) # Coverage row
     else:
         for i in range(numRows):
-            if i > len(data)-1: row_heights.append(1/numRows)
+            if i > len(data)-1: row_heights.append(1/numRows) # Gene model row
             else:
-                row_heights.append(3/numRows)
+                row_heights.append(3/numRows) # Coverage row
     fig = tools.make_subplots(rows=numRows, cols=1, subplot_titles=subplot_titles,
                               shared_xaxes=True, row_width=row_heights[::-1])
 
@@ -1016,41 +1035,44 @@ def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict, da
         fig.append_trace(t, index + 1, 1)
 
 
-    rnaSequencePlot(fig, geneName, numRows, len(data), dataSets)
+    rnaSequencePlot(fig, geneName, numRows, len(data))
     fig['layout']['yaxis'].update(showticklabels=True, showgrid=True, zeroline=True)
     for i in range(1, numRows+1):
             if spliceEventAvail:
-                if i % 2 != 0 and i <= len(data):
+                if i % 2 != 0 and i <= len(data): # Coverage row
                     fig['layout']['yaxis' + str(i)].update(range=[0, max_yVal])
                     fig['layout']['yaxis' + str(i)].update(showticklabels=True, showgrid=True, zeroline=True)
-                else:
+                else: # Event row
                     fig['layout']['yaxis' + str(i)].update(showticklabels=False, showgrid=False, zeroline=False)
             else:
-                if i <= len(data):
+                if i <= len(data): # Coverage row
                     print('here')
                     fig['layout']['yaxis' + str(i)].update(range=[0, max_yVal])
                     fig['layout']['yaxis' + str(i)].update(showticklabels=True, showgrid=True, zeroline=True)
-                else:
+                else: # Gene model row
                     fig['layout']['yaxis' + str(i)].update(showticklabels=False, showgrid=False, zeroline=False)
-
+    # Setup plot height, add 85 to account for margins
     fig['layout']['height'] = (80 * len(data) + 50 * numIsoforms +85)
     return fig
 
 
-def rnaSequencePlot(fig, geneName, numRows, len_data, dataSets):
+def rnaSequencePlot(fig, geneName, numRows, len_data):
+    """ Adds gene model plots to coverage and splice event plots
+    
+    Positional arguments:
+    fig -- Current figure, needed to add additional rows
+    geneName -- Name of the currently selected gene
+    numRows -- Number of rows, needed to prevent zoom on y-axes
+    len_data -- Number of RNA-seq rows, used as start point for gene model rows
+    """
 
-    numParams = len(dataSets)  # number of selected data tracks
-    baseHeight = 30  # size of gene model row, for plot scaling
-    # select appropriate data from either the coding or non-coding set
+    # Select appropriate data from either the coding or non-coding set
     currentGene = pandas.DataFrame()
     for index, elem in enumerate(geneAnnotations):
         currentGene = elem[elem['name'].str.contains(geneName)]
         if not currentGene.empty:
             break
 
-
-    # final height values for rows respecting type, has to be in bottom-up order
-    dataSetHeights = []
     fig['layout']['xaxis'].update(nticks=6)
     fig['layout']['xaxis'].update(tickmode='array')
     fig['layout']['xaxis'].update(showgrid=True)
@@ -1059,17 +1081,15 @@ def rnaSequencePlot(fig, geneName, numRows, len_data, dataSets):
     fig['layout'].update(hovermode='x')
     fig['layout']['yaxis'].update(fixedrange=True)
 
-    xAxisMax = currentGene['chromEnd'].max()
-    xAxisMin = currentGene['chromStart'].min()
     strand = currentGene['strand'].iloc[0]
 
     chromEnds = []  # used for arrow positioning
 
     counter = len_data+1
 
-    # calculate gene models. We have to distinguish between coding region and non-coding region
+    # Calculate gene models. We have to distinguish between coding region and non-coding region
     for i in currentGene.iterrows():
-        # setup various helpers to work out the different sized blocks
+        # Setup various helpers to work out the different sized blocks
         chromEnds.append(i[1]['chromEnd'])
         blockStarts = [int(x) for x in i[1]['blockStarts'].rstrip(',').split(',')]
         blockSizes = [int(x) for x in i[1]['blockSizes'].rstrip(',').split(',')]
@@ -1078,13 +1098,12 @@ def rnaSequencePlot(fig, geneName, numRows, len_data, dataSets):
                                       0.4, i[1]['name'])
         for j in range(len(genemodel)):
             fig.append_trace(genemodel[j], counter, 1)
-            # move on to the next gene model
+            # Move on to the next gene model
         counter += 1
 
-    # the trailing ',' actually matters for some reason, don't remove
+    # The trailing ',' actually matters for some reason, don't remove
     fig['layout'].update(
         barmode='relative',
-        margin=go.layout.Margin(l=30, r=40, t=25, b=60),
     )
     if strand == '-':
         fig['layout']['xaxis'].update(autorange='reversed')
