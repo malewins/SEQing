@@ -964,6 +964,7 @@ def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict, ge
             eventWidths = []
             eventBases = []
             # Iterate through dataframe rows and calculate stacking aswell as bar parameters
+            maxStack = 0 # keeps track of the maximum number of stacked bars, to avoid empty rows
             for row in eventData[ds].itertuples():
                 if row.chromStart > row.chromEnd: # Handle errornous input where chromStart > chromEnd and print warning
                     print('Warning; Event in dataset ' + str(ds) +' on chromosome ' + str(row.chrom) + ' at startpoint ' + str(row.chromStart) +
@@ -975,6 +976,7 @@ def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict, ge
                     eventXValues.append(minVal + (maxVal - minVal) / 2)
                     eventWidths.append(maxVal - minVal)
                     eventBases.append(0)
+                    maxStack == 1
                 else: # Row is not the first row, check through already processed intervals to calculate offset
                     numOverlaps = 0
                     for i in intervals:
@@ -983,7 +985,13 @@ def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict, ge
                     intervals.append((minVal, maxVal))
                     eventXValues.append(minVal + (maxVal - minVal) / 2)
                     eventWidths.append(maxVal - minVal)
-                    eventBases.append(numOverlaps)               
+                    if numOverlaps > maxStack:
+                        if numOverlaps > maxStack + 1:
+                            maxStack += 1
+                            numOverlaps = maxStack
+                        else:
+                            maxStack = numOverlaps
+                    eventBases.append(numOverlaps + 0.5*numOverlaps)
             trace1 = go.Bar(
                 x=eventXValues,
                 y=[1]*len(eventXValues),
@@ -1020,7 +1028,7 @@ def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict, ge
         for i in range(numRows):
             if i > len(data)-1: row_heights.append(1/numRows) # Gene model row
             elif (i % 2 != 0):
-                row_heights.append(1/numRows) # Splice event row
+                row_heights.append(3/numRows) # Splice event row
             else:
                 row_heights.append(3/numRows) # Coverage row
     else:
