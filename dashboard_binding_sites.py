@@ -133,6 +133,8 @@ tabStyle = {'padding' : '0', 'line-height' : '5vh'}
 # Colors for the alternating coloring in Details
 tableColors = ['rgb(255, 255 ,255)', 'rgb(125, 244, 66)']
 
+eventColors = {'A3' : 'blue', 'A5' : 'red', 'RI' : 'green', 'SE' : 'violet', 'MX' : 'orange'}
+
 app = dash.Dash(__name__)
 
 app.config['suppress_callback_exceptions']=True
@@ -937,6 +939,10 @@ def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict, ge
     """
     data = []
     subplot_titles = []
+    eventTypes = ['MX', 'SE', 'A3', 'A5', 'RI']
+    legendSet = {}
+    for val in eventTypes:
+                legendSet[val] = False
     for ds in displayed:
         xAxis = xVals[ds]
         yAxis = yVals[ds]
@@ -960,9 +966,9 @@ def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict, ge
         if spliceEventAvail:
             # Lists to store various plot parameters
             intervals = []
-            eventXValues = []
-            eventWidths = []
-            eventBases = []
+            eventXValues = {}
+            eventWidths = {}
+            eventBases = {}
             # Iterate through dataframe rows and calculate stacking aswell as bar parameters
             maxStack = 0 # keeps track of the maximum number of stacked bars, to avoid empty rows
             for row in eventData[ds].itertuples():
@@ -971,47 +977,81 @@ def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict, ge
                           ' startpoint is greater than endpoint.')
                 maxVal = max(row.chromStart, row.chromEnd) 
                 minVal = min(row.chromStart, row.chromEnd)
+                key = row.type
                 if len(intervals) == 0: # Row is the first row, no comparisons
-                    intervals.append((minVal, maxVal))
-                    eventXValues.append(minVal + (maxVal - minVal) / 2)
-                    eventWidths.append(maxVal - minVal)
-                    eventBases.append(0)
+                    try:
+                        eventXValues[key].append(minVal + (maxVal - minVal) / 2)
+                        eventWidths[key].append(maxVal - minVal)
+                        eventBases[key].append(0)
+                        intervals.append(((minVal, maxVal),0))
+                    except:
+                        eventXValues[key] = [minVal + (maxVal - minVal) / 2]
+                        eventWidths[key] = [maxVal - minVal]
+                        eventBases[key] = [0]                       
+                        intervals.append(((minVal, maxVal),0))
                     maxStack == 1
                 else: # Row is not the first row, check through already processed intervals to calculate offset
                     numOverlaps = 0
+                    heights = []
                     for i in intervals:
-                        if overlap(i, (minVal, maxVal)) == True:
+                        if overlap(i[0], (minVal, maxVal)) == True:
+                            heights.append(i[1])
                             numOverlaps += 1
-                    intervals.append((minVal, maxVal))
-                    eventXValues.append(minVal + (maxVal - minVal) / 2)
-                    eventWidths.append(maxVal - minVal)
-                    if numOverlaps > maxStack:
-                        if numOverlaps > maxStack + 1:
-                            maxStack += 1
-                            numOverlaps = maxStack
-                        else:
-                            maxStack = numOverlaps
-                    eventBases.append(numOverlaps + 0.5*numOverlaps)
-            trace1 = go.Bar(
-                x=eventXValues,
-                y=[1]*len(eventXValues),
-                width = eventWidths,
-                base = eventBases,
-                showlegend=False,
-                insidetextfont=dict(
-                    family="Arial",
-                    color="black"
-                ),
-                textposition='auto',
-                marker=dict(
-                    color='darkblue',
-                    line=dict(
-                        color='darkblue',
-                        width=1),
+                    if len(heights) > 0:
+                        slot = 0
+                        for value in range(0, max(heights)+2):
+                            if value not in heights:
+                                slot = value
+                                break
+                        numOverlaps = slot
+                    try:
+                        eventXValues[key].append(minVal + (maxVal - minVal) / 2)
+                        eventWidths[key].append(maxVal - minVal)
+                        if numOverlaps > maxStack:
+                            if numOverlaps > maxStack + 1:
+                                maxStack += 1
+                                numOverlaps = maxStack
+                            else:
+                                maxStack = numOverlaps
+                        eventBases[key].append(numOverlaps + 0.5*numOverlaps)
+                        intervals.append(((minVal, maxVal),numOverlaps))
+                    except:
+                        eventXValues[key]  = [minVal + (maxVal - minVal) / 2]
+                        eventWidths[key] = [maxVal - minVal]
+                        if numOverlaps > maxStack:
+                            if numOverlaps > maxStack + 1:
+                                maxStack += 1
+                                numOverlaps = maxStack
+                            else:
+                                maxStack = numOverlaps
+                        eventBases[key] = [numOverlaps + 0.5*numOverlaps]
+                        intervals.append(((minVal, maxVal), numOverlaps))
+            traces = []
+            for k in eventXValues.keys():
+                legend = False
+                if legendSet[k] == False:
+                    legendSet[k] = True
+                    legend = True
+                trace = go.Bar(
+                    x=eventXValues[k],
+                    y=[1]*len(eventXValues[k]),
+                    width = eventWidths[k],
+                    base = eventBases[k],
+                    name = k,
+                    showlegend = legend,
+                    legendgroup = k,
+                    insidetextfont=dict(
+                        family="Arial",
+                        color="black"
+                    ),
+                    textposition='auto',
+                    marker=dict(
+                        color= eventColors[k],
+                    )
                 )
-            )
+                traces.append(trace)
             subplot_titles.append("")
-            data.append(trace1)
+            data.append(traces)
 
 
     currentGene = pandas.DataFrame()
@@ -1040,7 +1080,11 @@ def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict, ge
                               shared_xaxes=True, row_width=row_heights[::-1])
 
     for index, t in enumerate(data):
-        fig.append_trace(t, index + 1, 1)
+        try:
+            fig.append_trace(t, index + 1, 1)
+        except ValueError:
+            for i in t:
+                fig.append_trace(i, index + 1, 1)
 
 
     rnaSequencePlot(fig, geneName, numRows, len(data))
