@@ -964,11 +964,10 @@ def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict, ge
             subplot_titles.append(ds)
             data.append(trace)
         if spliceEventAvail:
-            # Lists to store various plot parameters
-            intervals = []
-            eventXValues = {}
-            eventWidths = {}
-            eventBases = {}
+            intervals = [] # Used to calculate overlaps, stores used intervals as well as row that interval was put on
+            eventXValues = {} # Stores x-axis values per event type
+            eventWidths = {} # Stores widths per event type
+            eventBases = {} # Stores y offset per event type
             # Iterate through dataframe rows and calculate stacking aswell as bar parameters
             maxStack = 0 # keeps track of the maximum number of stacked bars, to avoid empty rows
             for row in eventData[ds].itertuples():
@@ -977,14 +976,14 @@ def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict, ge
                           ' startpoint is greater than endpoint.')
                 maxVal = max(row.chromStart, row.chromEnd) 
                 minVal = min(row.chromStart, row.chromEnd)
-                key = row.type
+                key = row.type # Type of the current event
                 if len(intervals) == 0: # Row is the first row, no comparisons
-                    try:
+                    try: # If list already exist append
                         eventXValues[key].append(minVal + (maxVal - minVal) / 2)
                         eventWidths[key].append(maxVal - minVal)
                         eventBases[key].append(0)
                         intervals.append(((minVal, maxVal),0))
-                    except:
+                    except: # Else create corresponding lists in dictionary
                         eventXValues[key] = [minVal + (maxVal - minVal) / 2]
                         eventWidths[key] = [maxVal - minVal]
                         eventBases[key] = [0]                       
@@ -992,18 +991,18 @@ def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict, ge
                     maxStack == 1
                 else: # Row is not the first row, check through already processed intervals to calculate offset
                     numOverlaps = 0
-                    heights = []
+                    heights = [] # Store all rows on which overlaps occur
                     for i in intervals:
                         if overlap(i[0], (minVal, maxVal)) == True:
                             heights.append(i[1])
                             numOverlaps += 1
                     if len(heights) > 0:
-                        slot = 0
-                        for value in range(0, max(heights)+2):
+                        slot = 0 # First free row the new bar can be placed on
+                        for value in range(0, max(heights)+2): # Find first open slot
                             if value not in heights:
                                 slot = value
                                 break
-                        numOverlaps = slot
+                        numOverlaps = slot # Set numOverlaps accordingly
                     try:
                         eventXValues[key].append(minVal + (maxVal - minVal) / 2)
                         eventWidths[key].append(maxVal - minVal)
@@ -1028,8 +1027,8 @@ def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict, ge
                         intervals.append(((minVal, maxVal), numOverlaps))
             traces = []
             for k in eventXValues.keys():
-                legend = False
-                if legendSet[k] == False:
+                legend = False # Show legend item 
+                if legendSet[k] == False: # Legend item for this event type is not displayed, display it
                     legendSet[k] = True
                     legend = True
                 trace = go.Bar(
@@ -1039,7 +1038,7 @@ def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict, ge
                     base = eventBases[k],
                     name = k,
                     showlegend = legend,
-                    legendgroup = k,
+                    legendgroup = k, # Group traces from different datasets so they all repsond to the one legend item
                     insidetextfont=dict(
                         family="Arial",
                         color="black"
