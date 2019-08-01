@@ -342,9 +342,9 @@ app.layout = html.Div(
                                                                                    dcc.RadioItems(
                                                                                        id='rnaRadio',
                                                                                        options=[
-                                                                                           {'label': 'Display type 1',
+                                                                                           {'label': 'Default display',
                                                                                             'value': 'one'},
-                                                                                           {'label': 'Display type 2',
+                                                                                           {'label': 'Color code event tyepes',
                                                                                             'value': 'two'},
                                                                                            {'label': 'Display type 3',
                                                                                             'value': 'three'}
@@ -828,9 +828,10 @@ def rnaDesc(clicks, name):
     dash.dependencies.Output('spliceGraph', 'figure'),
     [dash.dependencies.Input('submit', 'n_clicks')],
     [dash.dependencies.State('geneDrop', 'value'),
+     dash.dependencies.State('rnaRadio', 'value'),
      dash.dependencies.State('rnaParamList', 'values')]
 )
-def rnaPlot(clicks, geneName, rnaParamList):
+def rnaPlot(clicks, geneName, displayMode,rnaParamList):
     """Main callback that handles the dynamic visualisation of the RNA-seq data
 
         Positional arguments:
@@ -912,7 +913,7 @@ def rnaPlot(clicks, geneName, rnaParamList):
         xVals[ds] = xVal
         # Find maximum y-axis value for axis scaling
         if max(yVal) > max_yVal: max_yVal = max(yVal)
-    fig = createAreaChart(xVals, yVals, max_yVal, eventDict, displayed_rnaDataSet, color_dict, geneName)
+    fig = createAreaChart(xVals, yVals, max_yVal, eventDict, displayed_rnaDataSet, color_dict, geneName, displayMode)
     return fig
 
 def overlap(a, b):
@@ -925,7 +926,7 @@ def overlap(a, b):
     return a[1] > b[0] and a[0] < b[1]
 
 
-def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict, geneName):
+def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict, geneName, displayMode):
     """Create the plots for both coverage and splice events
 
     Positional arguments:
@@ -1028,9 +1029,12 @@ def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict, ge
             traces = []
             for k in sorted(eventXValues.keys()):
                 legend = False # Show legend item 
-                if legendSet[k] == False: # Legend item for this event type is not displayed, display it
-                    legendSet[k] = True
-                    legend = True
+                traceColor = 'darkblue'
+                if displayMode == 'two':
+                    if legendSet[k] == False: # Legend item for this event type is not displayed, display it
+                        legendSet[k] = True
+                        legend = True
+                    traceColor = eventColors[k]
                 trace = go.Bar(
                     x=eventXValues[k],
                     y=[1]*len(eventXValues[k]),
@@ -1045,7 +1049,7 @@ def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict, ge
                     ),
                     textposition='auto',
                     marker=dict(
-                        color= eventColors[k],
+                        color= traceColor,
                     )
                 )
                 traces.append(trace)
@@ -1078,12 +1082,15 @@ def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict, ge
     fig = tools.make_subplots(rows=numRows, cols=1, subplot_titles=subplot_titles,
                               shared_xaxes=True, row_width=row_heights[::-1])
 
+    eventIndices = []
     for index, t in enumerate(data):
         try:
             fig.append_trace(t, index + 1, 1)
         except ValueError:
-            for i in t:
-                fig.append_trace(i, index + 1, 1)
+            eventIndices.append(index)
+    for i in eventIndices:
+        for x in data[i]:
+            fig.append_trace(x, i + 1, 1)
 
 
     rnaSequencePlot(fig, geneName, numRows, len(data))
