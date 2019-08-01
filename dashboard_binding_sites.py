@@ -133,7 +133,6 @@ tabStyle = {'padding' : '0', 'line-height' : '5vh'}
 # Colors for the alternating coloring in Details
 tableColors = ['rgb(255, 255 ,255)', 'rgb(125, 244, 66)']
 
-eventColors = {'A3' : 'blue', 'A5' : 'red', 'RI' : 'green', 'SE' : 'violet', 'MX' : 'orange'}
 
 app = dash.Dash(__name__)
 
@@ -344,7 +343,7 @@ app.layout = html.Div(
                                                                                        options=[
                                                                                            {'label': 'Default display',
                                                                                             'value': 'one'},
-                                                                                           {'label': 'Color code event tyepes',
+                                                                                           {'label': 'Color event types',
                                                                                             'value': 'two'},
                                                                                            {'label': 'Display type 3',
                                                                                             'value': 'three'}
@@ -940,7 +939,6 @@ def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict, ge
     """
     data = []
     subplot_titles = []
-    eventTypes = ['MX', 'SE', 'A3', 'A5', 'RI']
     legendSet = {}
     for val in eventTypes:
                 legendSet[val] = False
@@ -1082,13 +1080,13 @@ def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict, ge
     fig = tools.make_subplots(rows=numRows, cols=1, subplot_titles=subplot_titles,
                               shared_xaxes=True, row_width=row_heights[::-1])
 
-    eventIndices = []
+    eventIndices = [] # save indices of all elements that contain event traces
     for index, t in enumerate(data):
         try:
             fig.append_trace(t, index + 1, 1)
         except ValueError:
             eventIndices.append(index)
-    for i in eventIndices:
+    for i in eventIndices: # add event traces after all coverage traces have been added for legend item positioning
         for x in data[i]:
             fig.append_trace(x, i + 1, 1)
 

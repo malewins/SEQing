@@ -690,6 +690,7 @@ if len(spliceProcDFs) > 0:
 spliceEventsDFs = {}
 spliceEventsElements = 0
 spliceEventNames = [[],[]]
+spliceEventTypes = []
 if len(spliceEventsPaths) > 0:
     print('Loading splice event data')
 for i in spliceEventsPaths:
@@ -707,6 +708,9 @@ for i in spliceEventsPaths:
             if i.stem.split('_')[0] not in spliceEventNames[1]:
                     spliceEventNames[0].append(i.stem.split('_')[1])
                     spliceEventNames[1].append(i.stem.split('_')[0])
+            for i in df['type'].cat.categories.tolist():
+                if i not in spliceEventTypes:
+                    spliceEventTypes.append(i)
         else:
             print('Error in file ' + str(i) + ':')
             print(validation[1])
@@ -736,7 +740,13 @@ else:
 colorMap = {}
 for i in range(len(dataSetNames)):
     colorMap.update({dataSetNames[i] : plotColors[i%len(plotColors)]})
-    
+
+
+eventColors = ['blue', 'red', 'green', 'violet', 'orange']
+spliceEventColors = {}
+for index, elem in enumerate(sorted(spliceEventTypes)):
+    spliceEventColors.update({elem : eventColors[index%len(eventColors)]})
+
 print('preparing to start dashboard on port ' + str(port) + '.')
 
 # Setup gloabl variables for the dashboard
@@ -766,9 +776,11 @@ globalDict = {
     'sortKeys' : sortKeys, # arguments for the list.sort function
     'advancedDesc' : advancedDescriptions, # advanced descriptions for Details tab
     'subTables' : subTables, # subtable information for Details tab
-    'spliceEventElements': spliceEventsElements, # Number of elements per rna dataset
-    'spliceEventDFs': spliceEventsDFs,  # Dataframes with splice event data
-    'spliceEventNames': spliceEventNames, # Names for the splice event data sets
-    'spliceEventAvail': spliceEventsAvail} # splice event data available True/False
+    'spliceEventElements' : spliceEventsElements, # Number of elements per rna dataset
+    'spliceEventDFs' : spliceEventsDFs,  # Dataframes with splice event data
+    'spliceEventNames' : spliceEventNames, # Names for the splice event data sets
+    'spliceEventAvail' : spliceEventsAvail, # splice event data available True/False,
+    'eventColors' : spliceEventColors, # Colorsfor the splice event types
+    'eventTypes' : sorted(spliceEventTypes)} # Types of splice events
 
 runpy.run_module('dashboard_binding_sites', init_globals = globalDict, run_name = '__main__')
