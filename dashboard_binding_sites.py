@@ -857,9 +857,9 @@ def rnaPlot(clicks, geneName, rnaParamList):
               'red', 'orange', 'yellow', 'green', 'blue', 'violet']
     color_index = 0
     # Filter out needed datasets
-    rnaDataSets = list(spliceProcDFs.keys())
+    rnaDataSets = sorted(list(spliceProcDFs.keys()))
     displayed_rnaDataSet = []
-    for rm in rnaParamList:
+    for rm in sorted(rnaParamList):
         for set in rnaDataSets:
             if rm == set.split('_')[0]:
                 displayed_rnaDataSet.append(set)
@@ -870,8 +870,8 @@ def rnaPlot(clicks, geneName, rnaParamList):
     max_yVal = 0 # Used to scale y-axes later
     eventDict = {} # stores dataframes with relevant splice event data
 
-    for ds in displayed_rnaDataSet:
-        if ds.split('_')[0] not in color_dict.keys(): # pick a color from the list
+    for ds in sorted(displayed_rnaDataSet):
+        if ds.split('_')[0] not in sorted(color_dict.keys()): # pick a color from the list
             color_dict[ds.split('_')[0]] = colors[color_index]
             color_index += 1
         # Criteria to filter relevant lines from current dataframe
@@ -886,7 +886,7 @@ def rnaPlot(clicks, geneName, rnaParamList):
         organism = ds.split("_")[0] # Prefix of the curret data frame, first filter
         spliceEvents = pandas.DataFrame() # will hold splice event data for the current data set
         if organism in spliceEventNames[1]: # Check if there are splice events for the current prefix
-            for d in spliceEventDFs.keys():
+            for d in sorted(spliceEventDFs.keys()):
                 if ds in d: # Check for remaining filename, to match the correct files
                     # Criteria to filter relevant lines from current dataframe
                     bcrit11 = spliceEventDFs[d]['chrom'] == chrom
@@ -943,7 +943,7 @@ def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict, ge
     legendSet = {}
     for val in eventTypes:
                 legendSet[val] = False
-    for ds in displayed:
+    for ds in sorted(displayed):
         xAxis = xVals[ds]
         yAxis = yVals[ds]
         organism = ds.split('_')[0]
@@ -1026,7 +1026,7 @@ def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict, ge
                         eventBases[key] = [numOverlaps + 0.5*numOverlaps]
                         intervals.append(((minVal, maxVal), numOverlaps))
             traces = []
-            for k in eventXValues.keys():
+            for k in sorted(eventXValues.keys()):
                 legend = False # Show legend item 
                 if legendSet[k] == False: # Legend item for this event type is not displayed, display it
                     legendSet[k] = True
