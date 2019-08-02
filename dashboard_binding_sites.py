@@ -53,6 +53,7 @@ helpText = '''
             '''
 
 
+
 if 'dropList' not in globals():
     print('Please start the program via validator.py')
     exit()
@@ -201,6 +202,8 @@ app.layout = html.Div(
                                         children=[
                                                 html.Div(className = 'table-row',
                                                     children = [
+                                                    html.Details(open = 'open', children = [
+                                                    html.Summary("Controls"),
                                                     html.Div(
                                                         className = 'table-cell column-1',
                                                         children = [
@@ -254,7 +257,7 @@ app.layout = html.Div(
                                                     )
                                                 ]
                                             ),
-    
+                                            ])
                                         ],
                                     ),
                                     html.Div(style = {'height' : '25px'}),
@@ -292,6 +295,8 @@ app.layout = html.Div(
                                              children=[
                                                  html.Div(className='table-row',
                                                           children=[
+                                                          html.Details(open = 'open', children = [
+                                                          html.Summary("Controls"),
                                                               html.Div(
                                                                   className='table-cell column-1',
                                                                   children=[
@@ -356,7 +361,8 @@ app.layout = html.Div(
                                                                        )
                                                           ]
                                                           ),
-
+                                                          ])
+                                                        
                                                     ],
 
                                 ),
