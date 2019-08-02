@@ -741,8 +741,15 @@ colorMap = {}
 for i in range(len(dataSetNames)):
     colorMap.update({dataSetNames[i] : plotColors[i%len(plotColors)]})
 
+# Create dictionary for coverage track colors
+coverageColors = ['rgb(255,0,0)', 'rgb(255,165,0)','rgb(255,255,0)','rgb(0,0,255)', 'rgb(128,0,128)']
+coverageColorDict = {}
+for index, ds in enumerate(sorted(spliceSetNames[1])):
 
-eventColors = ['blue', 'red', 'green', 'violet', 'orange']
+    coverageColorDict.update({ds : coverageColors[index%len(coverageColors)]})
+
+# create dictionary for slice event colors
+eventColors = ['rgb(0,0,255)', 'rgb(255,0,0)', 'rgb(0,255,0)', 'rgb(128,0,128)', 'rgb(255,165,0)']
 spliceEventColors = {}
 for index, elem in enumerate(sorted(spliceEventTypes)):
     spliceEventColors.update({elem : eventColors[index%len(eventColors)]})
@@ -781,6 +788,7 @@ globalDict = {
     'spliceEventNames' : spliceEventNames, # Names for the splice event data sets
     'spliceEventAvail' : spliceEventsAvail, # splice event data available True/False,
     'eventColors' : spliceEventColors, # Colorsfor the splice event types
+    'coverageColors' : coverageColorDict, # Colors for the coverage plots
     'eventTypes' : sorted(spliceEventTypes)} # Types of splice events
 
 runpy.run_module('dashboard_binding_sites', init_globals = globalDict, run_name = '__main__')

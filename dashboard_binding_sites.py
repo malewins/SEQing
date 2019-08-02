@@ -89,14 +89,20 @@ else:
     rnaDataStyle = {'height' : '100%', 'width' : '15vw'}
 
 
-# Try to setup color picker
+# Try to setup color picker for iCLIP-seq tracks
 try:
     initialColor = dataSetNames[0]
     disableSettings = False
 except:
     initialColor = None
-    disableSettings = True
-
+    disableSettings = False
+# Try to setup color picker for coverage tracks
+try:
+    initialColorCoverage = spliceSetNames[1][0]
+    disableSettings = False
+except:
+    initialColorCoverage = None
+    disableSettings = False
 
 def help_popup():
  return html.Div(
@@ -397,8 +403,12 @@ app.layout = html.Div(
                             disabled=disableSettings,
                             disabled_style=tabStyle,
                             children=[
-                                html.Div(
+                                html.Div(style = {'display' : 'table'},
+                                children =[
+                                html.Div(style={'width': '100vw', 'display': 'table-row', 'verticalalign': 'middle'},
                                     children=[
+                                        html.Div(className = 'table-cell', 
+                                        children = [
                                         html.Fieldset(title = 'iCLIP Settings', 
                                             className = 'field-set',
                                             children = [ 
@@ -473,10 +483,88 @@ app.layout = html.Div(
                                                     style={'width': '10vw', 'display': 'table-cell'}
                                                 )
                                             ]
-                                        )
+                                        )]),
+                                        html.Div(className = 'table-cell', 
+                                        children = [
+                                        html.Fieldset(title = 'coverage settings', 
+                                            className = 'field-set',
+                                            style = {'display' : 'table-cell'},
+                                            children = [ 
+                                                html.Legend('Coverage plot settings'),
+                                                html.Div(
+                                                    style={'display': 'none'},
+                                                    id='covColorDiv',
+                                                    children=json.dumps(coverageColors)
+                                                ),
+                                                html.Div(
+                                                    style={'display': 'none'},
+                                                    id='covColorFinal',
+                                                    children=json.dumps(coverageColors)
+                                                ),
+                                                dcc.Dropdown(
+                                                    id='covColorDrop',
+                                                    options=[{'label': i, 'value': i} for i in spliceSetNames[1]],
+                                                    value=initialColorCoverage
+                                                ),
+                                                html.Div(
+                                                    id='covRDisp',
+                                                    children=html.P(html.B('R: ')),
+                                                    style={'width': '10vw', 'display': 'table-cell'}
+                                                ),
+                                                dcc.Slider(
+                                                    id='covRInput',
+                                                    min=0,
+                                                    max=255,
+                                                    step=1,
+                                                    updatemode='drag'
+                                                ),
+                                                html.Div(
+                                                    id='covGDisp',
+                                                    children=html.P(html.B('G: ')),
+                                                    style={'width': '10vw', 'display': 'table-cell'}
+                                                ),
+                                                dcc.Slider(
+                                                    id='covGInput',
+                                                    min=0,
+                                                    max=255,
+                                                    step=1,
+                                                    updatemode='drag'
+                                                ),
+                                                html.Div(
+                                                    id='covBDisp',
+                                                    children=html.P(html.B('B: ')),
+                                                    style={'width': '10vw', 'display': 'table-cell'}
+                                                ),
+                                                dcc.Slider(
+                                                    id='covBInput',
+                                                    min=0,
+                                                    max=255,
+                                                    step=1,
+                                                    updatemode='drag'
+                                                ),
+                                                html.Div(
+                                                    children=[
+                                                        html.Div(id='covPreview',
+                                                                 children=html.P(html.B('Preview')),
+                                                                 style={'width': '30vw', 'display': 'table-cell',
+                                                                        'verticalalign': 'middle'}
+                                                                 ),
+                                                        html.Div(
+                                                            children=[
+                                                                html.Button(id='covColorConfirm', n_clicks_timestamp=0,
+                                                                            children='confirm')
+                                                            ],
+                                                            style={'width': '10vw', 'display': 'table-cell',
+                                                                   'verticalalign': 'middle'}
+                                                        )
+                                                    ],
+                                                    style={'width': '10vw', 'display': 'table-cell'}
+                                                )
+                                            ]
+                                        )])
                                     ],
-                                    style={'width': '30vw', 'display': 'table-cell', 'verticalalign': 'middle'}
                                 ),
+                            ])
                             ]
                         )
                     ]
@@ -784,6 +872,189 @@ def changeColor(r, g, b, dataset, oldColors):
         colorString = 'rgb(' + str(r) + ', ' + str(g) + ', ' + str(b) + ')'
         colorDict.update({dataset: colorString})
         return json.dumps(colorDict)
+    
+    
+@app.callback(
+    dash.dependencies.Output('covRDisp', component_property='children'),
+    [dash.dependencies.Input('covRInput', component_property='value')]
+)
+def showRCov(r):
+    """Callback to display current value for red
+
+    Positional arguments:
+    r -- Value for red
+    """
+
+    return html.P(html.B('R: ' + str(r)))
+
+
+@app.callback(
+    dash.dependencies.Output('covGDisp', component_property='children'),
+    [dash.dependencies.Input('covGInput', component_property='value')]
+)
+def showGCov(g):
+    """Callback to display current value for green
+
+    Positional arguments:
+    g -- Value for green
+    """
+
+    return html.P(html.B('G: ' + str(g)))
+
+
+@app.callback(
+    dash.dependencies.Output('covBDisp', component_property='children'),
+    [dash.dependencies.Input('covBInput', component_property='value')]
+)
+def showBCov(b):
+    """Callback to display current value for blue
+
+    Positional arguments:
+    b -- Value for blue
+    """
+
+    return html.P(html.B('B: ' + str(b)))
+
+
+@app.callback(
+    dash.dependencies.Output('covPreview', component_property='style'),
+    [dash.dependencies.Input('covRInput', 'value'),
+     dash.dependencies.Input('covGInput', 'value'),
+     dash.dependencies.Input('covBInput', 'value')]
+)
+def previewColorCov(r, g, b):
+    """Callback for rgb color preview
+
+    Positional arguments:
+    r -- Value for red
+    g -- Value for green
+    b -- Value for blue
+    """
+
+    if r == None or b == None or g == None:
+        return {'backgroundColor': 'rgb(255, 255, 255)', 'color': 'rgb(255, 255, 255)'}
+    else:
+        return {'backgroundColor': 'rgb(' + str(r) + ',' + str(g) + ','
+                                   + str(b) + ')', 'color': 'rgb(' + str(r)
+                                                            + ',' + str(g) + ',' + str(b) + ')'}
+
+
+@app.callback(
+    dash.dependencies.Output('covRInput', component_property='value'),
+    [dash.dependencies.Input('covColorDrop', 'value')],
+    [dash.dependencies.State('covColorFinal', 'children')]
+)
+def rCallbackCov(dataset, colors):
+    """Callback to set initial value of red slider from dict
+
+    Positional arguments:
+    dataset -- Currently selected dataset
+    colors -- Dictionary containing the color values(json string)
+    """
+
+    colorsDict = json.loads(colors)
+    try:
+        colorVal = colorsDict[dataset][4:-1].split(',')[0]
+        return int(colorVal)
+    except KeyError:
+        return 0
+
+
+@app.callback(
+    dash.dependencies.Output('covGInput', component_property='value'),
+    [dash.dependencies.Input('covColorDrop', 'value')],
+    [dash.dependencies.State('covColorFinal', 'children')]
+)
+def gCallbackCov(dataset, colors):
+    """Callback to set initial value of green slider from dict
+
+    Positional arguments:
+    dataset -- Currently selected dataset
+    colors -- Dictionary containing the color values(json string)
+    """
+    colorsDict = json.loads(colors)
+    try:
+        colorVal = colorsDict[dataset][4:-1].split(',')[1]
+        return int(colorVal)
+    except KeyError:
+        return 0
+
+
+@app.callback(
+    dash.dependencies.Output('covBInput', component_property='value'),
+    [dash.dependencies.Input('covColorDrop', 'value')],
+    [dash.dependencies.State('covColorFinal', 'children')]
+)
+def bCallbackCov(dataset, colors):
+    """Callback to set initial value of blue slider from dict
+
+    Positional arguments:
+    dataset -- Currently selected dataset
+    colors -- Dictionary containing the color values(json string)
+    """
+    colorsDict = json.loads(colors)
+    try:
+        colorVal = colorsDict[dataset][4:-1].split(',')[2]
+        return int(colorVal)
+    except KeyError:
+        return 0
+
+
+@app.callback(
+    dash.dependencies.Output('covColorFinal', component_property='children'),
+    [dash.dependencies.Input('covColorConfirm', 'n_clicks')],
+    [dash.dependencies.State('covRInput', 'value'),
+     dash.dependencies.State('covGInput', 'value'),
+     dash.dependencies.State('covBInput', 'value'),
+     dash.dependencies.State('covColorDrop', 'value'),
+     dash.dependencies.State('covColorFinal', 'children')]
+)
+def conFirmColorCov(nclicks, r, g, b, dataset, backup):
+    """ Callback to confirm a color. This will overwrite the previous one.
+
+    Positional arguments:
+    nclicks -- Button value
+    r -- Red value
+    g -- Green value
+    b -- Blue value
+    dataset -- Dataset to overwrite color of
+    backup -- Previous value in case of error
+    """
+    if r == None or b == None or g == None:
+        return backup
+    else:
+        colorDict = json.loads(backup)
+        colorString = 'rgb(' + str(r) + ', ' + str(g) + ', ' + str(b) + ')'
+        colorDict.update({dataset: colorString})
+        return json.dumps(colorDict)
+
+
+@app.callback(
+    dash.dependencies.Output('covColorDiv', component_property='children'),
+    [dash.dependencies.Input('covRInput', 'value'),
+     dash.dependencies.Input('covGInput', 'value'),
+     dash.dependencies.Input('covBInput', 'value')],
+    [dash.dependencies.State('covColorDrop', 'value'),
+     dash.dependencies.State('covColorDiv', 'children')]
+)
+def changeColorCov(r, g, b, dataset, oldColors):
+    """Callback to set new color values and save them as json string
+
+    Positional arguments:
+    r -- Red value
+    g -- Green value
+    b -- Blue value
+    dataset -- Currently selected dataset
+    oldColors -- Previous colors in case none values are provided for r/g/b
+    """
+    if r == None or b == None or g == None:
+        return oldColors
+    else:
+        colorDict = json.loads(oldColors)
+        colorString = 'rgb(' + str(r) + ', ' + str(g) + ', ' + str(b) + ')'
+        colorDict.update({dataset: colorString})
+        return json.dumps(colorDict)
+
 
 
 @app.callback(
@@ -831,12 +1102,15 @@ def rnaDesc(clicks, name):
 
 @app.callback(
     dash.dependencies.Output('spliceGraph', 'figure'),
-    [dash.dependencies.Input('submit', 'n_clicks')],
+    [dash.dependencies.Input('submit', 'n_clicks_timestamp'),
+     dash.dependencies.Input('covColorConfirm', 'n_clicks_timestamp')],
     [dash.dependencies.State('geneDrop', 'value'),
      dash.dependencies.State('rnaRadio', 'value'),
-     dash.dependencies.State('rnaParamList', 'values')]
+     dash.dependencies.State('rnaParamList', 'values'),
+     dash.dependencies.State('covColorDiv', 'children'),
+     dash.dependencies.State('covColorFinal', 'children')]
 )
-def rnaPlot(clicks, geneName, displayMode,rnaParamList):
+def rnaPlot(submit, confirm, geneName, displayMode,rnaParamList, colors, colorsFinal):
     """Main callback that handles the dynamic visualisation of the RNA-seq data
 
         Positional arguments:
@@ -844,6 +1118,11 @@ def rnaPlot(clicks, geneName, displayMode,rnaParamList):
         geneName -- Name of the selected gene in order to filter the data
         rnaParamList -- Selected RNA data sets to plot 
         """
+    if submit > confirm:
+        colors = colorsFinal
+    else:
+        colors = colors
+        
 
     # select appropriate data from gene annotations
     currentGene = pandas.DataFrame()
@@ -856,12 +1135,7 @@ def rnaPlot(clicks, geneName, displayMode,rnaParamList):
     xAxisMax = currentGene['chromEnd'].max()
     xAxisMin = currentGene['chromStart'].min()
     chrom = currentGene['chrom'].iloc[0]
-    color_dict = {}  # Color per mutant
-    colors = ['red', 'orange', 'yellow', 'green', 'blue', 'violet',
-              'red', 'orange', 'yellow', 'green', 'blue', 'violet',
-              'red', 'orange', 'yellow', 'green', 'blue', 'violet',
-              'red', 'orange', 'yellow', 'green', 'blue', 'violet']
-    color_index = 0
+    color_dict = json.loads(colors)  # Color per mutant
     # Filter out needed datasets
     rnaDataSets = sorted(list(spliceProcDFs.keys()))
     displayed_rnaDataSet = []
@@ -877,9 +1151,7 @@ def rnaPlot(clicks, geneName, displayMode,rnaParamList):
     eventDict = {} # stores dataframes with relevant splice event data
 
     for ds in sorted(displayed_rnaDataSet):
-        if ds.split('_')[0] not in sorted(color_dict.keys()): # pick a color from the list
-            color_dict[ds.split('_')[0]] = colors[color_index]
-            color_index += 1
+
         # Criteria to filter relevant lines from current dataframe
         bcrit11 = spliceProcDFs[ds]['chrom'] == chrom
         bcrit21 = spliceProcDFs[ds]['chromStart'] >= xAxisMin
