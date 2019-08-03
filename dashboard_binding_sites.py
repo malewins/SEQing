@@ -103,7 +103,14 @@ try:
 except:
     initialColorCoverage = None
     disableSettings = False
-
+# Try to setup color picker for coverage tracks
+try:
+    initialColorEvents = eventTypes[0]
+    disableSettings = False
+except:
+    initialColorEvents = None
+    disableSettings = False
+    
 def help_popup():
  return html.Div(
         id='help',
@@ -488,7 +495,6 @@ app.layout = html.Div(
                                         children = [
                                         html.Fieldset(title = 'coverage settings', 
                                             className = 'field-set',
-                                            style = {'display' : 'table-cell'},
                                             children = [ 
                                                 html.Legend('Coverage plot settings'),
                                                 html.Div(
@@ -552,6 +558,83 @@ app.layout = html.Div(
                                                         html.Div(
                                                             children=[
                                                                 html.Button(id='covColorConfirm', n_clicks_timestamp=0,
+                                                                            children='confirm')
+                                                            ],
+                                                            style={'width': '10vw', 'display': 'table-cell',
+                                                                   'verticalalign': 'middle'}
+                                                        )
+                                                    ],
+                                                    style={'width': '10vw', 'display': 'table-cell'}
+                                                )
+                                            ]
+                                        )]),
+                                        html.Div(className = 'table-cell', 
+                                        children = [
+                                        html.Fieldset(title = 'event settings', 
+                                            className = 'field-set',
+                                            children = [ 
+                                                html.Legend('Splice event plot settings'),
+                                                html.Div(
+                                                    style={'display': 'none'},
+                                                    id='eventColorDiv',
+                                                    children=json.dumps(eventColors)
+                                                ),
+                                                html.Div(
+                                                    style={'display': 'none'},
+                                                    id='eventColorFinal',
+                                                    children=json.dumps(eventColors)
+                                                ),
+                                                dcc.Dropdown(
+                                                    id='eventColorDrop',
+                                                    options=[{'label': i, 'value': i} for i in eventTypes],
+                                                    value=initialColorEvents
+                                                ),
+                                                html.Div(
+                                                    id='eventRDisp',
+                                                    children=html.P(html.B('R: ')),
+                                                    style={'width': '10vw', 'display': 'table-cell'}
+                                                ),
+                                                dcc.Slider(
+                                                    id='eventRInput',
+                                                    min=0,
+                                                    max=255,
+                                                    step=1,
+                                                    updatemode='drag'
+                                                ),
+                                                html.Div(
+                                                    id='eventGDisp',
+                                                    children=html.P(html.B('G: ')),
+                                                    style={'width': '10vw', 'display': 'table-cell'}
+                                                ),
+                                                dcc.Slider(
+                                                    id='eventGInput',
+                                                    min=0,
+                                                    max=255,
+                                                    step=1,
+                                                    updatemode='drag'
+                                                ),
+                                                html.Div(
+                                                    id='eventBDisp',
+                                                    children=html.P(html.B('B: ')),
+                                                    style={'width': '10vw', 'display': 'table-cell'}
+                                                ),
+                                                dcc.Slider(
+                                                    id='eventBInput',
+                                                    min=0,
+                                                    max=255,
+                                                    step=1,
+                                                    updatemode='drag'
+                                                ),
+                                                html.Div(
+                                                    children=[
+                                                        html.Div(id='eventPreview',
+                                                                 children=html.P(html.B('Preview')),
+                                                                 style={'width': '30vw', 'display': 'table-cell',
+                                                                        'verticalalign': 'middle'}
+                                                                 ),
+                                                        html.Div(
+                                                            children=[
+                                                                html.Button(id='eventColorConfirm', n_clicks_timestamp=0,
                                                                             children='confirm')
                                                             ],
                                                             style={'width': '10vw', 'display': 'table-cell',
@@ -1055,6 +1138,187 @@ def changeColorCov(r, g, b, dataset, oldColors):
         colorDict.update({dataset: colorString})
         return json.dumps(colorDict)
 
+@app.callback(
+    dash.dependencies.Output('eventRDisp', component_property='children'),
+    [dash.dependencies.Input('eventRInput', component_property='value')]
+)
+def showREvent(r):
+    """Callback to display current value for red
+
+    Positional arguments:
+    r -- Value for red
+    """
+
+    return html.P(html.B('R: ' + str(r)))
+
+
+@app.callback(
+    dash.dependencies.Output('eventGDisp', component_property='children'),
+    [dash.dependencies.Input('eventGInput', component_property='value')]
+)
+def showEvent(g):
+    """Callback to display current value for green
+
+    Positional arguments:
+    g -- Value for green
+    """
+
+    return html.P(html.B('G: ' + str(g)))
+
+
+@app.callback(
+    dash.dependencies.Output('eventBDisp', component_property='children'),
+    [dash.dependencies.Input('eventBInput', component_property='value')]
+)
+def showBevent(b):
+    """Callback to display current value for blue
+
+    Positional arguments:
+    b -- Value for blue
+    """
+
+    return html.P(html.B('B: ' + str(b)))
+
+
+@app.callback(
+    dash.dependencies.Output('eventPreview', component_property='style'),
+    [dash.dependencies.Input('eventRInput', 'value'),
+     dash.dependencies.Input('eventGInput', 'value'),
+     dash.dependencies.Input('eventBInput', 'value')]
+)
+def previewColorEvent(r, g, b):
+    """Callback for rgb color preview
+
+    Positional arguments:
+    r -- Value for red
+    g -- Value for green
+    b -- Value for blue
+    """
+
+    if r == None or b == None or g == None:
+        return {'backgroundColor': 'rgb(255, 255, 255)', 'color': 'rgb(255, 255, 255)'}
+    else:
+        return {'backgroundColor': 'rgb(' + str(r) + ',' + str(g) + ','
+                                   + str(b) + ')', 'color': 'rgb(' + str(r)
+                                                            + ',' + str(g) + ',' + str(b) + ')'}
+
+
+@app.callback(
+    dash.dependencies.Output('eventRInput', component_property='value'),
+    [dash.dependencies.Input('eventColorDrop', 'value')],
+    [dash.dependencies.State('eventColorFinal', 'children')]
+)
+def rCallbackEvent(dataset, colors):
+    """Callback to set initial value of red slider from dict
+
+    Positional arguments:
+    dataset -- Currently selected dataset
+    colors -- Dictionary containing the color values(json string)
+    """
+
+    colorsDict = json.loads(colors)
+    try:
+        colorVal = colorsDict[dataset][4:-1].split(',')[0]
+        return int(colorVal)
+    except KeyError:
+        return 0
+
+
+@app.callback(
+    dash.dependencies.Output('eventGInput', component_property='value'),
+    [dash.dependencies.Input('eventColorDrop', 'value')],
+    [dash.dependencies.State('eventColorFinal', 'children')]
+)
+def gCallbackEvent(dataset, colors):
+    """Callback to set initial value of green slider from dict
+
+    Positional arguments:
+    dataset -- Currently selected dataset
+    colors -- Dictionary containing the color values(json string)
+    """
+    colorsDict = json.loads(colors)
+    try:
+        colorVal = colorsDict[dataset][4:-1].split(',')[1]
+        return int(colorVal)
+    except KeyError:
+        return 0
+
+
+@app.callback(
+    dash.dependencies.Output('eventBInput', component_property='value'),
+    [dash.dependencies.Input('eventColorDrop', 'value')],
+    [dash.dependencies.State('eventColorFinal', 'children')]
+)
+def bCallbackEvent(dataset, colors):
+    """Callback to set initial value of blue slider from dict
+
+    Positional arguments:
+    dataset -- Currently selected dataset
+    colors -- Dictionary containing the color values(json string)
+    """
+    colorsDict = json.loads(colors)
+    try:
+        colorVal = colorsDict[dataset][4:-1].split(',')[2]
+        return int(colorVal)
+    except KeyError:
+        return 0
+
+
+@app.callback(
+    dash.dependencies.Output('eventColorFinal', component_property='children'),
+    [dash.dependencies.Input('eventColorConfirm', 'n_clicks')],
+    [dash.dependencies.State('eventRInput', 'value'),
+     dash.dependencies.State('eventGInput', 'value'),
+     dash.dependencies.State('eventBInput', 'value'),
+     dash.dependencies.State('eventColorDrop', 'value'),
+     dash.dependencies.State('eventColorFinal', 'children')]
+)
+def conFirmColorEvent(nclicks, r, g, b, dataset, backup):
+    """ Callback to confirm a color. This will overwrite the previous one.
+
+    Positional arguments:
+    nclicks -- Button value
+    r -- Red value
+    g -- Green value
+    b -- Blue value
+    dataset -- Dataset to overwrite color of
+    backup -- Previous value in case of error
+    """
+    if r == None or b == None or g == None:
+        return backup
+    else:
+        colorDict = json.loads(backup)
+        colorString = 'rgb(' + str(r) + ', ' + str(g) + ', ' + str(b) + ')'
+        colorDict.update({dataset: colorString})
+        return json.dumps(colorDict)
+
+
+@app.callback(
+    dash.dependencies.Output('eventColorDiv', component_property='children'),
+    [dash.dependencies.Input('eventRInput', 'value'),
+     dash.dependencies.Input('eventGInput', 'value'),
+     dash.dependencies.Input('eventBInput', 'value')],
+    [dash.dependencies.State('eventColorDrop', 'value'),
+     dash.dependencies.State('eventColorDiv', 'children')]
+)
+def changeColorEvent(r, g, b, dataset, oldColors):
+    """Callback to set new color values and save them as json string
+
+    Positional arguments:
+    r -- Red value
+    g -- Green value
+    b -- Blue value
+    dataset -- Currently selected dataset
+    oldColors -- Previous colors in case none values are provided for r/g/b
+    """
+    if r == None or b == None or g == None:
+        return oldColors
+    else:
+        colorDict = json.loads(oldColors)
+        colorString = 'rgb(' + str(r) + ', ' + str(g) + ', ' + str(b) + ')'
+        colorDict.update({dataset: colorString})
+        return json.dumps(colorDict)
+
 
 
 @app.callback(
@@ -1103,14 +1367,17 @@ def rnaDesc(clicks, name):
 @app.callback(
     dash.dependencies.Output('spliceGraph', 'figure'),
     [dash.dependencies.Input('submit', 'n_clicks_timestamp'),
-     dash.dependencies.Input('covColorConfirm', 'n_clicks_timestamp')],
+     dash.dependencies.Input('covColorConfirm', 'n_clicks_timestamp'),
+     dash.dependencies.Input('eventColorConfirm', 'n_clicks_timestamp')],
     [dash.dependencies.State('geneDrop', 'value'),
      dash.dependencies.State('rnaRadio', 'value'),
      dash.dependencies.State('rnaParamList', 'values'),
      dash.dependencies.State('covColorDiv', 'children'),
-     dash.dependencies.State('covColorFinal', 'children')]
+     dash.dependencies.State('covColorFinal', 'children'),
+     dash.dependencies.State('eventColorDiv', 'children'),
+     dash.dependencies.State('eventColorFinal', 'children')]
 )
-def rnaPlot(submit, confirm, geneName, displayMode,rnaParamList, colors, colorsFinal):
+def rnaPlot(submit, confirm, eventConfirm, geneName, displayMode,rnaParamList, colors, colorsFinal, eventColors, eventColorsFinal):
     """Main callback that handles the dynamic visualisation of the RNA-seq data
 
         Positional arguments:
@@ -1190,7 +1457,7 @@ def rnaPlot(submit, confirm, geneName, displayMode,rnaParamList, colors, colorsF
         xVals[ds] = xVal
         # Find maximum y-axis value for axis scaling
         if max(yVal) > max_yVal: max_yVal = max(yVal)
-    fig = createAreaChart(xVals, yVals, max_yVal, eventDict, displayed_rnaDataSet, color_dict, geneName, displayMode)
+    fig = createAreaChart(xVals, yVals, max_yVal, eventDict, displayed_rnaDataSet, color_dict, geneName, displayMode, eventConfirm, submit, eventColors, eventColorsFinal)
     return fig
 
 def overlap(a, b):
@@ -1203,7 +1470,7 @@ def overlap(a, b):
     return a[1] > b[0] and a[0] < b[1]
 
 
-def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict, geneName, displayMode):
+def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict, geneName, displayMode, eventConfirm, submit, eventColors, eventColorsFinal):
     """Create the plots for both coverage and splice events
 
     Positional arguments:
@@ -1215,6 +1482,11 @@ def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict, ge
     color_dict -- colors for the coverage plots
     geneName -- name of the selected gene, needed for gene models
     """
+    if submit > eventConfirm:
+        evColors = json.loads(eventColorsFinal)
+    else:
+        evColors = json.loads(eventColors)
+        
     data = []
     subplot_titles = []
     legendSet = {}
@@ -1310,7 +1582,7 @@ def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict, ge
                     if legendSet[k] == False: # Legend item for this event type is not displayed, display it
                         legendSet[k] = True
                         legend = True
-                    traceColor = eventColors[k]
+                    traceColor = evColors[k]
                 trace = go.Bar(
                     x=eventXValues[k],
                     y=[1]*len(eventXValues[k]),
