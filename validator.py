@@ -7,6 +7,7 @@ from argparse import ArgumentParser
 from pathlib import Path
 from xml.dom import minidom
 import pickle
+import os
 import hashlib
 import itertools
 import pandas
@@ -246,10 +247,14 @@ if args.cfg != None:
         print('Could not open config file, aborting.')
         exit()
 
+
+binFilePath = os.path.join(os.path.dirname(__file__),'bin_data/')
+if not os.path.exists(binFilePath):
+    os.mkdir(binFilePath)
 # Dict containing checksums for gene annotation files, files loaded once will
 # be serialized to speed up future loading
 try:
-    sums = pickle.load(open('checksums', 'rb'))
+    sums = pickle.load(open(binFilePath+'checksums', 'rb'))
 except IOError:
     sums = []
 checksums = dict(sums)
@@ -381,7 +386,7 @@ for idx, i in enumerate(geneAnnotationPaths):
                 validation = validateBed12(df)
                 if validation[0] == True:
                     geneAnnotations.append(df)
-                    out = open(str(i.stem)+'.bin', 'wb')
+                    out = open(binFilePath + str(i.stem)+'.bin', 'wb')
                     pickle.dump(df, out)
                     out.close()
                 else:
@@ -389,7 +394,7 @@ for idx, i in enumerate(geneAnnotationPaths):
                     print(validation[1])
             else:
                 try:
-                    df = pickle.load(open(str(i.stem)+'.bin', 'rb'))
+                    df = pickle.load(open(binFilePath + str(i.stem)+'.bin', 'rb'))
                     geneAnnotations.append(df)
                     print('Loaded from pickle')
                 except IOError:
@@ -398,7 +403,7 @@ for idx, i in enumerate(geneAnnotationPaths):
                     validation = validateBed12(df)
                     if validation[0] == True:
                         geneAnnotations.append(df)
-                        out = open(str(i.stem)+'.bin', 'wb')
+                        out = open(binFilePath + str(i.stem)+'.bin', 'wb')
                         pickle.dump(df, out)
                         out.close()
                     else:
@@ -412,7 +417,7 @@ for idx, i in enumerate(geneAnnotationPaths):
                     validation = validateBed12(df)
                     if validation[0] == True:
                         geneAnnotations.append(df)
-                        out = open(str(i.stem)+'.bin', 'wb')
+                        out = open(binFilePath + str(i.stem)+'.bin', 'wb')
                         pickle.dump(df, out)
                         out.close()
                     else:
@@ -427,7 +432,7 @@ for idx, i in enumerate(geneAnnotationPaths):
                     validation = validateBed12(df)
                     if validation[0] == True:
                         geneAnnotations.append(df)
-                        out = open(str(i.stem)+'.bin', 'wb')
+                        out = open(binFilePath + str(i.stem)+'.bin', 'wb')
                         pickle.dump(df, out)
                         out.close()
                     else:
@@ -441,7 +446,7 @@ for idx, i in enumerate(geneAnnotationPaths):
                 validation = validateGTF(df)
                 if validation[0] == True:
                     df = converter.convertGTFToBed(df)
-                    out = open(str(i.stem)+'.bin', 'wb')
+                    out = open(binFilePath + str(i.stem)+'.bin', 'wb')
                     pickle.dump(df, out)
                     out.close()
                     geneAnnotations.append(df)
@@ -450,7 +455,7 @@ for idx, i in enumerate(geneAnnotationPaths):
                     print(validation[1])
             else:
                 try:
-                    df = pickle.load(open(str(i.stem)+'.bin', 'rb'))
+                    df = pickle.load(open(binFilePath + str(i.stem)+'.bin', 'rb'))
                     geneAnnotations.append(df)
                     print('Loaded from pickle')
                 except IOError:
@@ -459,7 +464,7 @@ for idx, i in enumerate(geneAnnotationPaths):
                     validation = validateGTF(df)
                     if validation[0] == True:
                         df = converter.convertGTFToBed(df)
-                        out = open(str(i.stem)+'.bin', 'wb')
+                        out = open(binFilePath + str(i.stem)+'.bin', 'wb')
                         pickle.dump(df, out)
                         out.close()
                         geneAnnotations.append(df)
@@ -472,7 +477,7 @@ for idx, i in enumerate(geneAnnotationPaths):
                     validation = validateGTF(df)
                     if validation[0] == True:
                         df = converter.convertGTFToBed(df)
-                        out = open(str(i.stem)+'.bin', 'wb')
+                        out = open(binFilePath + str(i.stem)+'.bin', 'wb')
                         pickle.dump(df, out)
                         out.close()
                         geneAnnotations.append(df)
@@ -485,7 +490,7 @@ for idx, i in enumerate(geneAnnotationPaths):
                     validation = validateGTF(df)
                     if validation[0] == True:
                         df = converter.convertGTFToBed(df)
-                        out = open(str(i.stem)+'.bin', 'wb')
+                        out = open(binFilePath + str(i.stem)+'.bin', 'wb')
                         pickle.dump(df, out)
                         out.close()
                         geneAnnotations.append(df)
@@ -501,7 +506,7 @@ if len(geneAnnotations) == 0:
     exit()
 
 # Write new checksums file
-out = open('checksums', 'wb')
+out = open(binFilePath + 'checksums', 'wb')
 pickle.dump(checksums, out)
 out.close()
 
@@ -656,6 +661,12 @@ if len(bsProcDFs) > 0:
     procAvail = True
 
 
+try:
+    coverageSums = pickle.load(open(binFilePath + 'coverage_checksums', 'rb'))
+except IOError:
+    coverageSums = []
+coverageChecksums = dict(coverageSums)
+
 # Setup data for splice sites
 spliceProcDFs = {}
 spliceSetNames = [[],[]]
@@ -664,21 +675,99 @@ if len(spliceSitePaths) > 0:
     print('Loading RNA-seq data')
 for i in spliceSitePaths:
         try:
-            dtypes = {'chrom' : 'category' ,'chromStart' : 'uint64','chromEnd' : 'uint64', 'count' : 'uint32'}
-            df = pandas.read_csv(i, sep= '\t', names= rawHeader, dtype = dtypes)
-            validation = validateBedGraph(df)
-            file_name = i.stem.split('_')[0]+'_'+i.stem.split('_')[1]
-            if validation[0]:
-                if file_name in spliceProcDFs:
-                    print('Warning, you are using the same prefix for multiple bedgraph files, file ' + str(i) + ' will be ignored')
+            checksum = hashlib.md5(open(str(i)).read().encode('utf-8'))
+            if coverageChecksums.get(str(i.stem), None) != checksum.hexdigest():
+                coverageChecksums[str(i.stem)] = checksum.hexdigest()
+                dtypes = {'chrom' : 'category' ,'chromStart' : 'uint64','chromEnd' : 'uint64', 'count' : 'uint32'}
+                df = pandas.read_csv(i, sep= '\t', names= rawHeader, dtype = dtypes)
+                validation = validateBedGraph(df)
+                file_name = i.stem.split('_')[0]+'_'+i.stem.split('_')[1]
+                if validation[0]:
+                    if file_name in spliceProcDFs:
+                        print('Warning, you are using the same prefix for multiple bedgraph files, file ' + str(i) + ' will be ignored')
+                    else:
+                        spliceProcDFs.update({file_name : df})
+                        if i.stem.split('_')[0] not in spliceSetNames[1]:
+                            spliceSetNames[0].append(i.stem.split('_')[1])
+                            spliceSetNames[1].append(i.stem.split('_')[0])
+                        out = open(binFilePath + str(i.stem)+'.bin', 'wb')
+                        pickle.dump(df, out)
+                        out.close()
                 else:
-                    spliceProcDFs.update({file_name : df})
-                if i.stem.split('_')[0] not in spliceSetNames[1]:
-                    spliceSetNames[0].append(i.stem.split('_')[1])
-                    spliceSetNames[1].append(i.stem.split('_')[0])
+                    print('Error in file ' + str(i) + ':')
+                    print(validation[1])
             else:
-                print('Error in file ' + str(i) + ':')
-                print(validation[1])
+                try:
+                    df = pickle.load(open(binFilePath + str(i.stem)+'.bin', 'rb'))
+                    file_name = i.stem.split('_')[0]+'_'+i.stem.split('_')[1]
+                    if file_name in spliceProcDFs:
+                       print('Warning, you are using the same prefix for multiple bedgraph files, file ' + str(i) + ' will be ignored')
+                    else:
+                        spliceProcDFs.update({file_name : df})
+                        if i.stem.split('_')[0] not in spliceSetNames[1]:
+                            spliceSetNames[0].append(i.stem.split('_')[1])
+                            spliceSetNames[1].append(i.stem.split('_')[0])
+                    print('Loaded from pickle')
+                except IOError:
+                    print('pickle not  found, loading from raw file')
+                    dtypes = {'chrom' : 'category' ,'chromStart' : 'uint64','chromEnd' : 'uint64', 'count' : 'uint32'}
+                    df = pandas.read_csv(i, sep= '\t', names= rawHeader, dtype = dtypes)
+                    validation = validateBedGraph(df)
+                    file_name = i.stem.split('_')[0]+'_'+i.stem.split('_')[1]
+                    if validation[0]:
+                        if file_name in spliceProcDFs:
+                            print('Warning, you are using the same prefix for multiple bedgraph files, file ' + str(i) + ' will be ignored')
+                        else:
+                            spliceProcDFs.update({file_name : df})
+                            if i.stem.split('_')[0] not in spliceSetNames[1]:
+                                spliceSetNames[0].append(i.stem.split('_')[1])
+                                spliceSetNames[1].append(i.stem.split('_')[0])
+                            out = open(binFilePath + str(i.stem)+'.bin', 'wb')
+                            pickle.dump(df, out)
+                            out.close()
+                    else:
+                        print('Error in file ' + str(i) + ':')
+                        print(validation[1])
+                except UnicodeDecodeError:
+                    print('Error decoding pickle binary file, will load from raw file instead')
+                    dtypes = {'chrom' : 'category' ,'chromStart' : 'uint64','chromEnd' : 'uint64', 'count' : 'uint32'}
+                    df = pandas.read_csv(i, sep= '\t', names= rawHeader, dtype = dtypes)
+                    validation = validateBedGraph(df)
+                    file_name = i.stem.split('_')[0]+'_'+i.stem.split('_')[1]
+                    if validation[0]:
+                        if file_name in spliceProcDFs:
+                            print('Warning, you are using the same prefix for multiple bedgraph files, file ' + str(i) + ' will be ignored')
+                        else:
+                            spliceProcDFs.update({file_name : df})
+                            if i.stem.split('_')[0] not in spliceSetNames[1]:
+                                spliceSetNames[0].append(i.stem.split('_')[1])
+                                spliceSetNames[1].append(i.stem.split('_')[0])
+                            out = open(binFilePath + str(i.stem)+'.bin', 'wb')
+                            pickle.dump(df, out)
+                            out.close()
+                    else:
+                        print('Error in file ' + str(i) + ':')
+                        print(validation[1])
+                except ModuleNotFoundError:
+                    print('Pickle was created using different package versions, will load from raw file instead')
+                    dtypes = {'chrom' : 'category' ,'chromStart' : 'uint64','chromEnd' : 'uint64', 'count' : 'uint32'}
+                    df = pandas.read_csv(i, sep= '\t', names= rawHeader, dtype = dtypes)
+                    validation = validateBedGraph(df)
+                    file_name = i.stem.split('_')[0]+'_'+i.stem.split('_')[1]
+                    if validation[0]:
+                        if file_name in spliceProcDFs:
+                            print('Warning, you are using the same prefix for multiple bedgraph files, file ' + str(i) + ' will be ignored')
+                        else:
+                            spliceProcDFs.update({file_name : df})
+                            if i.stem.split('_')[0] not in spliceSetNames[1]:
+                                spliceSetNames[0].append(i.stem.split('_')[1])
+                                spliceSetNames[1].append(i.stem.split('_')[0])
+                            out = open(binFilePath + str(i.stem)+'.bin', 'wb')
+                            pickle.dump(df, out)
+                            out.close()
+                    else:
+                        print('Error in file ' + str(i) + ':')
+                        print(validation[1])
         except FileNotFoundError:
             print('File ' + str(i) + ' was not found')
 if len(spliceSitePaths) > 0:
@@ -686,6 +775,11 @@ if len(spliceSitePaths) > 0:
 if len(spliceProcDFs) > 0:
         spliceElements += 1
         spliceAvail = True
+
+# Write new checksums file
+out = open(binFilePath + 'coverage_checksums', 'wb')
+pickle.dump(coverageChecksums, out)
+out.close()
 
 spliceEventsDFs = {}
 spliceEventsElements = 0
