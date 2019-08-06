@@ -250,7 +250,7 @@ if args.cfg != None:
 
 binFilePath = os.path.join(os.path.dirname(__file__),'bin_data/')
 if not os.path.exists(binFilePath):
-    os.mkdir(binFilePath)
+        os.mkdir(binFilePath)
 # Dict containing checksums for gene annotation files, files loaded once will
 # be serialized to speed up future loading
 try:
@@ -294,18 +294,17 @@ else: # Use xml document for setup
     geneAnnotationPaths = args.geneAnno
     try:
         port = configFile.getElementsByTagName('port')[0].firstChild.data
-        print(port)
-    except:
+    except (AttributeError, IndexError):
         print('No port specified, using 8060')
         port = 8060
     try:
         fastaPaths = [Path(i.firstChild.data) for i in configFile.getElementsByTagName('seq')]
-    except:
+    except (AttributeError, IndexError):
         fastaPaths = None
     try:
         descriptionPath = [Path(i.firstChild.data) for i in configFile.getElementsByTagName('desc')][0]
         print(descriptionPath)
-    except:
+    except (AttributeError, IndexError):
         descriptionPath = None
     try:
         sortKeys = []
@@ -313,11 +312,11 @@ else: # Use xml document for setup
         for  i in keyList:
             sortKeys.append([i.getElementsByTagName('lambda')[0].firstChild.data,
                              i.getElementsByTagName('reverse')[0].firstChild.data])
-    except:
+    except (AttributeError, IndexError):
         sortKeys = None
     try:
         dataSetList = [i for i in configFile.getElementsByTagName('set')]
-    except:
+    except (AttributeError, IndexError):
         dataSetList = []
     bindingSitePaths = []
     bindingSiteRawPaths = []
@@ -325,33 +324,33 @@ else: # Use xml document for setup
         for  i in dataSetList:
             try:
                 bindingSiteRawPaths.append(Path(i.getElementsByTagName('clip')[0].firstChild.data))
-            except:
+            except (AttributeError, IndexError):
                 pass
             try:
                 bindingSitePaths.append(Path(i.getElementsByTagName('binding')[0].firstChild.data))
-            except:
+            except (AttributeError, IndexError):
                 pass
             try:
                 color = i.getElementsByTagName('color')[0].firstChild.data
                 if isRGB(color) == True:
                     plotColors.append(color)
-            except:
+            except (AttributeError, IndexError):
                 pass
     try:
         advancedDescPath = Path(configFile.getElementsByTagName('advDesc')[0].firstChild.data)
-    except:
+    except (AttributeError, IndexError):
         advancedDescPath = None
     try:
         subTablePath = Path(configFile.getElementsByTagName('subtables')[0].firstChild.data)
-    except:
+    except (AttributeError, IndexError):
         subTablePath = None
     try:
         spliceSitePaths = [Path(i.firstChild.data) for i in configFile.getElementsByTagName('rnaData')]
-    except:
+    except (AttributeError, IndexError):
         spliceSitePaths = []
     try:
         spliceEventsPaths = [Path(i.firstChild.data) for i in configFile.getElementsByTagName('spliceEvents')]
-    except:
+    except (AttributeError, IndexError):
         spliceEventsPaths = []
 
 
@@ -506,9 +505,12 @@ if len(geneAnnotations) == 0:
     exit()
 
 # Write new checksums file
-out = open(binFilePath + 'checksums', 'wb')
-pickle.dump(checksums, out)
-out.close()
+try:
+    out = open(binFilePath + 'checksums', 'wb')
+    pickle.dump(checksums, out)
+    out.close()
+except FileNotFoundError:
+    pass
 
 # Read dna sequences from fasta
 geneNames = list(set().union([x[0] for y in [i['name'].str.split('.') for i in geneAnnotations] for x in y]))

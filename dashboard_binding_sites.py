@@ -69,7 +69,7 @@ else:
     try:
         advStart = advList[0]
         advDisabled = False
-    except:
+    except IndexError:
         advStart = None
         advDisabled = True
 
@@ -93,21 +93,21 @@ else:
 try:
     initialColor = dataSetNames[0]
     disableSettings = False
-except:
+except IndexError:
     initialColor = None
     disableSettings = False
 # Try to setup color picker for coverage tracks
 try:
     initialColorCoverage = spliceSetNames[1][0]
     disableSettings = False
-except:
+except IndexError:
     initialColorCoverage = None
     disableSettings = False
 # Try to setup color picker for coverage tracks
 try:
     initialColorEvents = eventTypes[0]
     disableSettings = False
-except:
+except IndexError:
     initialColorEvents = None
     disableSettings = False
     
@@ -1532,7 +1532,7 @@ def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict, ge
                         eventWidths[key].append(maxVal - minVal)
                         eventBases[key].append(0)
                         intervals.append(((minVal, maxVal),0))
-                    except: # Else create corresponding lists in dictionary
+                    except KeyError: # Else create corresponding lists in dictionary
                         eventXValues[key] = [minVal + (maxVal - minVal) / 2]
                         eventWidths[key] = [maxVal - minVal]
                         eventBases[key] = [0]                       
@@ -1563,7 +1563,7 @@ def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict, ge
                                 maxStack = numOverlaps
                         eventBases[key].append(numOverlaps + 0.5*numOverlaps)
                         intervals.append(((minVal, maxVal),numOverlaps))
-                    except:
+                    except KeyError:
                         eventXValues[key]  = [minVal + (maxVal - minVal) / 2]
                         eventWidths[key] = [maxVal - minVal]
                         if numOverlaps > maxStack:
@@ -1782,7 +1782,7 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal):
     for i in sortKeys:
         try:
             dataSets.sort(key=eval(i[0], {'__builtins__': None}, {}), reverse=eval(i[1], {'__builtins__': None}, {}))
-        except:
+        except (TypeError, SyntaxError):
             print(
                 'Please check your keys. Each key should be added similar to this: -k \'lambda x : x[-2:]\' \'False\'	. For multiple keys use multiple instances of -k')
     numParams = len(dataSets)  # Number of selected data tracks
@@ -2282,11 +2282,11 @@ def createDetailRow(content, name, rowNumber):
     # Check subtable information
     try:
         headerLine = subTables[subTables['column_id'].str.contains(name)]
-    except:
+    except (TypeError, AttributeError):
         headerLine = None
     try:
         headers = str(headerLine.iloc[0]['columns']).split(';')
-    except:
+    except (TypeError, AttributeError):
         headers = None
         
     subRows = [] # Holds elements for multivalue attributes
