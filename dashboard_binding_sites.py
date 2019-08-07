@@ -1490,6 +1490,7 @@ def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict, ge
     data = []
     subplot_titles = []
     legendSet = {}
+    colorbarSet = False
     for val in eventTypes:
                 legendSet[val] = False
     for ds in sorted(displayed):
@@ -1512,99 +1513,181 @@ def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict, ge
             )
             subplot_titles.append(ds)
             data.append(trace)
-        if spliceEventAvail:
-            intervals = [] # Used to calculate overlaps, stores used intervals as well as row that interval was put on
-            eventXValues = {} # Stores x-axis values per event type
-            eventWidths = {} # Stores widths per event type
-            eventBases = {} # Stores y offset per event type
-            # Iterate through dataframe rows and calculate stacking aswell as bar parameters
-            maxStack = 0 # keeps track of the maximum number of stacked bars, to avoid empty rows
-            for row in eventData[ds].itertuples():
-                if row.chromStart > row.chromEnd: # Handle errornous input where chromStart > chromEnd and print warning
-                    print('Warning; Event in dataset ' + str(ds) +' on chromosome ' + str(row.chrom) + ' at startpoint ' + str(row.chromStart) +
-                          ' startpoint is greater than endpoint.')
-                maxVal = max(row.chromStart, row.chromEnd) 
-                minVal = min(row.chromStart, row.chromEnd)
-                key = row.type # Type of the current event
-                if len(intervals) == 0: # Row is the first row, no comparisons
-                    try: # If list already exist append
-                        eventXValues[key].append(minVal + (maxVal - minVal) / 2)
-                        eventWidths[key].append(maxVal - minVal)
-                        eventBases[key].append(0)
+        if spliceEventAvail:      
+            if displayMode in ['one', 'two']:
+                intervals = [] # Used to calculate overlaps, stores used intervals as well as row that interval was put on
+                eventXValues = {} # Stores x-axis values per event type
+                eventWidths = {} # Stores widths per event type
+                eventBases = {} # Stores y offset per event type
+                eventScores = {}
+                # Iterate through dataframe rows and calculate stacking aswell as bar parameters
+                maxStack = 0 # keeps track of the maximum number of stacked bars, to avoid empty rows
+                for row in eventData[ds].itertuples():
+                    if row.chromStart > row.chromEnd: # Handle errornous input where chromStart > chromEnd and print warning
+                        print('Warning; Event in dataset ' + str(ds) +' on chromosome ' + str(row.chrom) + ' at startpoint ' + str(row.chromStart) +
+                              ' startpoint is greater than endpoint.')
+                    maxVal = max(row.chromStart, row.chromEnd) 
+                    minVal = min(row.chromStart, row.chromEnd)
+                    key = row.type # Type of the current event
+                    if len(intervals) == 0: # Row is the first row, no comparisons
+                        try: # If list already exist append
+                            eventXValues[key].append(minVal + (maxVal - minVal) / 2)
+                            eventWidths[key].append(maxVal - minVal)
+                            eventBases[key].append(0)
+                            eventScores[key].append(row.score)
+                            intervals.append(((minVal, maxVal),0))
+                        except KeyError: # Else create corresponding lists in dictionary
+                            eventXValues[key] = [minVal + (maxVal - minVal) / 2]
+                            eventWidths[key] = [maxVal - minVal]
+                            eventBases[key] = [0]
+                            eventScores[key] = [row.score]
+                            intervals.append(((minVal, maxVal),0))
+                        maxStack == 1
+                    else: # Row is not the first row, check through already processed intervals to calculate offset
+                        numOverlaps = 0
+                        heights = [] # Store all rows on which overlaps occur
+                        for i in intervals:
+                            if overlap(i[0], (minVal, maxVal)) == True:
+                                heights.append(i[1])
+                                numOverlaps += 1
+                        if len(heights) > 0:
+                            slot = 0 # First free row the new bar can be placed on
+                            for value in range(0, max(heights)+2): # Find first open slot
+                                if value not in heights:
+                                    slot = value
+                                    break
+                            numOverlaps = slot # Set numOverlaps accordingly
+                        try:
+                            eventXValues[key].append(minVal + (maxVal - minVal) / 2)
+                            eventWidths[key].append(maxVal - minVal)
+                            if numOverlaps > maxStack:
+                                if numOverlaps > maxStack + 1:
+                                    maxStack += 1
+                                    numOverlaps = maxStack
+                                else:
+                                    maxStack = numOverlaps
+                            eventBases[key].append(numOverlaps + 0.5*numOverlaps)
+                            eventScores[key].append(row.score)
+                            intervals.append(((minVal, maxVal),numOverlaps))
+                        except KeyError:
+                            eventXValues[key]  = [minVal + (maxVal - minVal) / 2]
+                            eventWidths[key] = [maxVal - minVal]
+                            if numOverlaps > maxStack:
+                                if numOverlaps > maxStack + 1:
+                                    maxStack += 1
+                                    numOverlaps = maxStack
+                                else:
+                                    maxStack = numOverlaps
+                            eventBases[key] = [numOverlaps + 0.5*numOverlaps]
+                            eventScores[key] = [row.score]
+                            intervals.append(((minVal, maxVal), numOverlaps))
+                traces = []
+                for k in sorted(eventXValues.keys()):
+                    legend = False # Show legend item 
+                    traceColor = 'darkblue'
+                    if displayMode == 'two':
+                        if legendSet[k] == False: # Legend item for this event type is not displayed, display it
+                            legendSet[k] = True
+                            legend = True
+                        traceColor = evColors[k]
+                    trace = go.Bar(
+                        x=eventXValues[k],
+                        y=[1]*len(eventXValues[k]),
+                        width = eventWidths[k],
+                        base = eventBases[k],
+                        name = k,
+                        showlegend = legend,
+                        legendgroup = k, # Group traces from different datasets so they all repsond to the one legend item
+                        insidetextfont=dict(
+                            family="Arial",
+                            color="black"
+                        ),
+                        textposition='auto',
+                        marker=dict(
+                            color= traceColor,
+                        )
+                    )
+                    traces.append(trace)
+                subplot_titles.append("")
+                data.append(traces)
+            else:
+                intervals = [] # Used to calculate overlaps, stores used intervals as well as row that interval was put on
+                eventXValues = [] # Stores x-axis values per event type
+                eventWidths = [] # Stores widths per event type
+                eventBases = [] # Stores y offset per event type
+                eventScores = []
+                # Iterate through dataframe rows and calculate stacking aswell as bar parameters
+                maxStack = 0 # keeps track of the maximum number of stacked bars, to avoid empty rows
+                for row in eventData[ds].itertuples():
+                    if row.chromStart > row.chromEnd: # Handle errornous input where chromStart > chromEnd and print warning
+                        print('Warning; Event in dataset ' + str(ds) +' on chromosome ' + str(row.chrom) + ' at startpoint ' + str(row.chromStart) +
+                              ' startpoint is greater than endpoint.')
+                    maxVal = max(row.chromStart, row.chromEnd) 
+                    minVal = min(row.chromStart, row.chromEnd)
+                    if len(intervals) == 0: # Row is the first row, no comparisons
+                        eventXValues.append(minVal + (maxVal - minVal) / 2)
+                        eventWidths.append(maxVal - minVal)
+                        eventBases.append(0)
+                        eventScores.append(row.score)
                         intervals.append(((minVal, maxVal),0))
-                    except KeyError: # Else create corresponding lists in dictionary
-                        eventXValues[key] = [minVal + (maxVal - minVal) / 2]
-                        eventWidths[key] = [maxVal - minVal]
-                        eventBases[key] = [0]                       
-                        intervals.append(((minVal, maxVal),0))
-                    maxStack == 1
-                else: # Row is not the first row, check through already processed intervals to calculate offset
-                    numOverlaps = 0
-                    heights = [] # Store all rows on which overlaps occur
-                    for i in intervals:
-                        if overlap(i[0], (minVal, maxVal)) == True:
-                            heights.append(i[1])
-                            numOverlaps += 1
-                    if len(heights) > 0:
-                        slot = 0 # First free row the new bar can be placed on
-                        for value in range(0, max(heights)+2): # Find first open slot
-                            if value not in heights:
-                                slot = value
-                                break
-                        numOverlaps = slot # Set numOverlaps accordingly
-                    try:
-                        eventXValues[key].append(minVal + (maxVal - minVal) / 2)
-                        eventWidths[key].append(maxVal - minVal)
+                        maxStack == 1
+                    else: # Row is not the first row, check through already processed intervals to calculate offset
+                        numOverlaps = 0
+                        heights = [] # Store all rows on which overlaps occur
+                        for i in intervals:
+                            if overlap(i[0], (minVal, maxVal)) == True:
+                                heights.append(i[1])
+                                numOverlaps += 1
+                        if len(heights) > 0:
+                            slot = 0 # First free row the new bar can be placed on
+                            for value in range(0, max(heights)+2): # Find first open slot
+                                if value not in heights:
+                                    slot = value
+                                    break
+                            numOverlaps = slot # Set numOverlaps accordingly
+                        eventXValues.append(minVal + (maxVal - minVal) / 2)
+                        eventWidths.append(maxVal - minVal)
                         if numOverlaps > maxStack:
                             if numOverlaps > maxStack + 1:
                                 maxStack += 1
                                 numOverlaps = maxStack
                             else:
                                 maxStack = numOverlaps
-                        eventBases[key].append(numOverlaps + 0.5*numOverlaps)
+                        eventBases.append(numOverlaps + 0.5*numOverlaps)
+                        eventScores.append(row.score)
                         intervals.append(((minVal, maxVal),numOverlaps))
-                    except KeyError:
-                        eventXValues[key]  = [minVal + (maxVal - minVal) / 2]
-                        eventWidths[key] = [maxVal - minVal]
-                        if numOverlaps > maxStack:
-                            if numOverlaps > maxStack + 1:
-                                maxStack += 1
-                                numOverlaps = maxStack
-                            else:
-                                maxStack = numOverlaps
-                        eventBases[key] = [numOverlaps + 0.5*numOverlaps]
-                        intervals.append(((minVal, maxVal), numOverlaps))
-            traces = []
-            for k in sorted(eventXValues.keys()):
-                legend = False # Show legend item 
-                traceColor = 'darkblue'
-                if displayMode == 'two':
-                    if legendSet[k] == False: # Legend item for this event type is not displayed, display it
-                        legendSet[k] = True
-                        legend = True
-                    traceColor = evColors[k]
+                if colorbarSet == False:
+                    showBar = True
+                    colorbarSet = True
+                else:
+                    showBar = False
                 trace = go.Bar(
-                    x=eventXValues[k],
-                    y=[1]*len(eventXValues[k]),
-                    width = eventWidths[k],
-                    base = eventBases[k],
-                    name = k,
-                    showlegend = legend,
-                    legendgroup = k, # Group traces from different datasets so they all repsond to the one legend item
+                    x=eventXValues,
+                    y=[1]*len(eventXValues),
+                    width = eventWidths,
+                    base = eventBases,
+                    showlegend = False,
                     insidetextfont=dict(
                         family="Arial",
                         color="black"
                     ),
-                    textposition='auto',
+                    text = eventScores,
+                    hoverinfo = 'x+text',
+                    
                     marker=dict(
-                        color= traceColor,
+                        color= eventScores,
+                        colorscale = 'Viridis',
+                        showscale = showBar,
+                        colorbar =dict(
+                            len = 1,
+                            yanchor = 'top',
+                        )
                     )
                 )
-                traces.append(trace)
-            subplot_titles.append("")
-            data.append(traces)
+                subplot_titles.append("")
+                data.append(trace)   
 
-
+                    
     currentGene = pandas.DataFrame()
     for index, elem in enumerate(geneAnnotations):
         currentGene = elem[elem['name'].str.contains(geneName)]
