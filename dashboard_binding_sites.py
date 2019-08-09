@@ -1416,7 +1416,8 @@ def rnaPlot(submit, confirm, eventConfirm, geneName, displayMode,rnaParamList, c
     yVals = {}
     max_yVal = 0 # Used to scale y-axes later
     eventDict = {} # stores dataframes with relevant splice event data
-
+    maxEventScores = []
+    minEventScores = []
     for ds in sorted(displayed_rnaDataSet):
 
         # Criteria to filter relevant lines from current dataframe
@@ -1440,6 +1441,8 @@ def rnaPlot(submit, confirm, eventConfirm, geneName, displayMode,rnaParamList, c
                     bcrit31 = spliceEventDFs[d]['chromEnd'] >= xAxisMin
                     bcrit32 = spliceEventDFs[d]['chromEnd'] <= xAxisMax
                     spliceEvents = spliceEventDFs[d].loc[bcrit11 & ((bcrit21 & bcrit22) | (bcrit31 & bcrit32))]
+                    maxEventScores.append(spliceEvents['score'].max())
+                    minEventScores.append(spliceEvents['score'].min())
         # Use itertuples to iterate over rows, since itertuples is supposed to be faster
         for row in spliceSlice.itertuples():
             # Increment all values covered by the current row, will overshoot when row crosses border of gene, thus try except
@@ -1455,9 +1458,11 @@ def rnaPlot(submit, confirm, eventConfirm, geneName, displayMode,rnaParamList, c
         # Create x-axis values
         xVal = list(range(xAxisMin, xAxisMax))
         xVals[ds] = xVal
+        colorScale = (min(minEventScores), max(maxEventScores))
         # Find maximum y-axis value for axis scaling
         if max(yVal) > max_yVal: max_yVal = max(yVal)
-    fig = createAreaChart(xVals, yVals, max_yVal, eventDict, displayed_rnaDataSet, color_dict, geneName, displayMode, eventConfirm, submit, eventColors, eventColorsFinal)
+    fig = createAreaChart(xVals, yVals, max_yVal, eventDict, displayed_rnaDataSet, 
+                          color_dict, geneName, displayMode, eventConfirm, submit, eventColors, eventColorsFinal, colorScale)
     return fig
 
 def overlap(a, b):
@@ -1470,7 +1475,8 @@ def overlap(a, b):
     return a[1] > b[0] and a[0] < b[1]
 
 
-def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict, geneName, displayMode, eventConfirm, submit, eventColors, eventColorsFinal):
+def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict, 
+                    geneName, displayMode, eventConfirm, submit, eventColors, eventColorsFinal, colorScale):
     """Create the plots for both coverage and splice events
 
     Positional arguments:
@@ -1678,9 +1684,13 @@ def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict, ge
                         color= eventScores,
                         colorscale = 'Viridis',
                         showscale = showBar,
+                        cmin = colorScale[0],
+                        cmax = colorScale[1],
                         colorbar =dict(
-                            len = 1,
-                            yanchor = 'top',
+                            len = 1.0,
+                            y = 0.0,
+                            x = 1.0,
+                            yanchor = 'bottom',
                         )
                     )
                 )
@@ -1801,6 +1811,7 @@ def rnaSequencePlot(fig, geneName, numRows, len_data):
             fig['layout']['yaxis'].update(fixedrange=True)
         else:
             fig['layout']['yaxis' + str(i)].update(fixedrange=True)
+    fig['layout']['legend'].update(x=1.05)
     return fig
 
 
@@ -2024,6 +2035,7 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal):
                                + baseHeight * procDataRows
                                + baseHeight * (len(currentGene) + 1)
                                + 80)
+    fig['layout']['legend'].update(x=1.05)
     return fig
 
 
@@ -2343,12 +2355,17 @@ def generateSequenceTrace(seqDisp, strand, combinedSeq, xAxisMin, xAxisMax):
             x=list(range(xAxisMin, xAxisMax)),
             text=[textList],
             colorscale=colors,
-            showscale=False,
+            showscale=True,
             name='seq',
             hoverinfo='x+text',
             colorbar={
-                'tick0': 0,
-                'dtick': 1
+                'x' : 1.0,
+                'y' : 0.0,
+                'tickmode' : 'array',
+                'tickvals' : [0.4,1.1,1.86,2.6  ],
+                'ticktext' : ['A', 'T', 'C', 'G'],
+                'yanchor' : 'bottom',
+                'len' : 1.0
             }
         )
         return [heatTrace]
