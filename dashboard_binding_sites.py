@@ -146,6 +146,11 @@ def help_popup():
 tabStyle = {'padding' : '0', 'line-height' : '5vh'}
 # Colors for the alternating coloring in Details
 tableColors = ['rgb(255, 255 ,255)', 'rgb(125, 244, 66)']
+# For plots with multiple columns in the legend, basically anything using a color scale or heatmap,
+# this value determines the margin between colorbar and legend items. For very wide or very narrow
+# screens this value might need to be adjusted a bit, this can unfortunately not be done
+# automatically right now.
+legendColumnOffset = 1.05
 
 
 app = dash.Dash(__name__)
@@ -363,7 +368,7 @@ app.layout = html.Div(
                                                                                             'value': 'one'},
                                                                                            {'label': 'Color event types',
                                                                                             'value': 'two'},
-                                                                                           {'label': 'Display type 3',
+                                                                                           {'label': 'Color event scores',
                                                                                             'value': 'three'}
                                                                                        ],
                                                                                        value='one'
@@ -644,7 +649,40 @@ app.layout = html.Div(
                                                     style={'width': '10vw', 'display': 'table-cell'}
                                                 )
                                             ]
-                                        )])
+                                        )]),
+                                        html.Div(className = 'table-cell', 
+                                            children = [
+                                                html.Fieldset(title = 'Legend Settings', 
+                                                    className = 'field-set',
+                                                    children = [
+                                                        html.Legend('Legend Colorbar Margin'),
+                                                        html.Div(
+                                                            id = 'legendSpacingDiv',
+                                                            style = {'display': 'none'},
+                                                            children = json.dumps(legendColumnOffset)
+                                                            ),
+                                                        dcc.Slider(
+                                                            id = 'legendSpacingSlider',
+                                                            min = 1.02,
+                                                            max = 1.08,
+                                                            step = 0.005,
+                                                            value = legendColumnOffset,
+                                                            marks = {
+                                                                1.02: '.02',
+                                                                1.03: '',
+                                                                1.04: '',
+                                                                1.05: '.05',
+                                                                1.06: '',
+                                                                1.07: '',
+                                                                1.08: '.08',
+                                                                }
+                                                        ),
+                                                        html.Div(
+                                                            style = {'height' : '15px'})
+                                                    ]
+                                                )
+                                            ]
+                                        )
                                     ],
                                 ),
                             ])
@@ -659,6 +697,13 @@ app.layout = html.Div(
     ],
     style = {'backgroundColor' : 'rgb(240,240,240)'}
 )
+                                                    
+@app.callback(
+    dash.dependencies.Output('legendSpacingDiv', 'children'),
+    [dash.dependencies.Input('legendSpacingSlider', 'value')]
+)
+def changeLegendSpacing(value):
+    return json.dumps(value)
 
 @app.callback(
     dash.dependencies.Output('help', 'style'),
@@ -1375,21 +1420,31 @@ def rnaDesc(clicks, name):
      dash.dependencies.State('covColorDiv', 'children'),
      dash.dependencies.State('covColorFinal', 'children'),
      dash.dependencies.State('eventColorDiv', 'children'),
-     dash.dependencies.State('eventColorFinal', 'children')]
+     dash.dependencies.State('eventColorFinal', 'children'),
+     dash.dependencies.State('legendSpacingDiv', 'children')]
 )
-def rnaPlot(submit, confirm, eventConfirm, geneName, displayMode,rnaParamList, colors, colorsFinal, eventColors, eventColorsFinal):
+def rnaPlot(submit, confirm, eventConfirm, geneName, displayMode,rnaParamList, colors, colorsFinal, eventColors, eventColorsFinal, legendSpacing):
     """Main callback that handles the dynamic visualisation of the RNA-seq data
 
         Positional arguments:
-        clicks -- Needed to trigger callback with button, not needed otherwise
+        submit -- Needed to trigger callback with submit button
+        confirm -- Needed to trigger callback with confirm button
+        eventConfirm -- Triggers callback with confirm button of event color selector
         geneName -- Name of the selected gene in order to filter the data
+        displaymode --determines how splice events will be visualized
         rnaParamList -- Selected RNA data sets to plot 
+        colors -- Color currently being confirmed. Needed due to lack of order on callbacks
+        colorsFinal -- Last confirmed color
+        eventColors -- Colors for splice events being confirmed
+        eventColorsFinal -- last confirmed colors for splice events
+        legendSpacing -- Specifies margin between colorbar and other legend items
         """
     if submit > confirm:
         colors = colorsFinal
     else:
         colors = colors
-        
+    
+    legendColumnSpacing = json.loads(legendSpacing)
 
     # select appropriate data from gene annotations
     currentGene = pandas.DataFrame()
@@ -1462,7 +1517,8 @@ def rnaPlot(submit, confirm, eventConfirm, geneName, displayMode,rnaParamList, c
         # Find maximum y-axis value for axis scaling
         if max(yVal) > max_yVal: max_yVal = max(yVal)
     fig = createAreaChart(xVals, yVals, max_yVal, eventDict, displayed_rnaDataSet, 
-                          color_dict, geneName, displayMode, eventConfirm, submit, eventColors, eventColorsFinal, colorScale)
+                          color_dict, geneName, displayMode, eventConfirm, submit, eventColors, eventColorsFinal, colorScale,
+                          legendColumnSpacing)
     return fig
 
 def overlap(a, b):
@@ -1476,7 +1532,8 @@ def overlap(a, b):
 
 
 def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict, 
-                    geneName, displayMode, eventConfirm, submit, eventColors, eventColorsFinal, colorScale):
+                    geneName, displayMode, eventConfirm, submit, eventColors, eventColorsFinal, colorScale,
+                    legendColumnSpacing):
     """Create the plots for both coverage and splice events
 
     Positional arguments:
@@ -1487,6 +1544,13 @@ def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict,
     displayed -- displayed datasets
     color_dict -- colors for the coverage plots
     geneName -- name of the selected gene, needed for gene models
+    displayMode -- determines how splice events are visualized
+    eventconfirm -- confirm button for event color selection
+    submit -- global submit button 
+    eventColors -- Colors for splice events being confirmed
+    eventColorsFinal -- last confirmed colors for splice events
+    colorScale -- unified colorscale used for score visualization
+    LegendColumnSpacing -- Specifies margin between colorbar and other legend items
     """
     if submit > eventConfirm:
         evColors = json.loads(eventColorsFinal)
@@ -1616,12 +1680,12 @@ def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict,
                     traces.append(trace)
                 subplot_titles.append("")
                 data.append(traces)
-            else:
+            else: # Displaymode: Score heatmap
                 intervals = [] # Used to calculate overlaps, stores used intervals as well as row that interval was put on
                 eventXValues = [] # Stores x-axis values per event type
                 eventWidths = [] # Stores widths per event type
                 eventBases = [] # Stores y offset per event type
-                eventScores = []
+                eventScores = [] # score for each event
                 # Iterate through dataframe rows and calculate stacking aswell as bar parameters
                 maxStack = 0 # keeps track of the maximum number of stacked bars, to avoid empty rows
                 for row in eventData[ds].itertuples():
@@ -1752,6 +1816,7 @@ def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict,
                     fig['layout']['yaxis' + str(i)].update(showticklabels=False, showgrid=False, zeroline=False)
     # Setup plot height, add 85 to account for margins
     fig['layout']['height'] = (80 * len(data) + 50 * numIsoforms +85)
+    fig['layout']['legend'].update(x = legendColumnSpacing)
     return fig
 
 
@@ -1811,7 +1876,7 @@ def rnaSequencePlot(fig, geneName, numRows, len_data):
             fig['layout']['yaxis'].update(fixedrange=True)
         else:
             fig['layout']['yaxis' + str(i)].update(fixedrange=True)
-    fig['layout']['legend'].update(x=1.05)
+    # set spacing for the second legend column
     return fig
 
 
@@ -1851,9 +1916,10 @@ def setDesc(clicks, name):
      dash.dependencies.State('paramList', 'values'),
      dash.dependencies.State('sequenceRadio', 'value'),
      dash.dependencies.State('colorDiv', 'children'),
-     dash.dependencies.State('colorFinal', 'children')]
+     dash.dependencies.State('colorFinal', 'children'),
+     dash.dependencies.State('legendSpacingDiv', 'children')]
 )
-def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal):
+def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal, legendSpacing):
     """Main callback that handles the dynamic visualisation of selected data
 
     Positional arguments:
@@ -1864,6 +1930,7 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal):
     seqDisp -- Display mode for dna sequence trace
     colors -- Color currently being confirmed. Needed due to lack of order on callbacks
     colorsFinal -- Last confirmed color
+    legendSpacing -- Specifies margin between colorbar and other legend items
     """
     
     # Check which of the two triggering buttons was pressed last
@@ -1872,6 +1939,8 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal):
     else:
         colors = colors
         
+    legendColumnSpacing = json.loads(legendSpacing)
+    
     # Sort the list of selected data tracks to keep consistent order
     for i in sortKeys:
         try:
@@ -2035,7 +2104,7 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal):
                                + baseHeight * procDataRows
                                + baseHeight * (len(currentGene) + 1)
                                + 80)
-    fig['layout']['legend'].update(x=1.05)
+    fig['layout']['legend'].update(x = legendColumnSpacing)
     return fig
 
 
