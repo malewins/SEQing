@@ -1966,13 +1966,11 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal, 
         procDataRows = numParams * 0.5
     else:
         procDataRows = 0
-    numRowsW = rawDataRows + procDataRows + (
-        len(currentGene)) + 1  # Big data rows + significant sites + isoforms + sequence
     numRows = numParams * dsElements + len(
         currentGene) + 1  # Number of rows without weights for specific sizes, +1 for dna sequence track
     plotSpace = 0.8  # Space taken up by data tracks
     spacingSpace = 1.0 - plotSpace  # Space left for spacer tracks
-    rowHeight = plotSpace / numRowsW
+    rowHeight = plotSpace / numRows
     if numRows > 1:
         vSpace = spacingSpace / (numRows - 1)
     else:
