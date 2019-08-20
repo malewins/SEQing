@@ -233,6 +233,12 @@ parser.add_argument('-sub_tables',
                     year, etc. Also see the help for _adv_desc.''',
                     type = Path,
                     metavar = 'FILE')
+parser.add_argument('-pswd',
+                    dest = 'auth',
+                    help = '''Password to access the dashboard''',
+                    type = str,
+                    default = '',
+                    metavar = 'String')
 
 
 args=parser.parse_args()
@@ -290,6 +296,7 @@ if useCfg == False: # Use command line arguments for setup
             plotColors.append(i)
         else:
             print('Color string ' + str(i) + ' is not valid')
+    password = args.auth
 else: # Use xml document for setup
     geneAnnotationPaths = args.geneAnno
     try:
@@ -885,6 +892,7 @@ globalDict = {
     'spliceEventAvail' : spliceEventsAvail, # splice event data available True/False,
     'eventColors' : spliceEventColors, # Colorsfor the splice event types
     'coverageColors' : coverageColorDict, # Colors for the coverage plots
-    'eventTypes' : sorted(spliceEventTypes)} # Types of splice events
+    'eventTypes' : sorted(spliceEventTypes),
+    'authentication': password} # Types of splice events
 
 runpy.run_module('dashboard_binding_sites', init_globals = globalDict, run_name = '__main__')

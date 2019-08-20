@@ -8,6 +8,7 @@ import dash
 import dash_core_components as dcc
 import dash_html_components as html
 import plotly.graph_objs as go
+import dash_auth
 from plotly import tools
 from textwrap import dedent
 
@@ -154,7 +155,10 @@ legendColumnOffset = 1.05
 
 
 app = dash.Dash(__name__)
-
+if authentication != '':
+    auth = dash_auth.BasicAuth(
+            app,
+            {'u' : authentication})
 app.config['suppress_callback_exceptions']=True
 
 app.layout = html.Div(
