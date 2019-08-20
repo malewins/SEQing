@@ -1996,54 +1996,16 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal, 
     strand = currentGene['strand'].iloc[0]
     if strand == '-':
         fig['layout']['xaxis'].update(autorange='reversed')
-    # Setup some variables to build master sequence from isoform-sequences
-    if ensembl == False:
-        if len(currentGene.loc[currentGene['chromEnd'].idxmax()]['name'].split('_')) > 1:
-            nameRightSeq = currentGene.loc[currentGene['chromEnd'].idxmax()]['name'].split('.')[1].replace('_', '.')
-            nameLeftSeq = currentGene.loc[currentGene['chromStart'].idxmin()]['name'].split('.')[1].replace('_', '.')
-        else:
-            nameRightSeq = currentGene.loc[currentGene['chromEnd'].idxmax()]['name']
-            nameLeftSeq = currentGene.loc[currentGene['chromStart'].idxmin()]['name']
-    else:
-        if len(currentGene.loc[currentGene['chromEnd'].idxmax()]['name'].split('_')) > 1:
-            nameRightSeq = currentGene.loc[currentGene['chromEnd'].idxmax()]['name'].split('.')[1].replace('_', '.')
-            nameLeftSeq = currentGene.loc[currentGene['chromStart'].idxmin()]['name'].split('.')[1].replace('_', '.')
-        else:
-            nameRightSeq = currentGene.loc[currentGene['chromEnd'].idxmax()]['name']
-            nameLeftSeq = currentGene.loc[currentGene['chromStart'].idxmin()]['name']
-    rightStart = currentGene.loc[currentGene['chromEnd'].idxmax()]['chromStart']
-    leftEnd = currentGene.loc[currentGene['chromStart'].idxmin()]['chromEnd']
-    combinedSeq = ''
-
-    if rightStart <= leftEnd:  # Left and right sequence have overlap, we don't need more parts to create master
-        for i in sequences:
-            try:
-                combinedSeq = str(i[nameLeftSeq].seq) + str(i[nameRightSeq].seq)[(leftEnd - rightStart):]
-            except KeyError:
-                pass
-    else:  # try to create master sequence by piecing together more than two sequences
-        for i in sequences:
-            try:
-                currentSequenceSet = i
-                break
-            except KeyError:
-                pass
-        try:
-            combinedSeq = str(currentSequenceSet[nameLeftSeq].seq)
-            currentEnd = leftEnd
-            for i in currentGene.itertuples():
-                if i.chromEnd > currentEnd:
-                    if i.chromStart <= currentEnd:
-                        combinedSeq += str(currentSequenceSet[i.name].seq)[(currentEnd - i.chromStart):]
-                        currentEnd = i.chromEnd
-                if currentEnd >= xAxisMax:
-                    break
-            if currentEnd < rightStart:  # Case that there is a gap between leftmost and rightmost sequence.
-                fillerDist = rightStart - currentEnd
-                combinedSeq += [''] * fillerDist
-                combinedSeq += str(currentSequenceSet[nameRightSeq].seq)
-        except KeyError:
-            pass
+    # create list of 3-tupels containing start, end, name for each isoform.
+    # Format name properly
+    isoformRanges = []
+    for elem in currentGene.itertuples():
+        name = elem.name
+        if len(elem.name.split('_')) > 1:
+            name = elem.name.split('.')[1].replace('_', '.')
+        isoformRanges.append((elem.chromStart, elem.chromEnd, name))
+    # create master sequence
+    combinedSeq = generateMasterSequence(sequences, isoformRanges, xAxisMax)
 
     try:  # Create traces for sequence display, either scatter or heatmap
         traces = generateSequenceTrace(seqDisp, strand, combinedSeq, xAxisMin, xAxisMax)
@@ -2105,9 +2067,42 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal, 
     fig['layout']['legend'].update(x = legendColumnSpacing)
     return fig
 
+def generateMasterSequence(sequences, isoforms, xAxisMax):
+    """Helper function that creates a master sequence given a dataframe with sequences and a list containing
+        start and end points as well as names for the relevant isoforms
+    
+    Positional arguments:
+    sequences -- The list of sequence dicts
+    isoforms -- List containing three-tuples(start, end, name) for each isoform
+    xAxisMax -- endpoint of the gene on the x-axis, used for potential early termination
+    """  
+    # Sort tuples by start point. this ensures that the algorithm will cover the whole
+    # gene sequence, if possible, albeit not necessarily with the least amount of subsequences
+    isoforms.sort()
+    # Initialize using the leftmost sequence
+    currentEnd = isoforms[0][1]
+    seqDict = None
+    for i in sequences: # Determine which dict contains the relevant sequences, all have to be in the same dict
+        if isoforms[0][2] in i:
+            seqDict = i
+    combinedSeq = str(seqDict[isoforms[0][2]].seq)
+    # loop through elements and try to append sequences
+    for elem in isoforms:
+        if elem[1] > currentEnd: 
+            if elem[0] <= currentEnd: # current element overlaps and adds to the sequence
+                combinedSeq += str(seqDict[elem[2]].seq)[(currentEnd - elem[0]):]
+                currentEnd = elem[1]
+            else: # current element does not overlap but will add to the sequence, fill with gaps
+                fillerDist = elem[0] - currentEnd
+                combinedSeq += [''] * fillerDist
+                combinedSeq += str(seqDict[elem[2]].seq)
+                currentEnd = elem[1]                    
+        if currentEnd >= xAxisMax: # The master sequence is complete, the entire region is covered
+            break
+    return combinedSeq
 
 def plotICLIP(name, xMax, xMin, chrom, strand, colors):
-    """Helper method to plot the subplots containing iCLIP data
+    """Helper function to plot the subplots containing iCLIP data
     
     Positional arguments:
     name -- name of the subplot to create a title
