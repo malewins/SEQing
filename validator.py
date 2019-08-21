@@ -7,6 +7,7 @@ from argparse import ArgumentParser
 from pathlib import Path
 from xml.dom import minidom
 import pickle
+import os
 import hashlib
 import itertools
 import pandas
@@ -35,7 +36,7 @@ def validateGTF(df):
     if df['end'].map(lambda x: type(x)).values.any() != int:
         msg = 'Column end contains non int values'
         return [False, msg]
-    if df['strand'].map(lambda x: x in ['+', '-']).values.all() != True:
+    if (all(x in ['+', '-'] for x in df['strand'].cat.categories.tolist())) != True:
         msg = 'Bad strand symbol(has to be + or -'
         return [False, msg]
     return [True, msg] 
@@ -52,7 +53,7 @@ def validateBed12(df):
     if df.isnull().values.any() == True:        
         msg = 'Missing values' + '\n' + str(df.isnull().sum())
         return [False, msg]
-    if df['strand'].map(lambda x: x in ['+', '-']).values.all() != True:
+    if (all(x in ['+', '-'] for x in df['strand'].cat.categories.tolist())) != True:
         msg = 'Bad strand symbol(has to be + or -'
         return [False, msg]
     if df['chromStart'].map(lambda x: type(x)).values.any() != int:
@@ -113,7 +114,7 @@ def validateBed(df):
     if df.isnull().values.any() == True:        
         msg = 'Missing values' + '\n' + str(df.isnull().sum())
         return [False, msg]
-    if df['strand'].map(lambda x: x in ['+', '-']).values.all() != True:
+    if (all(x in ['+', '-'] for x in df['strand'].cat.categories.tolist())) != True:
         msg = 'Bad strand symbol(has to be + or -)'
         return [False, msg]
     if df['chromStart'].map(lambda x: type(x)).values.any() != int:
@@ -232,6 +233,12 @@ parser.add_argument('-sub_tables',
                     year, etc. Also see the help for _adv_desc.''',
                     type = Path,
                     metavar = 'FILE')
+parser.add_argument('-pswd',
+                    dest = 'auth',
+                    help = '''Password to access the dashboard''',
+                    type = str,
+                    default = '',
+                    metavar = 'String')
 
 
 args=parser.parse_args()
@@ -246,10 +253,14 @@ if args.cfg != None:
         print('Could not open config file, aborting.')
         exit()
 
+
+binFilePath = os.path.join(os.path.dirname(__file__),'bin_data/')
+if not os.path.exists(binFilePath):
+        os.mkdir(binFilePath)
 # Dict containing checksums for gene annotation files, files loaded once will
 # be serialized to speed up future loading
 try:
-    sums = pickle.load(open('checksums', 'rb'))
+    sums = pickle.load(open(binFilePath+'checksums', 'rb'))
 except IOError:
     sums = []
 checksums = dict(sums)
@@ -285,22 +296,22 @@ if useCfg == False: # Use command line arguments for setup
             plotColors.append(i)
         else:
             print('Color string ' + str(i) + ' is not valid')
+    password = args.auth
 else: # Use xml document for setup
     geneAnnotationPaths = args.geneAnno
     try:
         port = configFile.getElementsByTagName('port')[0].firstChild.data
-        print(port)
-    except:
+    except (AttributeError, IndexError):
         print('No port specified, using 8060')
         port = 8060
     try:
         fastaPaths = [Path(i.firstChild.data) for i in configFile.getElementsByTagName('seq')]
-    except:
+    except (AttributeError, IndexError):
         fastaPaths = None
     try:
         descriptionPath = [Path(i.firstChild.data) for i in configFile.getElementsByTagName('desc')][0]
         print(descriptionPath)
-    except:
+    except (AttributeError, IndexError):
         descriptionPath = None
     try:
         sortKeys = []
@@ -308,11 +319,11 @@ else: # Use xml document for setup
         for  i in keyList:
             sortKeys.append([i.getElementsByTagName('lambda')[0].firstChild.data,
                              i.getElementsByTagName('reverse')[0].firstChild.data])
-    except:
+    except (AttributeError, IndexError):
         sortKeys = None
     try:
         dataSetList = [i for i in configFile.getElementsByTagName('set')]
-    except:
+    except (AttributeError, IndexError):
         dataSetList = []
     bindingSitePaths = []
     bindingSiteRawPaths = []
@@ -320,33 +331,33 @@ else: # Use xml document for setup
         for  i in dataSetList:
             try:
                 bindingSiteRawPaths.append(Path(i.getElementsByTagName('clip')[0].firstChild.data))
-            except:
+            except (AttributeError, IndexError):
                 pass
             try:
                 bindingSitePaths.append(Path(i.getElementsByTagName('binding')[0].firstChild.data))
-            except:
+            except (AttributeError, IndexError):
                 pass
             try:
                 color = i.getElementsByTagName('color')[0].firstChild.data
                 if isRGB(color) == True:
                     plotColors.append(color)
-            except:
+            except (AttributeError, IndexError):
                 pass
     try:
         advancedDescPath = Path(configFile.getElementsByTagName('advDesc')[0].firstChild.data)
-    except:
+    except (AttributeError, IndexError):
         advancedDescPath = None
     try:
         subTablePath = Path(configFile.getElementsByTagName('subtables')[0].firstChild.data)
-    except:
+    except (AttributeError, IndexError):
         subTablePath = None
     try:
         spliceSitePaths = [Path(i.firstChild.data) for i in configFile.getElementsByTagName('rnaData')]
-    except:
+    except (AttributeError, IndexError):
         spliceSitePaths = []
     try:
         spliceEventsPaths = [Path(i.firstChild.data) for i in configFile.getElementsByTagName('spliceEvents')]
-    except:
+    except (AttributeError, IndexError):
         spliceEventsPaths = []
 
 
@@ -381,7 +392,7 @@ for idx, i in enumerate(geneAnnotationPaths):
                 validation = validateBed12(df)
                 if validation[0] == True:
                     geneAnnotations.append(df)
-                    out = open(str(i.stem)+'.bin', 'wb')
+                    out = open(binFilePath + str(i.stem)+'.bin', 'wb')
                     pickle.dump(df, out)
                     out.close()
                 else:
@@ -389,7 +400,7 @@ for idx, i in enumerate(geneAnnotationPaths):
                     print(validation[1])
             else:
                 try:
-                    df = pickle.load(open(str(i.stem)+'.bin', 'rb'))
+                    df = pickle.load(open(binFilePath + str(i.stem)+'.bin', 'rb'))
                     geneAnnotations.append(df)
                     print('Loaded from pickle')
                 except IOError:
@@ -398,7 +409,7 @@ for idx, i in enumerate(geneAnnotationPaths):
                     validation = validateBed12(df)
                     if validation[0] == True:
                         geneAnnotations.append(df)
-                        out = open(str(i.stem)+'.bin', 'wb')
+                        out = open(binFilePath + str(i.stem)+'.bin', 'wb')
                         pickle.dump(df, out)
                         out.close()
                     else:
@@ -412,7 +423,7 @@ for idx, i in enumerate(geneAnnotationPaths):
                     validation = validateBed12(df)
                     if validation[0] == True:
                         geneAnnotations.append(df)
-                        out = open(str(i.stem)+'.bin', 'wb')
+                        out = open(binFilePath + str(i.stem)+'.bin', 'wb')
                         pickle.dump(df, out)
                         out.close()
                     else:
@@ -427,7 +438,7 @@ for idx, i in enumerate(geneAnnotationPaths):
                     validation = validateBed12(df)
                     if validation[0] == True:
                         geneAnnotations.append(df)
-                        out = open(str(i.stem)+'.bin', 'wb')
+                        out = open(binFilePath + str(i.stem)+'.bin', 'wb')
                         pickle.dump(df, out)
                         out.close()
                     else:
@@ -441,7 +452,7 @@ for idx, i in enumerate(geneAnnotationPaths):
                 validation = validateGTF(df)
                 if validation[0] == True:
                     df = converter.convertGTFToBed(df)
-                    out = open(str(i.stem)+'.bin', 'wb')
+                    out = open(binFilePath + str(i.stem)+'.bin', 'wb')
                     pickle.dump(df, out)
                     out.close()
                     geneAnnotations.append(df)
@@ -450,7 +461,7 @@ for idx, i in enumerate(geneAnnotationPaths):
                     print(validation[1])
             else:
                 try:
-                    df = pickle.load(open(str(i.stem)+'.bin', 'rb'))
+                    df = pickle.load(open(binFilePath + str(i.stem)+'.bin', 'rb'))
                     geneAnnotations.append(df)
                     print('Loaded from pickle')
                 except IOError:
@@ -459,7 +470,7 @@ for idx, i in enumerate(geneAnnotationPaths):
                     validation = validateGTF(df)
                     if validation[0] == True:
                         df = converter.convertGTFToBed(df)
-                        out = open(str(i.stem)+'.bin', 'wb')
+                        out = open(binFilePath + str(i.stem)+'.bin', 'wb')
                         pickle.dump(df, out)
                         out.close()
                         geneAnnotations.append(df)
@@ -472,7 +483,7 @@ for idx, i in enumerate(geneAnnotationPaths):
                     validation = validateGTF(df)
                     if validation[0] == True:
                         df = converter.convertGTFToBed(df)
-                        out = open(str(i.stem)+'.bin', 'wb')
+                        out = open(binFilePath + str(i.stem)+'.bin', 'wb')
                         pickle.dump(df, out)
                         out.close()
                         geneAnnotations.append(df)
@@ -485,7 +496,7 @@ for idx, i in enumerate(geneAnnotationPaths):
                     validation = validateGTF(df)
                     if validation[0] == True:
                         df = converter.convertGTFToBed(df)
-                        out = open(str(i.stem)+'.bin', 'wb')
+                        out = open(binFilePath + str(i.stem)+'.bin', 'wb')
                         pickle.dump(df, out)
                         out.close()
                         geneAnnotations.append(df)
@@ -501,9 +512,12 @@ if len(geneAnnotations) == 0:
     exit()
 
 # Write new checksums file
-out = open('checksums', 'wb')
-pickle.dump(checksums, out)
-out.close()
+try:
+    out = open(binFilePath + 'checksums', 'wb')
+    pickle.dump(checksums, out)
+    out.close()
+except FileNotFoundError:
+    pass
 
 # Read dna sequences from fasta
 geneNames = list(set().union([x[0] for y in [i['name'].str.split('.') for i in geneAnnotations] for x in y]))
@@ -656,6 +670,12 @@ if len(bsProcDFs) > 0:
     procAvail = True
 
 
+try:
+    coverageSums = pickle.load(open(binFilePath + 'coverage_checksums', 'rb'))
+except IOError:
+    coverageSums = []
+coverageChecksums = dict(coverageSums)
+
 # Setup data for splice sites
 spliceProcDFs = {}
 spliceSetNames = [[],[]]
@@ -664,21 +684,99 @@ if len(spliceSitePaths) > 0:
     print('Loading RNA-seq data')
 for i in spliceSitePaths:
         try:
-            dtypes = {'chrom' : 'category' ,'chromStart' : 'uint64','chromEnd' : 'uint64', 'count' : 'uint32'}
-            df = pandas.read_csv(i, sep= '\t', names= rawHeader, dtype = dtypes)
-            validation = validateBedGraph(df)
-            file_name = i.stem.split('_')[0]+'_'+i.stem.split('_')[1]
-            if validation[0]:
-                if file_name in spliceProcDFs:
-                    print('Warning, you are using the same prefix for multiple bedgraph files, file ' + str(i) + ' will be ignored')
+            checksum = hashlib.md5(open(str(i)).read().encode('utf-8'))
+            if coverageChecksums.get(str(i.stem), None) != checksum.hexdigest():
+                coverageChecksums[str(i.stem)] = checksum.hexdigest()
+                dtypes = {'chrom' : 'category' ,'chromStart' : 'uint64','chromEnd' : 'uint64', 'count' : 'uint32'}
+                df = pandas.read_csv(i, sep= '\t', names= rawHeader, dtype = dtypes)
+                validation = validateBedGraph(df)
+                file_name = i.stem.split('_')[0]+'_'+i.stem.split('_')[1]
+                if validation[0]:
+                    if file_name in spliceProcDFs:
+                        print('Warning, you are using the same prefix for multiple bedgraph files, file ' + str(i) + ' will be ignored')
+                    else:
+                        spliceProcDFs.update({file_name : df})
+                        if i.stem.split('_')[0] not in spliceSetNames[1]:
+                            spliceSetNames[0].append(i.stem.split('_')[1])
+                            spliceSetNames[1].append(i.stem.split('_')[0])
+                        out = open(binFilePath + str(i.stem)+'.bin', 'wb')
+                        pickle.dump(df, out)
+                        out.close()
                 else:
-                    spliceProcDFs.update({file_name : df})
-                if i.stem.split('_')[0] not in spliceSetNames[1]:
-                    spliceSetNames[0].append(i.stem.split('_')[1])
-                    spliceSetNames[1].append(i.stem.split('_')[0])
+                    print('Error in file ' + str(i) + ':')
+                    print(validation[1])
             else:
-                print('Error in file ' + str(i) + ':')
-                print(validation[1])
+                try:
+                    df = pickle.load(open(binFilePath + str(i.stem)+'.bin', 'rb'))
+                    file_name = i.stem.split('_')[0]+'_'+i.stem.split('_')[1]
+                    if file_name in spliceProcDFs:
+                       print('Warning, you are using the same prefix for multiple bedgraph files, file ' + str(i) + ' will be ignored')
+                    else:
+                        spliceProcDFs.update({file_name : df})
+                        if i.stem.split('_')[0] not in spliceSetNames[1]:
+                            spliceSetNames[0].append(i.stem.split('_')[1])
+                            spliceSetNames[1].append(i.stem.split('_')[0])
+                    print('Loaded from pickle')
+                except IOError:
+                    print('pickle not  found, loading from raw file')
+                    dtypes = {'chrom' : 'category' ,'chromStart' : 'uint64','chromEnd' : 'uint64', 'count' : 'uint32'}
+                    df = pandas.read_csv(i, sep= '\t', names= rawHeader, dtype = dtypes)
+                    validation = validateBedGraph(df)
+                    file_name = i.stem.split('_')[0]+'_'+i.stem.split('_')[1]
+                    if validation[0]:
+                        if file_name in spliceProcDFs:
+                            print('Warning, you are using the same prefix for multiple bedgraph files, file ' + str(i) + ' will be ignored')
+                        else:
+                            spliceProcDFs.update({file_name : df})
+                            if i.stem.split('_')[0] not in spliceSetNames[1]:
+                                spliceSetNames[0].append(i.stem.split('_')[1])
+                                spliceSetNames[1].append(i.stem.split('_')[0])
+                            out = open(binFilePath + str(i.stem)+'.bin', 'wb')
+                            pickle.dump(df, out)
+                            out.close()
+                    else:
+                        print('Error in file ' + str(i) + ':')
+                        print(validation[1])
+                except UnicodeDecodeError:
+                    print('Error decoding pickle binary file, will load from raw file instead')
+                    dtypes = {'chrom' : 'category' ,'chromStart' : 'uint64','chromEnd' : 'uint64', 'count' : 'uint32'}
+                    df = pandas.read_csv(i, sep= '\t', names= rawHeader, dtype = dtypes)
+                    validation = validateBedGraph(df)
+                    file_name = i.stem.split('_')[0]+'_'+i.stem.split('_')[1]
+                    if validation[0]:
+                        if file_name in spliceProcDFs:
+                            print('Warning, you are using the same prefix for multiple bedgraph files, file ' + str(i) + ' will be ignored')
+                        else:
+                            spliceProcDFs.update({file_name : df})
+                            if i.stem.split('_')[0] not in spliceSetNames[1]:
+                                spliceSetNames[0].append(i.stem.split('_')[1])
+                                spliceSetNames[1].append(i.stem.split('_')[0])
+                            out = open(binFilePath + str(i.stem)+'.bin', 'wb')
+                            pickle.dump(df, out)
+                            out.close()
+                    else:
+                        print('Error in file ' + str(i) + ':')
+                        print(validation[1])
+                except ModuleNotFoundError:
+                    print('Pickle was created using different package versions, will load from raw file instead')
+                    dtypes = {'chrom' : 'category' ,'chromStart' : 'uint64','chromEnd' : 'uint64', 'count' : 'uint32'}
+                    df = pandas.read_csv(i, sep= '\t', names= rawHeader, dtype = dtypes)
+                    validation = validateBedGraph(df)
+                    file_name = i.stem.split('_')[0]+'_'+i.stem.split('_')[1]
+                    if validation[0]:
+                        if file_name in spliceProcDFs:
+                            print('Warning, you are using the same prefix for multiple bedgraph files, file ' + str(i) + ' will be ignored')
+                        else:
+                            spliceProcDFs.update({file_name : df})
+                            if i.stem.split('_')[0] not in spliceSetNames[1]:
+                                spliceSetNames[0].append(i.stem.split('_')[1])
+                                spliceSetNames[1].append(i.stem.split('_')[0])
+                            out = open(binFilePath + str(i.stem)+'.bin', 'wb')
+                            pickle.dump(df, out)
+                            out.close()
+                    else:
+                        print('Error in file ' + str(i) + ':')
+                        print(validation[1])
         except FileNotFoundError:
             print('File ' + str(i) + ' was not found')
 if len(spliceSitePaths) > 0:
@@ -687,9 +785,15 @@ if len(spliceProcDFs) > 0:
         spliceElements += 1
         spliceAvail = True
 
+# Write new checksums file
+out = open(binFilePath + 'coverage_checksums', 'wb')
+pickle.dump(coverageChecksums, out)
+out.close()
+
 spliceEventsDFs = {}
 spliceEventsElements = 0
 spliceEventNames = [[],[]]
+spliceEventTypes = []
 if len(spliceEventsPaths) > 0:
     print('Loading splice event data')
 for i in spliceEventsPaths:
@@ -707,6 +811,9 @@ for i in spliceEventsPaths:
             if i.stem.split('_')[0] not in spliceEventNames[1]:
                     spliceEventNames[0].append(i.stem.split('_')[1])
                     spliceEventNames[1].append(i.stem.split('_')[0])
+            for i in df['type'].cat.categories.tolist():
+                if i not in spliceEventTypes:
+                    spliceEventTypes.append(i)
         else:
             print('Error in file ' + str(i) + ':')
             print(validation[1])
@@ -736,7 +843,20 @@ else:
 colorMap = {}
 for i in range(len(dataSetNames)):
     colorMap.update({dataSetNames[i] : plotColors[i%len(plotColors)]})
-    
+
+# Create dictionary for coverage track colors
+coverageColors = ['rgb(255,0,0)', 'rgb(255,165,0)','rgb(255,255,0)','rgb(0,0,255)', 'rgb(128,0,128)']
+coverageColorDict = {}
+for index, ds in enumerate(sorted(spliceSetNames[1])):
+
+    coverageColorDict.update({ds : coverageColors[index%len(coverageColors)]})
+
+# create dictionary for slice event colors
+eventColors = ['rgb(0,0,255)', 'rgb(255,0,0)', 'rgb(0,255,0)', 'rgb(128,0,128)', 'rgb(255,165,0)']
+spliceEventColors = {}
+for index, elem in enumerate(sorted(spliceEventTypes)):
+    spliceEventColors.update({elem : eventColors[index%len(eventColors)]})
+
 print('preparing to start dashboard on port ' + str(port) + '.')
 
 # Setup gloabl variables for the dashboard
@@ -766,9 +886,13 @@ globalDict = {
     'sortKeys' : sortKeys, # arguments for the list.sort function
     'advancedDesc' : advancedDescriptions, # advanced descriptions for Details tab
     'subTables' : subTables, # subtable information for Details tab
-    'spliceEventElements': spliceEventsElements, # Number of elements per rna dataset
-    'spliceEventDFs': spliceEventsDFs,  # Dataframes with splice event data
-    'spliceEventNames': spliceEventNames, # Names for the splice event data sets
-    'spliceEventAvail': spliceEventsAvail} # splice event data available True/False
+    'spliceEventElements' : spliceEventsElements, # Number of elements per rna dataset
+    'spliceEventDFs' : spliceEventsDFs,  # Dataframes with splice event data
+    'spliceEventNames' : spliceEventNames, # Names for the splice event data sets
+    'spliceEventAvail' : spliceEventsAvail, # splice event data available True/False,
+    'eventColors' : spliceEventColors, # Colorsfor the splice event types
+    'coverageColors' : coverageColorDict, # Colors for the coverage plots
+    'eventTypes' : sorted(spliceEventTypes),
+    'authentication': password} # Types of splice events
 
 runpy.run_module('dashboard_binding_sites', init_globals = globalDict, run_name = '__main__')

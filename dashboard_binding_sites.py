@@ -8,6 +8,7 @@ import dash
 import dash_core_components as dcc
 import dash_html_components as html
 import plotly.graph_objs as go
+import dash_auth
 from plotly import tools
 from textwrap import dedent
 
@@ -53,6 +54,7 @@ helpText = '''
             '''
 
 
+
 if 'dropList' not in globals():
     print('Please start the program via validator.py')
     exit()
@@ -68,7 +70,7 @@ else:
     try:
         advStart = advList[0]
         advDisabled = False
-    except:
+    except IndexError:
         advStart = None
         advDisabled = True
 
@@ -88,15 +90,28 @@ else:
     rnaDataStyle = {'height' : '100%', 'width' : '15vw'}
 
 
-# Try to setup color picker
+# Try to setup color picker for iCLIP-seq tracks
 try:
     initialColor = dataSetNames[0]
     disableSettings = False
-except:
+except IndexError:
     initialColor = None
-    disableSettings = True
-
-
+    disableSettings = False
+# Try to setup color picker for coverage tracks
+try:
+    initialColorCoverage = spliceSetNames[1][0]
+    disableSettings = False
+except IndexError:
+    initialColorCoverage = None
+    disableSettings = False
+# Try to setup color picker for coverage tracks
+try:
+    initialColorEvents = eventTypes[0]
+    disableSettings = False
+except IndexError:
+    initialColorEvents = None
+    disableSettings = False
+    
 def help_popup():
  return html.Div(
         id='help',
@@ -132,9 +147,18 @@ def help_popup():
 tabStyle = {'padding' : '0', 'line-height' : '5vh'}
 # Colors for the alternating coloring in Details
 tableColors = ['rgb(255, 255 ,255)', 'rgb(125, 244, 66)']
+# For plots with multiple columns in the legend, basically anything using a color scale or heatmap,
+# this value determines the margin between colorbar and legend items. For very wide or very narrow
+# screens this value might need to be adjusted a bit, this can unfortunately not be done
+# automatically right now.
+legendColumnOffset = 1.05
+
 
 app = dash.Dash(__name__)
-
+if authentication != '':
+    auth = dash_auth.BasicAuth(
+            app,
+            {'u' : authentication})
 app.config['suppress_callback_exceptions']=True
 
 app.layout = html.Div(
@@ -200,6 +224,8 @@ app.layout = html.Div(
                                         children=[
                                                 html.Div(className = 'table-row',
                                                     children = [
+                                                    html.Details(open = 'open', children = [
+                                                    html.Summary("Controls"),
                                                     html.Div(
                                                         className = 'table-cell column-1',
                                                         children = [
@@ -253,7 +279,7 @@ app.layout = html.Div(
                                                     )
                                                 ]
                                             ),
-    
+                                            ])
                                         ],
                                     ),
                                     html.Div(style = {'height' : '25px'}),
@@ -291,6 +317,8 @@ app.layout = html.Div(
                                              children=[
                                                  html.Div(className='table-row',
                                                           children=[
+                                                          html.Details(open = 'open', children = [
+                                                          html.Summary("Controls"),
                                                               html.Div(
                                                                   className='table-cell column-1',
                                                                   children=[
@@ -340,11 +368,11 @@ app.layout = html.Div(
                                                                                    dcc.RadioItems(
                                                                                        id='rnaRadio',
                                                                                        options=[
-                                                                                           {'label': 'Display type 1',
+                                                                                           {'label': 'Default display',
                                                                                             'value': 'one'},
-                                                                                           {'label': 'Display type 2',
+                                                                                           {'label': 'Color event types',
                                                                                             'value': 'two'},
-                                                                                           {'label': 'Display type 3',
+                                                                                           {'label': 'Color event scores',
                                                                                             'value': 'three'}
                                                                                        ],
                                                                                        value='one'
@@ -355,7 +383,8 @@ app.layout = html.Div(
                                                                        )
                                                           ]
                                                           ),
-
+                                                          ])
+                                                        
                                                     ],
 
                                 ),
@@ -390,8 +419,12 @@ app.layout = html.Div(
                             disabled=disableSettings,
                             disabled_style=tabStyle,
                             children=[
-                                html.Div(
+                                html.Div(style = {'display' : 'table'},
+                                children =[
+                                html.Div(style={'width': '100vw', 'display': 'table-row', 'verticalalign': 'middle'},
                                     children=[
+                                        html.Div(className = 'table-cell', 
+                                        children = [
                                         html.Fieldset(title = 'iCLIP Settings', 
                                             className = 'field-set',
                                             children = [ 
@@ -466,10 +499,197 @@ app.layout = html.Div(
                                                     style={'width': '10vw', 'display': 'table-cell'}
                                                 )
                                             ]
+                                        )]),
+                                        html.Div(className = 'table-cell', 
+                                        children = [
+                                        html.Fieldset(title = 'coverage settings', 
+                                            className = 'field-set',
+                                            children = [ 
+                                                html.Legend('Coverage plot settings'),
+                                                html.Div(
+                                                    style={'display': 'none'},
+                                                    id='covColorDiv',
+                                                    children=json.dumps(coverageColors)
+                                                ),
+                                                html.Div(
+                                                    style={'display': 'none'},
+                                                    id='covColorFinal',
+                                                    children=json.dumps(coverageColors)
+                                                ),
+                                                dcc.Dropdown(
+                                                    id='covColorDrop',
+                                                    options=[{'label': i, 'value': i} for i in spliceSetNames[1]],
+                                                    value=initialColorCoverage
+                                                ),
+                                                html.Div(
+                                                    id='covRDisp',
+                                                    children=html.P(html.B('R: ')),
+                                                    style={'width': '10vw', 'display': 'table-cell'}
+                                                ),
+                                                dcc.Slider(
+                                                    id='covRInput',
+                                                    min=0,
+                                                    max=255,
+                                                    step=1,
+                                                    updatemode='drag'
+                                                ),
+                                                html.Div(
+                                                    id='covGDisp',
+                                                    children=html.P(html.B('G: ')),
+                                                    style={'width': '10vw', 'display': 'table-cell'}
+                                                ),
+                                                dcc.Slider(
+                                                    id='covGInput',
+                                                    min=0,
+                                                    max=255,
+                                                    step=1,
+                                                    updatemode='drag'
+                                                ),
+                                                html.Div(
+                                                    id='covBDisp',
+                                                    children=html.P(html.B('B: ')),
+                                                    style={'width': '10vw', 'display': 'table-cell'}
+                                                ),
+                                                dcc.Slider(
+                                                    id='covBInput',
+                                                    min=0,
+                                                    max=255,
+                                                    step=1,
+                                                    updatemode='drag'
+                                                ),
+                                                html.Div(
+                                                    children=[
+                                                        html.Div(id='covPreview',
+                                                                 children=html.P(html.B('Preview')),
+                                                                 style={'width': '30vw', 'display': 'table-cell',
+                                                                        'verticalalign': 'middle'}
+                                                                 ),
+                                                        html.Div(
+                                                            children=[
+                                                                html.Button(id='covColorConfirm', n_clicks_timestamp=0,
+                                                                            children='confirm')
+                                                            ],
+                                                            style={'width': '10vw', 'display': 'table-cell',
+                                                                   'verticalalign': 'middle'}
+                                                        )
+                                                    ],
+                                                    style={'width': '10vw', 'display': 'table-cell'}
+                                                )
+                                            ]
+                                        )]),
+                                        html.Div(className = 'table-cell', 
+                                        children = [
+                                        html.Fieldset(title = 'event settings', 
+                                            className = 'field-set',
+                                            children = [ 
+                                                html.Legend('Splice event plot settings'),
+                                                html.Div(
+                                                    style={'display': 'none'},
+                                                    id='eventColorDiv',
+                                                    children=json.dumps(eventColors)
+                                                ),
+                                                html.Div(
+                                                    style={'display': 'none'},
+                                                    id='eventColorFinal',
+                                                    children=json.dumps(eventColors)
+                                                ),
+                                                dcc.Dropdown(
+                                                    id='eventColorDrop',
+                                                    options=[{'label': i, 'value': i} for i in eventTypes],
+                                                    value=initialColorEvents
+                                                ),
+                                                html.Div(
+                                                    id='eventRDisp',
+                                                    children=html.P(html.B('R: ')),
+                                                    style={'width': '10vw', 'display': 'table-cell'}
+                                                ),
+                                                dcc.Slider(
+                                                    id='eventRInput',
+                                                    min=0,
+                                                    max=255,
+                                                    step=1,
+                                                    updatemode='drag'
+                                                ),
+                                                html.Div(
+                                                    id='eventGDisp',
+                                                    children=html.P(html.B('G: ')),
+                                                    style={'width': '10vw', 'display': 'table-cell'}
+                                                ),
+                                                dcc.Slider(
+                                                    id='eventGInput',
+                                                    min=0,
+                                                    max=255,
+                                                    step=1,
+                                                    updatemode='drag'
+                                                ),
+                                                html.Div(
+                                                    id='eventBDisp',
+                                                    children=html.P(html.B('B: ')),
+                                                    style={'width': '10vw', 'display': 'table-cell'}
+                                                ),
+                                                dcc.Slider(
+                                                    id='eventBInput',
+                                                    min=0,
+                                                    max=255,
+                                                    step=1,
+                                                    updatemode='drag'
+                                                ),
+                                                html.Div(
+                                                    children=[
+                                                        html.Div(id='eventPreview',
+                                                                 children=html.P(html.B('Preview')),
+                                                                 style={'width': '30vw', 'display': 'table-cell',
+                                                                        'verticalalign': 'middle'}
+                                                                 ),
+                                                        html.Div(
+                                                            children=[
+                                                                html.Button(id='eventColorConfirm', n_clicks_timestamp=0,
+                                                                            children='confirm')
+                                                            ],
+                                                            style={'width': '10vw', 'display': 'table-cell',
+                                                                   'verticalalign': 'middle'}
+                                                        )
+                                                    ],
+                                                    style={'width': '10vw', 'display': 'table-cell'}
+                                                )
+                                            ]
+                                        )]),
+                                        html.Div(className = 'table-cell', 
+                                            children = [
+                                                html.Fieldset(title = 'Legend Settings', 
+                                                    className = 'field-set',
+                                                    children = [
+                                                        html.Legend('Legend Colorbar Margin'),
+                                                        html.Div(
+                                                            id = 'legendSpacingDiv',
+                                                            style = {'display': 'none'},
+                                                            children = json.dumps(legendColumnOffset)
+                                                            ),
+                                                        dcc.Slider(
+                                                            id = 'legendSpacingSlider',
+                                                            min = 1.02,
+                                                            max = 1.08,
+                                                            step = 0.005,
+                                                            value = legendColumnOffset,
+                                                            marks = {
+                                                                1.02: '.02',
+                                                                1.03: '',
+                                                                1.04: '',
+                                                                1.05: '.05',
+                                                                1.06: '',
+                                                                1.07: '',
+                                                                1.08: '.08',
+                                                                }
+                                                        ),
+                                                        html.Div(
+                                                            style = {'height' : '15px'})
+                                                    ]
+                                                )
+                                            ]
                                         )
                                     ],
-                                    style={'width': '30vw', 'display': 'table-cell', 'verticalalign': 'middle'}
                                 ),
+                            ])
                             ]
                         )
                     ]
@@ -481,6 +701,13 @@ app.layout = html.Div(
     ],
     style = {'backgroundColor' : 'rgb(240,240,240)'}
 )
+                                                    
+@app.callback(
+    dash.dependencies.Output('legendSpacingDiv', 'children'),
+    [dash.dependencies.Input('legendSpacingSlider', 'value')]
+)
+def changeLegendSpacing(value):
+    return json.dumps(value)
 
 @app.callback(
     dash.dependencies.Output('help', 'style'),
@@ -777,6 +1004,370 @@ def changeColor(r, g, b, dataset, oldColors):
         colorString = 'rgb(' + str(r) + ', ' + str(g) + ', ' + str(b) + ')'
         colorDict.update({dataset: colorString})
         return json.dumps(colorDict)
+    
+    
+@app.callback(
+    dash.dependencies.Output('covRDisp', component_property='children'),
+    [dash.dependencies.Input('covRInput', component_property='value')]
+)
+def showRCov(r):
+    """Callback to display current value for red
+
+    Positional arguments:
+    r -- Value for red
+    """
+
+    return html.P(html.B('R: ' + str(r)))
+
+
+@app.callback(
+    dash.dependencies.Output('covGDisp', component_property='children'),
+    [dash.dependencies.Input('covGInput', component_property='value')]
+)
+def showGCov(g):
+    """Callback to display current value for green
+
+    Positional arguments:
+    g -- Value for green
+    """
+
+    return html.P(html.B('G: ' + str(g)))
+
+
+@app.callback(
+    dash.dependencies.Output('covBDisp', component_property='children'),
+    [dash.dependencies.Input('covBInput', component_property='value')]
+)
+def showBCov(b):
+    """Callback to display current value for blue
+
+    Positional arguments:
+    b -- Value for blue
+    """
+
+    return html.P(html.B('B: ' + str(b)))
+
+
+@app.callback(
+    dash.dependencies.Output('covPreview', component_property='style'),
+    [dash.dependencies.Input('covRInput', 'value'),
+     dash.dependencies.Input('covGInput', 'value'),
+     dash.dependencies.Input('covBInput', 'value')]
+)
+def previewColorCov(r, g, b):
+    """Callback for rgb color preview
+
+    Positional arguments:
+    r -- Value for red
+    g -- Value for green
+    b -- Value for blue
+    """
+
+    if r == None or b == None or g == None:
+        return {'backgroundColor': 'rgb(255, 255, 255)', 'color': 'rgb(255, 255, 255)'}
+    else:
+        return {'backgroundColor': 'rgb(' + str(r) + ',' + str(g) + ','
+                                   + str(b) + ')', 'color': 'rgb(' + str(r)
+                                                            + ',' + str(g) + ',' + str(b) + ')'}
+
+
+@app.callback(
+    dash.dependencies.Output('covRInput', component_property='value'),
+    [dash.dependencies.Input('covColorDrop', 'value')],
+    [dash.dependencies.State('covColorFinal', 'children')]
+)
+def rCallbackCov(dataset, colors):
+    """Callback to set initial value of red slider from dict
+
+    Positional arguments:
+    dataset -- Currently selected dataset
+    colors -- Dictionary containing the color values(json string)
+    """
+
+    colorsDict = json.loads(colors)
+    try:
+        colorVal = colorsDict[dataset][4:-1].split(',')[0]
+        return int(colorVal)
+    except KeyError:
+        return 0
+
+
+@app.callback(
+    dash.dependencies.Output('covGInput', component_property='value'),
+    [dash.dependencies.Input('covColorDrop', 'value')],
+    [dash.dependencies.State('covColorFinal', 'children')]
+)
+def gCallbackCov(dataset, colors):
+    """Callback to set initial value of green slider from dict
+
+    Positional arguments:
+    dataset -- Currently selected dataset
+    colors -- Dictionary containing the color values(json string)
+    """
+    colorsDict = json.loads(colors)
+    try:
+        colorVal = colorsDict[dataset][4:-1].split(',')[1]
+        return int(colorVal)
+    except KeyError:
+        return 0
+
+
+@app.callback(
+    dash.dependencies.Output('covBInput', component_property='value'),
+    [dash.dependencies.Input('covColorDrop', 'value')],
+    [dash.dependencies.State('covColorFinal', 'children')]
+)
+def bCallbackCov(dataset, colors):
+    """Callback to set initial value of blue slider from dict
+
+    Positional arguments:
+    dataset -- Currently selected dataset
+    colors -- Dictionary containing the color values(json string)
+    """
+    colorsDict = json.loads(colors)
+    try:
+        colorVal = colorsDict[dataset][4:-1].split(',')[2]
+        return int(colorVal)
+    except KeyError:
+        return 0
+
+
+@app.callback(
+    dash.dependencies.Output('covColorFinal', component_property='children'),
+    [dash.dependencies.Input('covColorConfirm', 'n_clicks')],
+    [dash.dependencies.State('covRInput', 'value'),
+     dash.dependencies.State('covGInput', 'value'),
+     dash.dependencies.State('covBInput', 'value'),
+     dash.dependencies.State('covColorDrop', 'value'),
+     dash.dependencies.State('covColorFinal', 'children')]
+)
+def conFirmColorCov(nclicks, r, g, b, dataset, backup):
+    """ Callback to confirm a color. This will overwrite the previous one.
+
+    Positional arguments:
+    nclicks -- Button value
+    r -- Red value
+    g -- Green value
+    b -- Blue value
+    dataset -- Dataset to overwrite color of
+    backup -- Previous value in case of error
+    """
+    if r == None or b == None or g == None:
+        return backup
+    else:
+        colorDict = json.loads(backup)
+        colorString = 'rgb(' + str(r) + ', ' + str(g) + ', ' + str(b) + ')'
+        colorDict.update({dataset: colorString})
+        return json.dumps(colorDict)
+
+
+@app.callback(
+    dash.dependencies.Output('covColorDiv', component_property='children'),
+    [dash.dependencies.Input('covRInput', 'value'),
+     dash.dependencies.Input('covGInput', 'value'),
+     dash.dependencies.Input('covBInput', 'value')],
+    [dash.dependencies.State('covColorDrop', 'value'),
+     dash.dependencies.State('covColorDiv', 'children')]
+)
+def changeColorCov(r, g, b, dataset, oldColors):
+    """Callback to set new color values and save them as json string
+
+    Positional arguments:
+    r -- Red value
+    g -- Green value
+    b -- Blue value
+    dataset -- Currently selected dataset
+    oldColors -- Previous colors in case none values are provided for r/g/b
+    """
+    if r == None or b == None or g == None:
+        return oldColors
+    else:
+        colorDict = json.loads(oldColors)
+        colorString = 'rgb(' + str(r) + ', ' + str(g) + ', ' + str(b) + ')'
+        colorDict.update({dataset: colorString})
+        return json.dumps(colorDict)
+
+@app.callback(
+    dash.dependencies.Output('eventRDisp', component_property='children'),
+    [dash.dependencies.Input('eventRInput', component_property='value')]
+)
+def showREvent(r):
+    """Callback to display current value for red
+
+    Positional arguments:
+    r -- Value for red
+    """
+
+    return html.P(html.B('R: ' + str(r)))
+
+
+@app.callback(
+    dash.dependencies.Output('eventGDisp', component_property='children'),
+    [dash.dependencies.Input('eventGInput', component_property='value')]
+)
+def showEvent(g):
+    """Callback to display current value for green
+
+    Positional arguments:
+    g -- Value for green
+    """
+
+    return html.P(html.B('G: ' + str(g)))
+
+
+@app.callback(
+    dash.dependencies.Output('eventBDisp', component_property='children'),
+    [dash.dependencies.Input('eventBInput', component_property='value')]
+)
+def showBevent(b):
+    """Callback to display current value for blue
+
+    Positional arguments:
+    b -- Value for blue
+    """
+
+    return html.P(html.B('B: ' + str(b)))
+
+
+@app.callback(
+    dash.dependencies.Output('eventPreview', component_property='style'),
+    [dash.dependencies.Input('eventRInput', 'value'),
+     dash.dependencies.Input('eventGInput', 'value'),
+     dash.dependencies.Input('eventBInput', 'value')]
+)
+def previewColorEvent(r, g, b):
+    """Callback for rgb color preview
+
+    Positional arguments:
+    r -- Value for red
+    g -- Value for green
+    b -- Value for blue
+    """
+
+    if r == None or b == None or g == None:
+        return {'backgroundColor': 'rgb(255, 255, 255)', 'color': 'rgb(255, 255, 255)'}
+    else:
+        return {'backgroundColor': 'rgb(' + str(r) + ',' + str(g) + ','
+                                   + str(b) + ')', 'color': 'rgb(' + str(r)
+                                                            + ',' + str(g) + ',' + str(b) + ')'}
+
+
+@app.callback(
+    dash.dependencies.Output('eventRInput', component_property='value'),
+    [dash.dependencies.Input('eventColorDrop', 'value')],
+    [dash.dependencies.State('eventColorFinal', 'children')]
+)
+def rCallbackEvent(dataset, colors):
+    """Callback to set initial value of red slider from dict
+
+    Positional arguments:
+    dataset -- Currently selected dataset
+    colors -- Dictionary containing the color values(json string)
+    """
+
+    colorsDict = json.loads(colors)
+    try:
+        colorVal = colorsDict[dataset][4:-1].split(',')[0]
+        return int(colorVal)
+    except KeyError:
+        return 0
+
+
+@app.callback(
+    dash.dependencies.Output('eventGInput', component_property='value'),
+    [dash.dependencies.Input('eventColorDrop', 'value')],
+    [dash.dependencies.State('eventColorFinal', 'children')]
+)
+def gCallbackEvent(dataset, colors):
+    """Callback to set initial value of green slider from dict
+
+    Positional arguments:
+    dataset -- Currently selected dataset
+    colors -- Dictionary containing the color values(json string)
+    """
+    colorsDict = json.loads(colors)
+    try:
+        colorVal = colorsDict[dataset][4:-1].split(',')[1]
+        return int(colorVal)
+    except KeyError:
+        return 0
+
+
+@app.callback(
+    dash.dependencies.Output('eventBInput', component_property='value'),
+    [dash.dependencies.Input('eventColorDrop', 'value')],
+    [dash.dependencies.State('eventColorFinal', 'children')]
+)
+def bCallbackEvent(dataset, colors):
+    """Callback to set initial value of blue slider from dict
+
+    Positional arguments:
+    dataset -- Currently selected dataset
+    colors -- Dictionary containing the color values(json string)
+    """
+    colorsDict = json.loads(colors)
+    try:
+        colorVal = colorsDict[dataset][4:-1].split(',')[2]
+        return int(colorVal)
+    except KeyError:
+        return 0
+
+
+@app.callback(
+    dash.dependencies.Output('eventColorFinal', component_property='children'),
+    [dash.dependencies.Input('eventColorConfirm', 'n_clicks')],
+    [dash.dependencies.State('eventRInput', 'value'),
+     dash.dependencies.State('eventGInput', 'value'),
+     dash.dependencies.State('eventBInput', 'value'),
+     dash.dependencies.State('eventColorDrop', 'value'),
+     dash.dependencies.State('eventColorFinal', 'children')]
+)
+def conFirmColorEvent(nclicks, r, g, b, dataset, backup):
+    """ Callback to confirm a color. This will overwrite the previous one.
+
+    Positional arguments:
+    nclicks -- Button value
+    r -- Red value
+    g -- Green value
+    b -- Blue value
+    dataset -- Dataset to overwrite color of
+    backup -- Previous value in case of error
+    """
+    if r == None or b == None or g == None:
+        return backup
+    else:
+        colorDict = json.loads(backup)
+        colorString = 'rgb(' + str(r) + ', ' + str(g) + ', ' + str(b) + ')'
+        colorDict.update({dataset: colorString})
+        return json.dumps(colorDict)
+
+
+@app.callback(
+    dash.dependencies.Output('eventColorDiv', component_property='children'),
+    [dash.dependencies.Input('eventRInput', 'value'),
+     dash.dependencies.Input('eventGInput', 'value'),
+     dash.dependencies.Input('eventBInput', 'value')],
+    [dash.dependencies.State('eventColorDrop', 'value'),
+     dash.dependencies.State('eventColorDiv', 'children')]
+)
+def changeColorEvent(r, g, b, dataset, oldColors):
+    """Callback to set new color values and save them as json string
+
+    Positional arguments:
+    r -- Red value
+    g -- Green value
+    b -- Blue value
+    dataset -- Currently selected dataset
+    oldColors -- Previous colors in case none values are provided for r/g/b
+    """
+    if r == None or b == None or g == None:
+        return oldColors
+    else:
+        colorDict = json.loads(oldColors)
+        colorString = 'rgb(' + str(r) + ', ' + str(g) + ', ' + str(b) + ')'
+        colorDict.update({dataset: colorString})
+        return json.dumps(colorDict)
+
 
 
 @app.callback(
@@ -824,22 +1415,42 @@ def rnaDesc(clicks, name):
 
 @app.callback(
     dash.dependencies.Output('spliceGraph', 'figure'),
-    [dash.dependencies.Input('submit', 'n_clicks'),
-     dash.dependencies.Input('colorConfirm', 'n_clicks')],
+    [dash.dependencies.Input('submit', 'n_clicks_timestamp'),
+     dash.dependencies.Input('covColorConfirm', 'n_clicks_timestamp'),
+     dash.dependencies.Input('eventColorConfirm', 'n_clicks_timestamp')],
     [dash.dependencies.State('geneDrop', 'value'),
-    dash.dependencies.State('paramList', 'values'),
-     dash.dependencies.State('rnaParamList', 'values')]
+     dash.dependencies.State('rnaRadio', 'value'),
+     dash.dependencies.State('rnaParamList', 'values'),
+     dash.dependencies.State('covColorDiv', 'children'),
+     dash.dependencies.State('covColorFinal', 'children'),
+     dash.dependencies.State('eventColorDiv', 'children'),
+     dash.dependencies.State('eventColorFinal', 'children'),
+     dash.dependencies.State('legendSpacingDiv', 'children')]
 )
-def rnaPlot(clicks, clicks2, geneName, dataSets, rnaParamList):
-    """Main callback that handles the dynamic visualisation of the rnaSeq data
+def rnaPlot(submit, confirm, eventConfirm, geneName, displayMode,rnaParamList, colors, colorsFinal, eventColors, eventColorsFinal, legendSpacing):
+    """Main callback that handles the dynamic visualisation of the RNA-seq data
 
         Positional arguments:
-        clicks -- Needed to trigger callback with button, not needed otherwise
+        submit -- Needed to trigger callback with submit button
+        confirm -- Needed to trigger callback with confirm button
+        eventConfirm -- Triggers callback with confirm button of event color selector
         geneName -- Name of the selected gene in order to filter the data
-        seqDisp -- Display mode for dna sequence trace
+        displaymode --determines how splice events will be visualized
+        rnaParamList -- Selected RNA data sets to plot 
+        colors -- Color currently being confirmed. Needed due to lack of order on callbacks
+        colorsFinal -- Last confirmed color
+        eventColors -- Colors for splice events being confirmed
+        eventColorsFinal -- last confirmed colors for splice events
+        legendSpacing -- Specifies margin between colorbar and other legend items
         """
+    if submit > confirm:
+        colors = colorsFinal
+    else:
+        colors = colors
+    
+    legendColumnSpacing = json.loads(legendSpacing)
 
-    # select appropriate data from either the coding or non-coding set
+    # select appropriate data from gene annotations
     currentGene = pandas.DataFrame()
     for index, elem in enumerate(geneAnnotations):
         currentGene = elem[elem['name'].str.contains(geneName)]
@@ -850,77 +1461,113 @@ def rnaPlot(clicks, clicks2, geneName, dataSets, rnaParamList):
     xAxisMax = currentGene['chromEnd'].max()
     xAxisMin = currentGene['chromStart'].min()
     chrom = currentGene['chrom'].iloc[0]
-    color_dict = {}  # color per mutant
-    colors = ['red', 'orange', 'yellow', 'green', 'blue', 'violet',
-              'red', 'orange', 'yellow', 'green', 'blue', 'violet',
-              'red', 'orange', 'yellow', 'green', 'blue', 'violet',
-              'red', 'orange', 'yellow', 'green', 'blue', 'violet']
-    color_index = 0
-    rnaDataSets = list(spliceProcDFs.keys())
+    color_dict = json.loads(colors)  # Color per mutant
+    # Filter out needed datasets
+    rnaDataSets = sorted(list(spliceProcDFs.keys()))
     displayed_rnaDataSet = []
-    for rm in rnaParamList:
+    for rm in sorted(rnaParamList):
         for set in rnaDataSets:
             if rm == set.split('_')[0]:
                 displayed_rnaDataSet.append(set)
 
-    # dicts for lists of axis values
+    # Dicts for lists of axis values
     xVals = {}
     yVals = {}
-    max_yVal = 0
-    eventDict = {}
+    max_yVal = 0 # Used to scale y-axes later
+    eventDict = {} # stores dataframes with relevant splice event data
+    maxEventScores = []
+    minEventScores = []
+    for ds in sorted(displayed_rnaDataSet):
 
-    for ds in displayed_rnaDataSet:
-        if ds.split('_')[0] not in color_dict.keys():
-            color_dict[ds.split('_')[0]] = colors[color_index]
-            color_index += 1
-        # criteria to filter relevant lines from current dataframe
+        # Criteria to filter relevant lines from current dataframe
         bcrit11 = spliceProcDFs[ds]['chrom'] == chrom
         bcrit21 = spliceProcDFs[ds]['chromStart'] >= xAxisMin
         bcrit22 = spliceProcDFs[ds]['chromStart'] <= xAxisMax
         bcrit31 = spliceProcDFs[ds]['chromEnd'] >= xAxisMin
         bcrit32 = spliceProcDFs[ds]['chromEnd'] <= xAxisMax
         spliceSlice = spliceProcDFs[ds].loc[bcrit11 & ((bcrit21 & bcrit22) | (bcrit31 & bcrit32))]
-        # pre-init y-value list
+        # Pre-init y-value list
         yVal = [0] * (len(range(xAxisMin, xAxisMax)))
-        #yVal_events = [0] * (len(range(xAxisMin, xAxisMax)))
-        organism = ds.split("_")[0]
-        spliceEvents = pandas.DataFrame()
-        if organism in spliceEventNames[1]:
-            for d in spliceEventDFs.keys():
-                if ds in d:
-                    # criteria to filter relevant lines from current dataframe
+        organism = ds.split("_")[0] # Prefix of the curret data frame, first filter
+        spliceEvents = pandas.DataFrame() # will hold splice event data for the current data set
+        if organism in spliceEventNames[1]: # Check if there are splice events for the current prefix
+            for d in sorted(spliceEventDFs.keys()):
+                if ds in d: # Check for remaining filename, to match the correct files
+                    # Criteria to filter relevant lines from current dataframe
                     bcrit11 = spliceEventDFs[d]['chrom'] == chrom
                     bcrit21 = spliceEventDFs[d]['chromStart'] >= xAxisMin
                     bcrit22 = spliceEventDFs[d]['chromStart'] <= xAxisMax
                     bcrit31 = spliceEventDFs[d]['chromEnd'] >= xAxisMin
                     bcrit32 = spliceEventDFs[d]['chromEnd'] <= xAxisMax
                     spliceEvents = spliceEventDFs[d].loc[bcrit11 & ((bcrit21 & bcrit22) | (bcrit31 & bcrit32))]
-        # use itertuples to iterate over rows, since itertuples is supposed to be faster
+                    maxEventScores.append(spliceEvents['score'].max())
+                    minEventScores.append(spliceEvents['score'].min())
+        # Use itertuples to iterate over rows, since itertuples is supposed to be faster
         for row in spliceSlice.itertuples():
-            # increment all values covered by the current row, will overshoot when row crosses border of gene, thus try except
+            # Increment all values covered by the current row, will overshoot when row crosses border of gene, thus try except
             for j in range(row.chromStart, row.chromEnd):
                 try:
                     yVal[j - xAxisMin] += row.count
                 except IndexError:
                     pass
-         # store reference to value list in dict
+         # Store reference to value list in dict
         yVals[ds] = yVal
+        # Safe event dataframe to be used in the next function
         eventDict[ds] = spliceEvents
-        # create x-axis values
+        # Create x-axis values
         xVal = list(range(xAxisMin, xAxisMax))
         xVals[ds] = xVal
+        colorScale = (min(minEventScores), max(maxEventScores))
+        # Find maximum y-axis value for axis scaling
         if max(yVal) > max_yVal: max_yVal = max(yVal)
-    fig = createAreaChart(xVals, yVals, max_yVal, eventDict, displayed_rnaDataSet, color_dict, dataSets, geneName)
+    fig = createAreaChart(xVals, yVals, max_yVal, eventDict, displayed_rnaDataSet, 
+                          color_dict, geneName, displayMode, eventConfirm, submit, eventColors, eventColorsFinal, colorScale,
+                          legendColumnSpacing)
     return fig
 
 def overlap(a, b):
+    """check if two intervals overlap
+
+    Positional arguments:
+    a -- first interval
+    b -- second interval
+    """
     return a[1] > b[0] and a[0] < b[1]
 
 
-def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict, dataSets, geneName):
+def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict, 
+                    geneName, displayMode, eventConfirm, submit, eventColors, eventColorsFinal, colorScale,
+                    legendColumnSpacing):
+    """Create the plots for both coverage and splice events
+
+    Positional arguments:
+    xVals -- x-axis values for coverage plot
+    yVals -- y-axis values for coverage plot
+    max_yVal -- maximum y value across all coverage tracks, used to scale all y-axes
+    eventData -- Dict containing the dataframes with relevant splice events
+    displayed -- displayed datasets
+    color_dict -- colors for the coverage plots
+    geneName -- name of the selected gene, needed for gene models
+    displayMode -- determines how splice events are visualized
+    eventconfirm -- confirm button for event color selection
+    submit -- global submit button 
+    eventColors -- Colors for splice events being confirmed
+    eventColorsFinal -- last confirmed colors for splice events
+    colorScale -- unified colorscale used for score visualization
+    LegendColumnSpacing -- Specifies margin between colorbar and other legend items
+    """
+    if submit > eventConfirm:
+        evColors = json.loads(eventColorsFinal)
+    else:
+        evColors = json.loads(eventColors)
+        
     data = []
     subplot_titles = []
-    for ds in displayed:
+    legendSet = {}
+    colorbarSet = False
+    for val in eventTypes:
+                legendSet[val] = False
+    for ds in sorted(displayed):
         xAxis = xVals[ds]
         yAxis = yVals[ds]
         organism = ds.split('_')[0]
@@ -940,112 +1587,260 @@ def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict, da
             )
             subplot_titles.append(ds)
             data.append(trace)
-        if spliceEventAvail:
-            intervals = []
-            eventXValues = []
-            eventWidths = []
-            eventBases = []
-            # iterate through dataframe rows and calculate stacking aswell as bar parameters
-            for row in eventData[ds].itertuples():
-                if len(intervals) == 0:
-                    intervals.append((row.chromStart, row.chromEnd))
-                    eventXValues.append(row.chromStart + (row.chromEnd - row.chromStart) / 2)
-                    eventWidths.append(row.chromEnd - row.chromStart)
-                    eventBases.append(0)
+        if spliceEventAvail:      
+            if displayMode in ['one', 'two']:
+                intervals = [] # Used to calculate overlaps, stores used intervals as well as row that interval was put on
+                eventXValues = {} # Stores x-axis values per event type
+                eventWidths = {} # Stores widths per event type
+                eventBases = {} # Stores y offset per event type
+                eventScores = {}
+                # Iterate through dataframe rows and calculate stacking aswell as bar parameters
+                maxStack = 0 # keeps track of the maximum number of stacked bars, to avoid empty rows
+                for row in eventData[ds].itertuples():
+                    if row.chromStart > row.chromEnd: # Handle errornous input where chromStart > chromEnd and print warning
+                        print('Warning; Event in dataset ' + str(ds) +' on chromosome ' + str(row.chrom) + ' at startpoint ' + str(row.chromStart) +
+                              ' startpoint is greater than endpoint.')
+                    maxVal = max(row.chromStart, row.chromEnd) 
+                    minVal = min(row.chromStart, row.chromEnd)
+                    key = row.type # Type of the current event
+                    if len(intervals) == 0: # Row is the first row, no comparisons
+                        try: # If list already exist append
+                            eventXValues[key].append(minVal + (maxVal - minVal) / 2)
+                            eventWidths[key].append(maxVal - minVal)
+                            eventBases[key].append(0)
+                            eventScores[key].append(row.score)
+                            intervals.append(((minVal, maxVal),0))
+                        except KeyError: # Else create corresponding lists in dictionary
+                            eventXValues[key] = [minVal + (maxVal - minVal) / 2]
+                            eventWidths[key] = [maxVal - minVal]
+                            eventBases[key] = [0]
+                            eventScores[key] = [row.score]
+                            intervals.append(((minVal, maxVal),0))
+                        maxStack == 1
+                    else: # Row is not the first row, check through already processed intervals to calculate offset
+                        numOverlaps = 0
+                        heights = [] # Store all rows on which overlaps occur
+                        for i in intervals:
+                            if overlap(i[0], (minVal, maxVal)) == True:
+                                heights.append(i[1])
+                                numOverlaps += 1
+                        if len(heights) > 0:
+                            slot = 0 # First free row the new bar can be placed on
+                            for value in range(0, max(heights)+2): # Find first open slot
+                                if value not in heights:
+                                    slot = value
+                                    break
+                            numOverlaps = slot # Set numOverlaps accordingly
+                        try:
+                            eventXValues[key].append(minVal + (maxVal - minVal) / 2)
+                            eventWidths[key].append(maxVal - minVal)
+                            if numOverlaps > maxStack:
+                                if numOverlaps > maxStack + 1:
+                                    maxStack += 1
+                                    numOverlaps = maxStack
+                                else:
+                                    maxStack = numOverlaps
+                            eventBases[key].append(numOverlaps + 0.5*numOverlaps)
+                            eventScores[key].append(row.score)
+                            intervals.append(((minVal, maxVal),numOverlaps))
+                        except KeyError:
+                            eventXValues[key]  = [minVal + (maxVal - minVal) / 2]
+                            eventWidths[key] = [maxVal - minVal]
+                            if numOverlaps > maxStack:
+                                if numOverlaps > maxStack + 1:
+                                    maxStack += 1
+                                    numOverlaps = maxStack
+                                else:
+                                    maxStack = numOverlaps
+                            eventBases[key] = [numOverlaps + 0.5*numOverlaps]
+                            eventScores[key] = [row.score]
+                            intervals.append(((minVal, maxVal), numOverlaps))
+                traces = []
+                for k in sorted(eventXValues.keys()):
+                    legend = False # Show legend item 
+                    traceColor = 'darkblue'
+                    if displayMode == 'two':
+                        if legendSet[k] == False: # Legend item for this event type is not displayed, display it
+                            legendSet[k] = True
+                            legend = True
+                        traceColor = evColors[k]
+                    trace = go.Bar(
+                        x=eventXValues[k],
+                        y=[1]*len(eventXValues[k]),
+                        width = eventWidths[k],
+                        base = eventBases[k],
+                        name = k,
+                        showlegend = legend,
+                        legendgroup = k, # Group traces from different datasets so they all repsond to the one legend item
+                        insidetextfont=dict(
+                            family="Arial",
+                            color="black"
+                        ),
+                        textposition='auto',
+                        marker=dict(
+                            color= traceColor,
+                        )
+                    )
+                    traces.append(trace)
+                subplot_titles.append("")
+                data.append(traces)
+            else: # Displaymode: Score heatmap
+                intervals = [] # Used to calculate overlaps, stores used intervals as well as row that interval was put on
+                eventXValues = [] # Stores x-axis values per event type
+                eventWidths = [] # Stores widths per event type
+                eventBases = [] # Stores y offset per event type
+                eventScores = [] # score for each event
+                # Iterate through dataframe rows and calculate stacking aswell as bar parameters
+                maxStack = 0 # keeps track of the maximum number of stacked bars, to avoid empty rows
+                for row in eventData[ds].itertuples():
+                    if row.chromStart > row.chromEnd: # Handle errornous input where chromStart > chromEnd and print warning
+                        print('Warning; Event in dataset ' + str(ds) +' on chromosome ' + str(row.chrom) + ' at startpoint ' + str(row.chromStart) +
+                              ' startpoint is greater than endpoint.')
+                    maxVal = max(row.chromStart, row.chromEnd) 
+                    minVal = min(row.chromStart, row.chromEnd)
+                    if len(intervals) == 0: # Row is the first row, no comparisons
+                        eventXValues.append(minVal + (maxVal - minVal) / 2)
+                        eventWidths.append(maxVal - minVal)
+                        eventBases.append(0)
+                        eventScores.append(row.score)
+                        intervals.append(((minVal, maxVal),0))
+                        maxStack == 1
+                    else: # Row is not the first row, check through already processed intervals to calculate offset
+                        numOverlaps = 0
+                        heights = [] # Store all rows on which overlaps occur
+                        for i in intervals:
+                            if overlap(i[0], (minVal, maxVal)) == True:
+                                heights.append(i[1])
+                                numOverlaps += 1
+                        if len(heights) > 0:
+                            slot = 0 # First free row the new bar can be placed on
+                            for value in range(0, max(heights)+2): # Find first open slot
+                                if value not in heights:
+                                    slot = value
+                                    break
+                            numOverlaps = slot # Set numOverlaps accordingly
+                        eventXValues.append(minVal + (maxVal - minVal) / 2)
+                        eventWidths.append(maxVal - minVal)
+                        if numOverlaps > maxStack:
+                            if numOverlaps > maxStack + 1:
+                                maxStack += 1
+                                numOverlaps = maxStack
+                            else:
+                                maxStack = numOverlaps
+                        eventBases.append(numOverlaps + 0.5*numOverlaps)
+                        eventScores.append(row.score)
+                        intervals.append(((minVal, maxVal),numOverlaps))
+                if colorbarSet == False:
+                    showBar = True
+                    colorbarSet = True
                 else:
-                    numOverlaps = 0
-                    for i in intervals:
-                        if overlap(i, (row.chromStart, row.chromEnd)) == True:
-                            numOverlaps += 1
-                    intervals.append((row.chromStart, row.chromEnd))
-                    eventXValues.append(row.chromStart + (row.chromEnd - row.chromStart) / 2)
-                    eventWidths.append(row.chromEnd - row.chromStart)
-                    eventBases.append(numOverlaps)               
-            trace1 = go.Bar(
-                x=eventXValues,
-                y=[1]*len(eventXValues),
-                width = eventWidths,
-                base = eventBases,
-                showlegend=False,
-                insidetextfont=dict(
-                    family="Arial",
-                    color="black"
-                ),
-                textposition='auto',
-                marker=dict(
-                    color='darkblue',
-                    line=dict(
-                        color='darkblue',
-                        width=1),
+                    showBar = False
+                trace = go.Bar(
+                    x=eventXValues,
+                    y=[1]*len(eventXValues),
+                    width = eventWidths,
+                    base = eventBases,
+                    showlegend = False,
+                    insidetextfont=dict(
+                        family="Arial",
+                        color="black"
+                    ),
+                    text = eventScores,
+                    hoverinfo = 'x+text',
+                    
+                    marker=dict(
+                        color= eventScores,
+                        colorscale = 'Viridis',
+                        showscale = showBar,
+                        cmin = colorScale[0],
+                        cmax = colorScale[1],
+                        colorbar =dict(
+                            len = 1.0,
+                            y = 0.0,
+                            x = 1.0,
+                            yanchor = 'bottom',
+                        )
+                    )
                 )
-            )
-            subplot_titles.append("")
-            data.append(trace1)
+                subplot_titles.append("")
+                data.append(trace)   
 
-
+                    
     currentGene = pandas.DataFrame()
     for index, elem in enumerate(geneAnnotations):
         currentGene = elem[elem['name'].str.contains(geneName)]
         if not currentGene.empty:
             break
-    numIsoforms = len(currentGene)
+    numIsoforms = len(currentGene) # Number of isoforms in the gene model
     numRows = len(data)+numIsoforms
 
+    # Setup row heights based on available data
     row_heights = []
     if spliceEventAvail:
         for i in range(numRows):
-            if i > len(data)-1: row_heights.append(2/numRows)
+            if i > len(data)-1: row_heights.append(1/numRows) # Gene model row
             elif (i % 2 != 0):
-                row_heights.append(1/numRows)
+                row_heights.append(3/numRows) # Splice event row
             else:
-                row_heights.append(3/numRows)
+                row_heights.append(3/numRows) # Coverage row
     else:
         for i in range(numRows):
-            if i > len(data)-1: row_heights.append(2/numRows)
+            if i > len(data)-1: row_heights.append(1/numRows) # Gene model row
             else:
-                row_heights.append(3/numRows)
-
+                row_heights.append(3/numRows) # Coverage row
     fig = tools.make_subplots(rows=numRows, cols=1, subplot_titles=subplot_titles,
                               shared_xaxes=True, row_width=row_heights[::-1])
 
+    eventIndices = [] # save indices of all elements that contain event traces
     for index, t in enumerate(data):
-        fig.append_trace(t, index + 1, 1)
+        try:
+            fig.append_trace(t, index + 1, 1)
+        except ValueError:
+            eventIndices.append(index)
+    for i in eventIndices: # add event traces after all coverage traces have been added for legend item positioning
+        for x in data[i]:
+            fig.append_trace(x, i + 1, 1)
 
 
-    rnaSequencePlot(fig, geneName, numRows, len(data), dataSets)
+    rnaSequencePlot(fig, geneName, numRows, len(data))
     fig['layout']['yaxis'].update(showticklabels=True, showgrid=True, zeroline=True)
     for i in range(1, numRows+1):
             if spliceEventAvail:
-                if i % 2 != 0 and i <= len(data):
+                if i % 2 != 0 and i <= len(data): # Coverage row
                     fig['layout']['yaxis' + str(i)].update(range=[0, max_yVal])
                     fig['layout']['yaxis' + str(i)].update(showticklabels=True, showgrid=True, zeroline=True)
-                else:
+                else: # Event row
                     fig['layout']['yaxis' + str(i)].update(showticklabels=False, showgrid=False, zeroline=False)
             else:
-                if i <= len(data):
+                if i <= len(data): # Coverage row
+                    print('here')
                     fig['layout']['yaxis' + str(i)].update(range=[0, max_yVal])
                     fig['layout']['yaxis' + str(i)].update(showticklabels=True, showgrid=True, zeroline=True)
-                else:
+                else: # Gene model row
                     fig['layout']['yaxis' + str(i)].update(showticklabels=False, showgrid=False, zeroline=False)
-    fig['layout']['height'] = (80 * len(data) + 50 * numIsoforms)
-
+    # Setup plot height, add 85 to account for margins
+    fig['layout']['height'] = (80 * len(data) + 50 * numIsoforms +85)
+    fig['layout']['legend'].update(x = legendColumnSpacing)
     return fig
 
 
-def rnaSequencePlot(fig, geneName, numRows, len_data, dataSets):
+def rnaSequencePlot(fig, geneName, numRows, len_data):
+    """ Adds gene model plots to coverage and splice event plots
+    
+    Positional arguments:
+    fig -- Current figure, needed to add additional rows
+    geneName -- Name of the currently selected gene
+    numRows -- Number of rows, needed to prevent zoom on y-axes
+    len_data -- Number of RNA-seq rows, used as start point for gene model rows
+    """
 
-    numParams = len(dataSets)  # number of selected data tracks
-    baseHeight = 30  # size of gene model row, for plot scaling
-    # select appropriate data from either the coding or non-coding set
+    # Select appropriate data from either the coding or non-coding set
     currentGene = pandas.DataFrame()
     for index, elem in enumerate(geneAnnotations):
         currentGene = elem[elem['name'].str.contains(geneName)]
         if not currentGene.empty:
             break
 
-
-    # final height values for rows respecting type, has to be in bottom-up order
-    dataSetHeights = []
     fig['layout']['xaxis'].update(nticks=6)
     fig['layout']['xaxis'].update(tickmode='array')
     fig['layout']['xaxis'].update(showgrid=True)
@@ -1054,17 +1849,15 @@ def rnaSequencePlot(fig, geneName, numRows, len_data, dataSets):
     fig['layout'].update(hovermode='x')
     fig['layout']['yaxis'].update(fixedrange=True)
 
-    xAxisMax = currentGene['chromEnd'].max()
-    xAxisMin = currentGene['chromStart'].min()
     strand = currentGene['strand'].iloc[0]
 
     chromEnds = []  # used for arrow positioning
 
     counter = len_data+1
 
-    # calculate gene models. We have to distinguish between coding region and non-coding region
+    # Calculate gene models. We have to distinguish between coding region and non-coding region
     for i in currentGene.iterrows():
-        # setup various helpers to work out the different sized blocks
+        # Setup various helpers to work out the different sized blocks
         chromEnds.append(i[1]['chromEnd'])
         blockStarts = [int(x) for x in i[1]['blockStarts'].rstrip(',').split(',')]
         blockSizes = [int(x) for x in i[1]['blockSizes'].rstrip(',').split(',')]
@@ -1073,13 +1866,12 @@ def rnaSequencePlot(fig, geneName, numRows, len_data, dataSets):
                                       0.4, i[1]['name'])
         for j in range(len(genemodel)):
             fig.append_trace(genemodel[j], counter, 1)
-            # move on to the next gene model
+            # Move on to the next gene model
         counter += 1
 
-    # the trailing ',' actually matters for some reason, don't remove
+    # The trailing ',' actually matters for some reason, don't remove
     fig['layout'].update(
         barmode='relative',
-        margin=go.layout.Margin(l=30, r=40, t=25, b=60),
     )
     if strand == '-':
         fig['layout']['xaxis'].update(autorange='reversed')
@@ -1088,6 +1880,7 @@ def rnaSequencePlot(fig, geneName, numRows, len_data, dataSets):
             fig['layout']['yaxis'].update(fixedrange=True)
         else:
             fig['layout']['yaxis' + str(i)].update(fixedrange=True)
+    # set spacing for the second legend column
     return fig
 
 
@@ -1127,9 +1920,10 @@ def setDesc(clicks, name):
      dash.dependencies.State('paramList', 'values'),
      dash.dependencies.State('sequenceRadio', 'value'),
      dash.dependencies.State('colorDiv', 'children'),
-     dash.dependencies.State('colorFinal', 'children')]
+     dash.dependencies.State('colorFinal', 'children'),
+     dash.dependencies.State('legendSpacingDiv', 'children')]
 )
-def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal):
+def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal, legendSpacing):
     """Main callback that handles the dynamic visualisation of selected data
 
     Positional arguments:
@@ -1140,6 +1934,7 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal):
     seqDisp -- Display mode for dna sequence trace
     colors -- Color currently being confirmed. Needed due to lack of order on callbacks
     colorsFinal -- Last confirmed color
+    legendSpacing -- Specifies margin between colorbar and other legend items
     """
     
     # Check which of the two triggering buttons was pressed last
@@ -1148,11 +1943,13 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal):
     else:
         colors = colors
         
+    legendColumnSpacing = json.loads(legendSpacing)
+    
     # Sort the list of selected data tracks to keep consistent order
     for i in sortKeys:
         try:
             dataSets.sort(key=eval(i[0], {'__builtins__': None}, {}), reverse=eval(i[1], {'__builtins__': None}, {}))
-        except:
+        except (TypeError, SyntaxError):
             print(
                 'Please check your keys. Each key should be added similar to this: -k \'lambda x : x[-2:]\' \'False\'	. For multiple keys use multiple instances of -k')
     numParams = len(dataSets)  # Number of selected data tracks
@@ -1173,13 +1970,11 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal):
         procDataRows = numParams * 0.5
     else:
         procDataRows = 0
-    numRowsW = rawDataRows + procDataRows + (
-        len(currentGene)) + 1  # Big data rows + significant sites + isoforms + sequence
     numRows = numParams * dsElements + len(
         currentGene) + 1  # Number of rows without weights for specific sizes, +1 for dna sequence track
     plotSpace = 0.8  # Space taken up by data tracks
     spacingSpace = 1.0 - plotSpace  # Space left for spacer tracks
-    rowHeight = plotSpace / numRowsW
+    rowHeight = plotSpace / numRows
     if numRows > 1:
         vSpace = spacingSpace / (numRows - 1)
     else:
@@ -1205,54 +2000,16 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal):
     strand = currentGene['strand'].iloc[0]
     if strand == '-':
         fig['layout']['xaxis'].update(autorange='reversed')
-    # Setup some variables to build master sequence from isoform-sequences
-    if ensembl == False:
-        if len(currentGene.loc[currentGene['chromEnd'].idxmax()]['name'].split('_')) > 1:
-            nameRightSeq = currentGene.loc[currentGene['chromEnd'].idxmax()]['name'].split('.')[1].replace('_', '.')
-            nameLeftSeq = currentGene.loc[currentGene['chromStart'].idxmin()]['name'].split('.')[1].replace('_', '.')
-        else:
-            nameRightSeq = currentGene.loc[currentGene['chromEnd'].idxmax()]['name']
-            nameLeftSeq = currentGene.loc[currentGene['chromStart'].idxmin()]['name']
-    else:
-        if len(currentGene.loc[currentGene['chromEnd'].idxmax()]['name'].split('_')) > 1:
-            nameRightSeq = currentGene.loc[currentGene['chromEnd'].idxmax()]['name'].split('.')[1].replace('_', '.')
-            nameLeftSeq = currentGene.loc[currentGene['chromStart'].idxmin()]['name'].split('.')[1].replace('_', '.')
-        else:
-            nameRightSeq = currentGene.loc[currentGene['chromEnd'].idxmax()]['name']
-            nameLeftSeq = currentGene.loc[currentGene['chromStart'].idxmin()]['name']
-    rightStart = currentGene.loc[currentGene['chromEnd'].idxmax()]['chromStart']
-    leftEnd = currentGene.loc[currentGene['chromStart'].idxmin()]['chromEnd']
-    combinedSeq = ''
-
-    if rightStart <= leftEnd:  # Left and right sequence have overlap, we don't need more parts to create master
-        for i in sequences:
-            try:
-                combinedSeq = str(i[nameLeftSeq].seq) + str(i[nameRightSeq].seq)[(leftEnd - rightStart):]
-            except KeyError:
-                pass
-    else:  # try to create master sequence by piecing together more than two sequences
-        for i in sequences:
-            try:
-                currentSequenceSet = i
-                break
-            except KeyError:
-                pass
-        try:
-            combinedSeq = str(currentSequenceSet[nameLeftSeq].seq)
-            currentEnd = leftEnd
-            for i in currentGene.itertuples():
-                if i.chromEnd > currentEnd:
-                    if i.chromStart <= currentEnd:
-                        combinedSeq += str(currentSequenceSet[i.name].seq)[(currentEnd - i.chromStart):]
-                        currentEnd = i.chromEnd
-                if currentEnd >= xAxisMax:
-                    break
-            if currentEnd < rightStart:  # Case that there is a gap between leftmost and rightmost sequence.
-                fillerDist = rightStart - currentEnd
-                combinedSeq += [''] * fillerDist
-                combinedSeq += str(currentSequenceSet[nameRightSeq].seq)
-        except KeyError:
-            pass
+    # create list of 3-tupels containing start, end, name for each isoform.
+    # Format name properly
+    isoformRanges = []
+    for elem in currentGene.itertuples():
+        name = elem.name
+        if len(elem.name.split('_')) > 1:
+            name = elem.name.split('.')[1].replace('_', '.')
+        isoformRanges.append((elem.chromStart, elem.chromEnd, name))
+    # create master sequence
+    combinedSeq = generateMasterSequence(sequences, isoformRanges, xAxisMax)
 
     try:  # Create traces for sequence display, either scatter or heatmap
         traces = generateSequenceTrace(seqDisp, strand, combinedSeq, xAxisMin, xAxisMax)
@@ -1311,11 +2068,45 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal):
                                + baseHeight * procDataRows
                                + baseHeight * (len(currentGene) + 1)
                                + 80)
+    fig['layout']['legend'].update(x = legendColumnSpacing)
     return fig
 
+def generateMasterSequence(sequences, isoforms, xAxisMax):
+    """Helper function that creates a master sequence given a dataframe with sequences and a list containing
+        start and end points as well as names for the relevant isoforms
+    
+    Positional arguments:
+    sequences -- The list of sequence dicts
+    isoforms -- List containing three-tuples(start, end, name) for each isoform
+    xAxisMax -- endpoint of the gene on the x-axis, used for potential early termination
+    """  
+    # Sort tuples by start point. this ensures that the algorithm will cover the whole
+    # gene sequence, if possible, albeit not necessarily with the least amount of subsequences
+    isoforms.sort()
+    # Initialize using the leftmost sequence
+    currentEnd = isoforms[0][1]
+    seqDict = None
+    for i in sequences: # Determine which dict contains the relevant sequences, all have to be in the same dict
+        if isoforms[0][2] in i:
+            seqDict = i
+    combinedSeq = str(seqDict[isoforms[0][2]].seq)
+    # loop through elements and try to append sequences
+    for elem in isoforms:
+        if elem[1] > currentEnd: 
+            if elem[0] <= currentEnd: # current element overlaps and adds to the sequence
+                combinedSeq += str(seqDict[elem[2]].seq)[(currentEnd - elem[0]):]
+                currentEnd = elem[1]
+            else: # current element does not overlap but will add to the sequence, fill with gaps
+                fillerDist = elem[0] - currentEnd
+                combinedSeq += [''] * fillerDist
+                combinedSeq += str(seqDict[elem[2]].seq)
+                currentEnd = elem[1]                    
+        if currentEnd >= xAxisMax: # The master sequence is complete, the entire region is covered
+            break
+    return combinedSeq
 
 def plotICLIP(name, xMax, xMin, chrom, strand, colors):
-    """Helper method to plot the subplots containing iCLIP data
+    """Helper function to plot the subplots containing iCLIP data
     
     Positional arguments:
     name -- name of the subplot to create a title
@@ -1630,12 +2421,17 @@ def generateSequenceTrace(seqDisp, strand, combinedSeq, xAxisMin, xAxisMax):
             x=list(range(xAxisMin, xAxisMax)),
             text=[textList],
             colorscale=colors,
-            showscale=False,
+            showscale=True,
             name='seq',
             hoverinfo='x+text',
             colorbar={
-                'tick0': 0,
-                'dtick': 1
+                'x' : 1.0,
+                'y' : 0.0,
+                'tickmode' : 'array',
+                'tickvals' : [0.4,1.1,1.86,2.6  ],
+                'ticktext' : ['A', 'T', 'C', 'G'],
+                'yanchor' : 'bottom',
+                'len' : 1.0
             }
         )
         return [heatTrace]
@@ -1652,11 +2448,11 @@ def createDetailRow(content, name, rowNumber):
     # Check subtable information
     try:
         headerLine = subTables[subTables['column_id'].str.contains(name)]
-    except:
+    except (TypeError, AttributeError):
         headerLine = None
     try:
         headers = str(headerLine.iloc[0]['columns']).split(';')
-    except:
+    except (TypeError, AttributeError):
         headers = None
         
     subRows = [] # Holds elements for multivalue attributes
