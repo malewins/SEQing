@@ -1475,8 +1475,6 @@ def rnaPlot(submit, confirm, eventConfirm, geneName, displayMode,rnaParamList, c
     yVals = {}
     max_yVal = 0 # Used to scale y-axes later
     eventDict = {} # stores dataframes with relevant splice event data
-    maxEventScores = []
-    minEventScores = []
     for ds in sorted(displayed_rnaDataSet):
 
         # Criteria to filter relevant lines from current dataframe
@@ -1500,8 +1498,6 @@ def rnaPlot(submit, confirm, eventConfirm, geneName, displayMode,rnaParamList, c
                     bcrit31 = spliceEventDFs[d]['chromEnd'] >= xAxisMin
                     bcrit32 = spliceEventDFs[d]['chromEnd'] <= xAxisMax
                     spliceEvents = spliceEventDFs[d].loc[bcrit11 & ((bcrit21 & bcrit22) | (bcrit31 & bcrit32))]
-                    maxEventScores.append(spliceEvents['score'].max())
-                    minEventScores.append(spliceEvents['score'].min())
         # Use itertuples to iterate over rows, since itertuples is supposed to be faster
         for row in spliceSlice.itertuples():
             # Increment all values covered by the current row, will overshoot when row crosses border of gene, thus try except
@@ -1517,7 +1513,7 @@ def rnaPlot(submit, confirm, eventConfirm, geneName, displayMode,rnaParamList, c
         # Create x-axis values
         xVal = list(range(xAxisMin, xAxisMax))
         xVals[ds] = xVal
-        colorScale = (min(minEventScores), max(maxEventScores))
+        colorScale = (-1.0,1.0)
         # Find maximum y-axis value for axis scaling
         if max(yVal) > max_yVal: max_yVal = max(yVal)
     fig = createAreaChart(xVals, yVals, max_yVal, eventDict, displayed_rnaDataSet, 
@@ -1734,7 +1730,7 @@ def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict,
                     showBar = True
                     colorbarSet = True
                 else:
-                    showBar = False
+                    showBar = True
                 trace = go.Bar(
                     x=eventXValues,
                     y=[1]*len(eventXValues),
