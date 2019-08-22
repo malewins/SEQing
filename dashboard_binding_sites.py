@@ -1461,6 +1461,7 @@ def rnaPlot(submit, confirm, eventConfirm, geneName, displayMode,rnaParamList, c
     xAxisMax = currentGene['chromEnd'].max()
     xAxisMin = currentGene['chromStart'].min()
     chrom = currentGene['chrom'].iloc[0]
+
     color_dict = json.loads(colors)  # Color per mutant
     # Filter out needed datasets
     rnaDataSets = sorted(list(spliceProcDFs.keys()))
@@ -1767,7 +1768,29 @@ def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict,
         currentGene = elem[elem['name'].str.contains(geneName)]
         if not currentGene.empty:
             break
-    numIsoforms = len(currentGene) # Number of isoforms in the gene model
+        
+    xAxisMax = currentGene['chromEnd'].max()
+    xAxisMin = currentGene['chromStart'].min()
+    chrom = currentGene['chrom'].iloc[0]
+    strand = currentGene['strand'].iloc[0]
+    overlappingGenes = []
+    for i in geneAnnotations:
+        bcrit11 = i['chrom'] == chrom
+        bcrit12 = i['strand'] == strand
+        bcrit21 = i['chromStart'] >= xAxisMin
+        bcrit22 = i['chromStart'] <= xAxisMax
+        bcrit31 = i['chromEnd'] >= xAxisMin
+        bcrit32 = i['chromEnd'] <= xAxisMax
+        bcrit41 = i['chromStart'] <= xAxisMin
+        bcrit42 = i['chromEnd'] >= xAxisMax
+        preDF = i.loc[bcrit11 & bcrit12 & ((bcrit21 & bcrit22) | (bcrit31 & bcrit32) | (bcrit41 & bcrit42))]
+        result = preDF[~preDF['name'].str.contains(geneName)]
+        overlappingGenes.append(result)
+        
+    overlaps = pandas.concat(overlappingGenes)
+    isoformList = pandas.concat([currentGene, overlaps]) 
+    
+    numIsoforms = len(isoformList) # Number of isoforms in the gene model
     numRows = len(data)+numIsoforms
 
     # Setup row heights based on available data
@@ -1798,7 +1821,7 @@ def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict,
             fig.append_trace(x, i + 1, 1)
 
 
-    rnaSequencePlot(fig, geneName, numRows, len(data))
+    rnaSequencePlot(fig, geneName, numRows, len(data), isoformList, xAxisMax, xAxisMin, strand)
     fig['layout']['yaxis'].update(showticklabels=True, showgrid=True, zeroline=True)
     for i in range(1, numRows+1):
             if spliceEventAvail:
@@ -1820,7 +1843,7 @@ def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict,
     return fig
 
 
-def rnaSequencePlot(fig, geneName, numRows, len_data):
+def rnaSequencePlot(fig, geneName, numRows, len_data, isoformList, xAxisMax, xAxisMin, strand):
     """ Adds gene model plots to coverage and splice event plots
     
     Positional arguments:
@@ -1830,12 +1853,6 @@ def rnaSequencePlot(fig, geneName, numRows, len_data):
     len_data -- Number of RNA-seq rows, used as start point for gene model rows
     """
 
-    # Select appropriate data from either the coding or non-coding set
-    currentGene = pandas.DataFrame()
-    for index, elem in enumerate(geneAnnotations):
-        currentGene = elem[elem['name'].str.contains(geneName)]
-        if not currentGene.empty:
-            break
 
     fig['layout']['xaxis'].update(nticks=6)
     fig['layout']['xaxis'].update(tickmode='array')
@@ -1845,24 +1862,15 @@ def rnaSequencePlot(fig, geneName, numRows, len_data):
     fig['layout'].update(hovermode='x')
     fig['layout']['yaxis'].update(fixedrange=True)
 
-    strand = currentGene['strand'].iloc[0]
-
     chromEnds = []  # used for arrow positioning
 
     counter = len_data+1
 
     # Calculate gene models. We have to distinguish between coding region and non-coding region
-    for i in currentGene.iterrows():
-        # Setup various helpers to work out the different sized blocks
-        chromEnds.append(i[1]['chromEnd'])
-        blockStarts = [int(x) for x in i[1]['blockStarts'].rstrip(',').split(',')]
-        blockSizes = [int(x) for x in i[1]['blockSizes'].rstrip(',').split(',')]
-        genemodel = generateGeneModel(int(i[1]['chromStart']), int(i[1]['thickStart']), int(i[1]['thickEnd'] - 1),
-                                      blockStarts, blockSizes,
-                                      0.4, i[1]['name'])
-        for j in range(len(genemodel)):
-            fig.append_trace(genemodel[j], counter, 1)
-            # Move on to the next gene model
+    geneModels = generateGeneModel(isoformList, xAxisMin, xAxisMax, 0.4)
+    for model in geneModels:
+        for part in model:
+            fig.append_trace(part, counter, 1)
         counter += 1
 
     # The trailing ',' actually matters for some reason, don't remove
@@ -1958,6 +1966,30 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal, 
         if not currentGene.empty:
             break
     # Row heights and spacing
+    
+    xAxisMax = currentGene['chromEnd'].max()
+
+    xAxisMin = currentGene['chromStart'].min()
+    strand = currentGene['strand'].iloc[0]
+    chrom = currentGene['chrom'].iloc[0]
+   
+    overlappingGenes = []
+    for i in geneAnnotations:
+        bcrit11 = i['chrom'] == chrom
+        bcrit12 = i['strand'] == strand
+        bcrit21 = i['chromStart'] >= xAxisMin
+        bcrit22 = i['chromStart'] <= xAxisMax
+        bcrit31 = i['chromEnd'] >= xAxisMin
+        bcrit32 = i['chromEnd'] <= xAxisMax
+        bcrit41 = i['chromStart'] <= xAxisMin
+        bcrit42 = i['chromEnd'] >= xAxisMax
+        preDF = i.loc[bcrit11 & bcrit12 & ((bcrit21 & bcrit22) | (bcrit31 & bcrit32) | (bcrit41 & bcrit42))]
+        result = preDF[~preDF['name'].str.contains(geneName)]
+        overlappingGenes.append(result)
+        
+    overlaps = pandas.concat(overlappingGenes)
+    isoformList = pandas.concat([currentGene, overlaps]) 
+    
     if rawAvail == True:
         rawDataRows = numParams * rowOffset
     else:
@@ -1967,7 +1999,7 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal, 
     else:
         procDataRows = 0
     numRows = numParams * dsElements + len(
-        currentGene) + 1  # Number of rows without weights for specific sizes, +1 for dna sequence track
+        isoformList) + 1  # Number of rows without weights for specific sizes, +1 for dna sequence track
     plotSpace = 0.8  # Space taken up by data tracks
     spacingSpace = 1.0 - plotSpace  # Space left for spacer tracks
     rowHeight = plotSpace / numRows
@@ -1982,7 +2014,7 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal, 
         dataSetHeights.append(rowHeight / 2)
     if rawAvail == True:
         dataSetHeights.append(rowHeight * rowOffset)
-    rowHeights = [rowHeight] * len(currentGene) + dataSetHeights * numParams + [rowHeight]
+    rowHeights = [rowHeight] * len(isoformList) + dataSetHeights * numParams + [rowHeight]
     fig = tools.make_subplots(rows=numRows, cols=1, shared_xaxes=True, vertical_spacing=vSpace, row_width=rowHeights)
     fig['layout']['xaxis'].update(nticks=6)
     fig['layout']['xaxis'].update(tickmode='array')
@@ -1991,9 +2023,6 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal, 
     fig['layout']['xaxis'].update(ticksuffix='b')
     fig['layout'].update(hovermode='x')
 
-    xAxisMax = currentGene['chromEnd'].max()
-    xAxisMin = currentGene['chromStart'].min()
-    strand = currentGene['strand'].iloc[0]
     if strand == '-':
         fig['layout']['xaxis'].update(autorange='reversed')
     # create list of 3-tupels containing start, end, name for each isoform.
@@ -2015,10 +2044,6 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal, 
         pass
     except TypeError:
         pass
-    #       pass
-
-    # Save strand info, necessary for binding site traces. Should be same for all isoforms, so any will do
-    chrom = currentGene['chrom'].iloc[0]
 
     counter = 2
     for i in range(len(dataSets)):
@@ -2030,17 +2055,22 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal, 
         counter += dsElements
 
     # Calculate gene models. We have to distinguish between coding region and non-coding region
-    for i in currentGene.itertuples():
-        # Setup various helpers to work out the different sized blocks
-        blockStarts = [int(x) for x in i.blockStarts.rstrip(',').split(',')]
-        blockSizes = [int(x) for x in i.blockSizes.rstrip(',').split(',')]
-        genemodel = generateGeneModel(int(i.chromStart), int(i.thickStart), int(i.thickEnd - 1),
-                                      blockStarts, blockSizes,
-                                      0.4, i.name)
-        for j in range(len(genemodel)):
-            fig.append_trace(genemodel[j], counter, 1)
-            # Move on to the next gene model
+    geneModels = generateGeneModel(isoformList, xAxisMin, xAxisMax, 0.4)
+    for model in geneModels:
+        for part in model:
+            fig.append_trace(part, counter, 1)
         counter += 1
+   # for i in currentGene.itertuples():
+       # Setup various helpers to work out the different sized blocks
+     #   blockStarts = [int(x) for x in i.blockStarts.rstrip(',').split(',')]
+      #  blockSizes = [int(x) for x in i.blockSizes.rstrip(',').split(',')]
+       # genemodel = generateGeneModel(int(i.chromStart), int(i.thickStart), int(i.thickEnd - 1),
+      #                                blockStarts, blockSizes,
+       #                               0.4, i.name)
+        #for j in range(len(genemodel)):
+         #   fig.append_trace(genemodel[j], counter, 1)
+            # Move on to the next gene model
+        #counter += 1
 
     # The trailing ',' actually matters for some reason, don't remove
     fig['layout'].update(
@@ -2051,7 +2081,7 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal, 
     if procAvail:
         for i in range(0, numParams * dsElements, 2):
             fig['layout']['yaxis' + str(i + 3)].update(showticklabels=False, showgrid=False, zeroline=False)
-    for i in range(len(currentGene)):  # Edit all y axis in gene model plots
+    for i in range(len(isoformList)):  # Edit all y axis in gene model plots
         fig['layout']['yaxis' + str(i + numParams * dsElements + 2)].update(showticklabels=False, showgrid=False,
                                                                             zeroline=False)
     for i in range(numRows + 1):  # Prevent zoom on y axis
@@ -2062,7 +2092,7 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal, 
     # Set correct graph height based on row number and type
     fig['layout']['height'] = (baseHeight * rawDataRows
                                + baseHeight * procDataRows
-                               + baseHeight * (len(currentGene) + 1)
+                               + baseHeight * (len(isoformList) + 1)
                                + 80)
     fig['layout']['legend'].update(x = legendColumnSpacing)
     return fig
@@ -2175,110 +2205,170 @@ def plotICLIP(name, xMax, xMin, chrom, strand, colors):
     return [rawTrace, procSitesList]
 
 
-def generateGeneModel(chromStart, codingRegionStart, codingRegionEnd, blockStarts, blockSizes, blockHeight, name):
+def generateGeneModel(isoforms, xAxisMin, xAxisMax, blockHeight):
     """Generates gene model based on the given blocks and coding region
 
     Positional arguments:
-    chromStart -- Start of the chromosome, needed to offfset block values
-    codingRegionStart -- Start of the coding or thick region
-    codingRegionEnd -- End of the coding or thick region
-    blockStarts -- List of block startpoints, these are relative to ChromStart
-    blockSizes -- Lengths of the various blocks
-    blockHeight -- Height for the blocks, thin regions are drawn with half height
+        isoforms -- List of all isoforms overlapping relevant region
+        xAxisMin -- Start of the relevant region
+        xAxisMax -- End of the relevant region
+        blockHeight -- Hight for thick blocks
     name -- Name for the trace
     """
+    traces = []
+    for i in isoforms.itertuples(): # This loop will check and if necessary cut blockstarts and sizes
+        # depending on the form of overlap
+        if i.chromStart >= xAxisMin:
+            if i.chromEnd <= xAxisMax: # Gene contained entirely in region, no cutting necessary
+                blockStarts = [int(x)+i.chromStart for x in i.blockStarts.rstrip(',').split(',')]
+                blockSizes = [int(x) for x in i.blockSizes.rstrip(',').split(',')]
 
-    blockVals = []
-    blockWidths = []
-    blockYs = []
+            else: # Gene overlaps region on right, cut end
+                blockStarts = [int(x)+i.chromStart for x in i.blockStarts.rstrip(',').split(',')]
+                blockSizes = [int(x) for x in i.blockSizes.rstrip(',').split(',')]
+                for index, elem in enumerate(blockStarts):
+                    if elem >= xAxisMax: # The current block starts right of the relevant region, disregard
+                        blockStarts[index] = -1
+                    else:
+                        blockEnd = elem + blockSizes[index]
+                        if  blockEnd > xAxisMax:
+                            blockSizes[index] = blockSizes[index] - (blockEnd-xAxisMax)
+        else: 
+            if i.chromEnd <= xAxisMax: # Gene overlaps on the left, cut start
+                blockStarts = [int(x)+i.chromStart for x in i.blockStarts.rstrip(',').split(',')]
+                blockSizes = [int(x) for x in i.blockSizes.rstrip(',').split(',')]
+                for index, elem in enumerate(blockStarts):
+                    if elem + blockSizes[index] < xAxisMin: # Block ends left of relevant regeion, disregard
+                        blockStarts[index] = -1
+                    else: 
+                        if  elem < xAxisMin: 
+                            startOffset = xAxisMin - elem
+                            blockStarts[index] = xAxisMin
+                            blockSizes[index] = blockSizes[index] - startOffset
+            else: # Gene extends to the left and right of the region, cut on both ends
+                blockStarts = [int(x)+i.chromStart for x in i.blockStarts.rstrip(',').split(',')]
+                blockSizes = [int(x) for x in i.blockSizes.rstrip(',').split(',')]
+                for index, elem in enumerate(blockStarts):
+                    blockEnd = elem + blockSizes[index]
+                    if  blockEnd < xAxisMin or elem >= xAxisMax: # Block lies left or right of relevant region, disregard
+                        blockStarts[index] = -1
+                    else:
+                        if  elem < xAxisMin: # Block overlaps on the left
+                            startOffset = xAxisMin - elem
+                            blockStarts[index] = xAxisMin
+                            blockSizes[index] = blockSizes[index] - startOffset
+                        if blockEnd > xAxisMax: # Block overlaps on the right
+                            blockSizes[index] = blockSizes[index] - (blockEnd-xAxisMax)
+        blockVals = []
+        blockWidths = []
+        blockYs = []
+        name = i.name
     # Calculate blocks from block start and end positions, as well as thickness
-    for j in range(len(blockStarts)):
-        blockStart = chromStart + blockStarts[j]
-        blockEnd = chromStart + blockStarts[j] + blockSizes[j] - 1  # Same as codingRegionEnd
-        if (blockStart >= codingRegionStart) & (blockEnd <= codingRegionEnd):
-            blockVals.append(blockStart + (blockEnd - blockStart) / 2)
-            blockWidths.append(blockEnd - blockStart + 1)
-            blockYs.append(blockHeight)
-        if (blockStart >= codingRegionStart) & (blockEnd > codingRegionEnd):
-            if (blockStart >= codingRegionEnd):
-                blockVals.append(blockStart + (blockEnd - blockStart) / 2)
-                blockWidths.append(blockEnd - blockStart + 1)
-                blockYs.append(blockHeight / 2)
-            else:
-                blockVals.append(blockStart + (codingRegionEnd - blockStart) / 2)
-                blockWidths.append(codingRegionEnd - blockStart + 1)
-                blockYs.append(blockHeight)
-                blockVals.append(codingRegionEnd + (blockEnd - codingRegionEnd) / 2)
-                blockWidths.append(blockEnd - codingRegionEnd + 1)
-                blockYs.append(blockHeight / 2)
-        if (blockStart < codingRegionStart) & (blockEnd <= codingRegionEnd):
-            if blockEnd <= codingRegionStart:
-                blockVals.append(blockStart + (blockEnd - blockStart) / 2)
-                blockWidths.append(blockEnd - blockStart + 1)
-                blockYs.append(blockHeight / 2)
-            else:
-                blockVals.append(blockStart + (codingRegionStart - blockStart) / 2)
-                blockWidths.append(codingRegionStart - blockStart + 1)
-                blockYs.append(blockHeight / 2)
-                blockVals.append(codingRegionStart + (blockEnd - codingRegionStart) / 2)
-                blockWidths.append(blockEnd - codingRegionStart + 1)
-                blockYs.append(blockHeight)
-        if (blockStart < codingRegionStart) & (blockEnd > codingRegionEnd):
-            blockVals.append(blockStart + (codingRegionStart - blockStart) / 2)
-            blockWidths.append(codingRegionStart - blockStart + 1)
-            blockYs.append(blockHeight / 2)
-            blockVals.append(codingRegionStart + (codingRegionEnd - codingRegionStart) / 2)
-            blockWidths.append(codingRegionEnd - codingRegionStart + 1)
-            blockYs.append(blockHeight)
-            blockVals.append(codingRegionEnd + (blockEnd - codingRegionEnd) / 2)
-            blockWidths.append(blockEnd - codingRegionEnd + 1)
-            blockYs.append(blockHeight / 2)
-
-    # Find first and last block to draw line properly
-    f = lambda i: blockVals[i]
-    amaxBlockVals = max(range(len(blockVals)), key=f)
-    aminBlockVals = min(range(len(blockVals)), key=f)
-    line = go.Scatter(
-        x=[blockVals[aminBlockVals] - blockWidths[aminBlockVals] / 2,
-           blockVals[amaxBlockVals] + blockWidths[amaxBlockVals] / 2],
-        y=[0, 0],
-        name='',
-        hoverinfo='none',
-        mode='lines',
-        line=dict(
-            color='rgb(0, 0, 0)',
-        ),
-        showlegend=False,
-        legendgroup=name.split('.')[-1]
-    )
-    upper = go.Bar(
-        x=blockVals,
-        y=blockYs,
-        name=name.split('.')[-1],
-        hoverinfo='none',
-        width=blockWidths,
-        marker=go.bar.Marker(
-            color='rgb(0, 0, 0)'
-        ),
-        showlegend=False,
-        legendgroup=name.split('.')[-1]
-    )
-    lower = go.Bar(
-        x=blockVals,
-        name=name.split('.')[-1],
-        hoverinfo='name',
-        hoverlabel={
-            'namelength': -1, },
-        y=[-x for x in blockYs],
-        width=blockWidths,
-        marker=go.bar.Marker(
-            color='rgb(0, 0, 0)'
-        ),
-        showlegend=True,
-        legendgroup=name.split('.')[-1]
-    )
+        for j in range(len(blockStarts)):
+            blockStart = blockStarts[j]
+            if blockStart != -1:
+                blockEnd = blockStart + blockSizes[j] - 1  # Same as codingRegionEnd
+                codingRegionStart = int(i.thickStart)
+                codingRegionEnd = int(i.thickEnd) - 1
+                if (blockStart >= codingRegionStart) & (blockEnd <= codingRegionEnd):
+                    blockVals.append(blockStart + (blockEnd - blockStart) / 2)
+                    blockWidths.append(blockEnd - blockStart + 1)
+                    blockYs.append(blockHeight)
+                if (blockStart >= codingRegionStart) & (blockEnd > codingRegionEnd):
+                    if (blockStart >= codingRegionEnd):
+                        blockVals.append(blockStart + (blockEnd - blockStart) / 2)
+                        blockWidths.append(blockEnd - blockStart + 1)
+                        blockYs.append(blockHeight / 2)
+                    else:
+                        blockVals.append(blockStart + (codingRegionEnd - blockStart) / 2)
+                        blockWidths.append(codingRegionEnd - blockStart + 1)
+                        blockYs.append(blockHeight)
+                        blockVals.append(codingRegionEnd + (blockEnd - codingRegionEnd) / 2)
+                        blockWidths.append(blockEnd - codingRegionEnd + 1)
+                        blockYs.append(blockHeight / 2)
+                if (blockStart < codingRegionStart) & (blockEnd <= codingRegionEnd):
+                    if blockEnd <= codingRegionStart:
+                        blockVals.append(blockStart + (blockEnd - blockStart) / 2)
+                        blockWidths.append(blockEnd - blockStart + 1)
+                        blockYs.append(blockHeight / 2)
+                    else:
+                        blockVals.append(blockStart + (codingRegionStart - blockStart) / 2)
+                        blockWidths.append(codingRegionStart - blockStart + 1)
+                        blockYs.append(blockHeight / 2)
+                        blockVals.append(codingRegionStart + (blockEnd - codingRegionStart) / 2)
+                        blockWidths.append(blockEnd - codingRegionStart + 1)
+                        blockYs.append(blockHeight)
+                if (blockStart < codingRegionStart) & (blockEnd > codingRegionEnd):
+                    blockVals.append(blockStart + (codingRegionStart - blockStart) / 2)
+                    blockWidths.append(codingRegionStart - blockStart + 1)
+                    blockYs.append(blockHeight / 2)
+                    blockVals.append(codingRegionStart + (codingRegionEnd - codingRegionStart) / 2)
+                    blockWidths.append(codingRegionEnd - codingRegionStart + 1)
+                    blockYs.append(blockHeight)
+                    blockVals.append(codingRegionEnd + (blockEnd - codingRegionEnd) / 2)
+                    blockWidths.append(blockEnd - codingRegionEnd + 1)
+                    blockYs.append(blockHeight / 2)
+    
+        # Find first and last block to draw line properly
+        f = lambda i: blockVals[i]
+        lineCoords = []
+        lineName = ''
+        lineHover = 'none'
+        lineLegend = False
+        try:
+            amaxBlockVals = max(range(len(blockVals)), key=f)
+            aminBlockVals = min(range(len(blockVals)), key=f)
+            lineCoords.append(blockVals[amaxBlockVals] + blockWidths[amaxBlockVals] / 2)
+            lineCoords.append(blockVals[aminBlockVals] - blockWidths[aminBlockVals] / 2)
+        except ValueError:
+            lineCoords.append(xAxisMin)
+            lineCoords.append(xAxisMax)
+            lineName = name
+            lineHover = 'name'
+            lineLegend = True
+        line = go.Scatter(
+            x = lineCoords,
+            y = [0, 0],
+            name = lineName,
+            hoverinfo = lineHover,
+            hoverlabel = {
+                'namelength' : -1, },
+            mode = 'lines',
+            line = dict(
+                color = 'rgb(0, 0, 0)',
+            ),
+            showlegend = lineLegend,
+            legendgroup = name
+        )
+        upper = go.Bar(
+            x = blockVals,
+            y = blockYs,
+            name = name,
+            hoverinfo = 'none',
+            width = blockWidths,
+            marker = go.bar.Marker(
+                color = 'rgb(0, 0, 0)'
+            ),
+            showlegend = False,
+            legendgroup = name
+        )
+        lower = go.Bar(
+            x = blockVals,
+            name = name,
+            hoverinfo = 'name',
+            hoverlabel = {
+                'namelength' : -1, },
+            y = [-x for x in blockYs],
+            width = blockWidths,
+            marker = go.bar.Marker(
+                color = 'rgb(0, 0, 0)'
+            ),
+            showlegend=True,
+            legendgroup=name
+        )
+        traces.append([line, upper, lower])
     # return traces for gene model
-    return [line, upper, lower]
+    return traces
 
 
 def generateSequenceTrace(seqDisp, strand, combinedSeq, xAxisMin, xAxisMax):
