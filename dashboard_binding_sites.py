@@ -1474,7 +1474,7 @@ def rnaPlot(submit, confirm, eventConfirm, geneName, displayMode,rnaParamList, c
     # Dicts for lists of axis values
     xVals = {}
     yVals = {}
-    max_yVal = 0 # Used to scale y-axes later
+    maxYVal = 0 # Used to scale y-axes later
     eventDict = {} # stores dataframes with relevant splice event data
     for ds in sorted(displayed_rnaDataSet):
 
@@ -1514,10 +1514,10 @@ def rnaPlot(submit, confirm, eventConfirm, geneName, displayMode,rnaParamList, c
         # Create x-axis values
         xVal = list(range(xAxisMin, xAxisMax))
         xVals[ds] = xVal
-        colorScale = (-1.0,1.0)
         # Find maximum y-axis value for axis scaling
-        if max(yVal) > max_yVal: max_yVal = max(yVal)
-    fig = createAreaChart(xVals, yVals, max_yVal, eventDict, displayed_rnaDataSet, 
+        if max(yVal) > maxYVal: maxYVal = max(yVal)
+    colorScale = (-1.0,1.0)
+    fig = createAreaChart(xVals, yVals, maxYVal, eventDict, displayed_rnaDataSet, 
                           color_dict, geneName, displayMode, eventConfirm, submit, eventColors, eventColorsFinal, colorScale,
                           legendColumnSpacing)
     return fig
@@ -1532,7 +1532,7 @@ def overlap(a, b):
     return a[1] > b[0] and a[0] < b[1]
 
 
-def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict, 
+def createAreaChart(xVals, yVals, maxYVal, eventData, displayed, colorDict, 
                     geneName, displayMode, eventConfirm, submit, eventColors, eventColorsFinal, colorScale,
                     legendColumnSpacing):
     """Create the plots for both coverage and splice events
@@ -1559,7 +1559,7 @@ def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict,
         evColors = json.loads(eventColors)
         
     data = []
-    subplot_titles = []
+    subplotTitles = []
     legendSet = {}
     colorbarSet = False
     for val in eventTypes:
@@ -1568,21 +1568,21 @@ def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict,
         xAxis = xVals[ds]
         yAxis = yVals[ds]
         organism = ds.split('_')[0]
-        org_color = color_dict[organism]
+        orgColor = colorDict[organism]
         if spliceAvail:
             trace = go.Scatter(
                 x=xAxis,
                 y=yAxis,
                 name=ds,
                 fill='tozeroy',
-                fillcolor=org_color,
+                fillcolor=orgColor,
                 hoveron='points+fills',
                 line=dict(color='black'),
                 text=ds,
                 hoverinfo='y',
                 cliponaxis=True
             )
-            subplot_titles.append(ds)
+            subplotTitles.append(ds)
             data.append(trace)
         if spliceEventAvail:      
             if displayMode in ['one', 'two']:
@@ -1594,9 +1594,9 @@ def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict,
                 # Iterate through dataframe rows and calculate stacking aswell as bar parameters
                 maxStack = 0 # keeps track of the maximum number of stacked bars, to avoid empty rows
                 for row in eventData[ds].itertuples():
-                    if row.chromStart > row.chromEnd: # Handle errornous input where chromStart > chromEnd and print warning
-                        print('Warning; Event in dataset ' + str(ds) +' on chromosome ' + str(row.chrom) + ' at startpoint ' + str(row.chromStart) +
-                              ' startpoint is greater than endpoint.')
+                    #if row.chromStart > row.chromEnd: # Handle errornous input where chromStart > chromEnd and print warning
+                     #   print('Warning; Event in dataset ' + str(ds) +' on chromosome ' + str(row.chrom) + ' at startpoint ' + str(row.chromStart) +
+                      #        ' startpoint is greater than endpoint.')
                     maxVal = max(row.chromStart, row.chromEnd) 
                     minVal = min(row.chromStart, row.chromEnd)
                     key = row.type # Type of the current event
@@ -1679,7 +1679,7 @@ def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict,
                         )
                     )
                     traces.append(trace)
-                subplot_titles.append("")
+                subplotTitles.append("")
                 data.append(traces)
             else: # Displaymode: Score heatmap
                 intervals = [] # Used to calculate overlaps, stores used intervals as well as row that interval was put on
@@ -1690,9 +1690,9 @@ def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict,
                 # Iterate through dataframe rows and calculate stacking aswell as bar parameters
                 maxStack = 0 # keeps track of the maximum number of stacked bars, to avoid empty rows
                 for row in eventData[ds].itertuples():
-                    if row.chromStart > row.chromEnd: # Handle errornous input where chromStart > chromEnd and print warning
-                        print('Warning; Event in dataset ' + str(ds) +' on chromosome ' + str(row.chrom) + ' at startpoint ' + str(row.chromStart) +
-                              ' startpoint is greater than endpoint.')
+                    #if row.chromStart > row.chromEnd: # Handle errornous input where chromStart > chromEnd and print warning
+                     #   print('Warning; Event in dataset ' + str(ds) +' on chromosome ' + str(row.chrom) + ' at startpoint ' + str(row.chromStart) +
+                      #        ' startpoint is greater than endpoint.')
                     maxVal = max(row.chromStart, row.chromEnd) 
                     minVal = min(row.chromStart, row.chromEnd)
                     if len(intervals) == 0: # Row is the first row, no comparisons
@@ -1759,7 +1759,7 @@ def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict,
                         )
                     )
                 )
-                subplot_titles.append("")
+                subplotTitles.append("")
                 data.append(trace)   
 
                     
@@ -1794,21 +1794,21 @@ def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict,
     numRows = len(data)+numIsoforms
 
     # Setup row heights based on available data
-    row_heights = []
+    rowHeights = []
     if spliceEventAvail:
         for i in range(numRows):
-            if i > len(data)-1: row_heights.append(1/numRows) # Gene model row
+            if i > len(data)-1: rowHeights.append(1/numRows) # Gene model row
             elif (i % 2 != 0):
-                row_heights.append(3/numRows) # Splice event row
+                rowHeights.append(3/numRows) # Splice event row
             else:
-                row_heights.append(3/numRows) # Coverage row
+                rowHeights.append(3/numRows) # Coverage row
     else:
         for i in range(numRows):
-            if i > len(data)-1: row_heights.append(1/numRows) # Gene model row
+            if i > len(data)-1: rowHeights.append(1/numRows) # Gene model row
             else:
-                row_heights.append(3/numRows) # Coverage row
-    fig = tools.make_subplots(rows=numRows, cols=1, subplot_titles=subplot_titles,
-                              shared_xaxes=True, row_width=row_heights[::-1])
+                rowHeights.append(3/numRows) # Coverage row
+    fig = tools.make_subplots(rows=numRows, cols=1, subplot_titles=subplotTitles,
+                              shared_xaxes=True, row_width=rowHeights[::-1])
 
     eventIndices = [] # save indices of all elements that contain event traces
     for index, t in enumerate(data):
@@ -1826,19 +1826,21 @@ def createAreaChart(xVals, yVals, max_yVal, eventData, displayed, color_dict,
     for i in range(1, numRows+1):
             if spliceEventAvail:
                 if i % 2 != 0 and i <= len(data): # Coverage row
-                    fig['layout']['yaxis' + str(i)].update(range=[0, max_yVal])
+                    fig['layout']['yaxis' + str(i)].update(range=[0, maxYVal])
                     fig['layout']['yaxis' + str(i)].update(showticklabels=True, showgrid=True, zeroline=True)
                 else: # Event row
                     fig['layout']['yaxis' + str(i)].update(showticklabels=False, showgrid=False, zeroline=False)
             else:
                 if i <= len(data): # Coverage row
-                    print('here')
-                    fig['layout']['yaxis' + str(i)].update(range=[0, max_yVal])
+                    fig['layout']['yaxis' + str(i)].update(range=[0, maxYVal])
                     fig['layout']['yaxis' + str(i)].update(showticklabels=True, showgrid=True, zeroline=True)
                 else: # Gene model row
                     fig['layout']['yaxis' + str(i)].update(showticklabels=False, showgrid=False, zeroline=False)
     # Setup plot height, add 85 to account for margins
-    fig['layout']['height'] = (80 * len(data) + 50 * numIsoforms +85)
+    fig['layout'].update(
+        margin=go.layout.Margin(l=30, r=40, t=25, b=60),
+    )
+    fig['layout']['height'] = (80 * len(data) + 50 * numIsoforms + 85)
     fig['layout']['legend'].update(x = legendColumnSpacing)
     return fig
 
