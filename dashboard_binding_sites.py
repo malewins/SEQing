@@ -11,6 +11,7 @@ import plotly.graph_objs as go
 import dash_auth
 from plotly import tools
 from textwrap import dedent
+import pickle
 
 
 
@@ -1464,7 +1465,10 @@ def rnaPlot(submit, confirm, eventConfirm, geneName, displayMode,rnaParamList, c
 
     color_dict = json.loads(colors)  # Color per mutant
     # Filter out needed datasets
-    rnaDataSets = sorted(list(spliceProcDFs.keys()))
+    if not coverageData:
+        rnaDataSets = sorted(list(spliceProcDFs.keys()))
+    else: 
+        rnaDataSets = sorted(list(coverageData.keys()))
     displayed_rnaDataSet = []
     for rm in sorted(rnaParamList):
         for set in rnaDataSets:
@@ -1477,14 +1481,40 @@ def rnaPlot(submit, confirm, eventConfirm, geneName, displayMode,rnaParamList, c
     maxYVal = 0 # Used to scale y-axes later
     eventDict = {} # stores dataframes with relevant splice event data
     for ds in sorted(displayed_rnaDataSet):
+        if not coverageData:
+            # Criteria to filter relevant lines from current dataframe
+            bcrit11 = spliceProcDFs[ds]['chrom'] == chrom
+            bcrit21 = spliceProcDFs[ds]['chromStart'] >= xAxisMin
+            bcrit22 = spliceProcDFs[ds]['chromStart'] <= xAxisMax
+            bcrit31 = spliceProcDFs[ds]['chromEnd'] >= xAxisMin
+            bcrit32 = spliceProcDFs[ds]['chromEnd'] <= xAxisMax
+            spliceSlice = spliceProcDFs[ds].loc[bcrit11 & ((bcrit21 & bcrit22) | (bcrit31 & bcrit32))]
+        else:
 
-        # Criteria to filter relevant lines from current dataframe
-        bcrit11 = spliceProcDFs[ds]['chrom'] == chrom
-        bcrit21 = spliceProcDFs[ds]['chromStart'] >= xAxisMin
-        bcrit22 = spliceProcDFs[ds]['chromStart'] <= xAxisMax
-        bcrit31 = spliceProcDFs[ds]['chromEnd'] >= xAxisMin
-        bcrit32 = spliceProcDFs[ds]['chromEnd'] <= xAxisMax
-        spliceSlice = spliceProcDFs[ds].loc[bcrit11 & ((bcrit21 & bcrit22) | (bcrit31 & bcrit32))]
+            fileIndex = coverageData[ds]
+            dfBcrit11 = fileIndex['start'] <= xAxisMin
+            dfBcrit12 = fileIndex['end'] >= xAxisMin
+            dfBcrit21 = fileIndex['start'] <= xAxisMax
+            dfBcrit22 = fileIndex['end'] >= xAxisMax
+            dfBcrit31 = fileIndex['start'] >= xAxisMin
+            dfBcrit32 = fileIndex['end'] <= xAxisMax
+            relevantFiles = fileIndex.loc[(dfBcrit11 & dfBcrit12) | (dfBcrit21 & dfBcrit22) | (dfBcrit31 & dfBcrit32)]
+            finalDF = []
+
+            for i in relevantFiles.itertuples():
+                try:
+                    df = pickle.load(open(i.fileName, 'rb'))
+                    finalDF.append(df)
+                except FileNotFoundError:
+                    print(i.fileName + ' was not found')
+            finalDF = pandas.concat(finalDF)         
+            bcrit11 = finalDF['chrom'] == chrom
+            bcrit21 = finalDF['chromStart'] >= xAxisMin
+            bcrit22 = finalDF['chromStart'] <= xAxisMax
+            bcrit31 = finalDF['chromEnd'] >= xAxisMin
+            bcrit32 = finalDF['chromEnd'] <= xAxisMax
+            spliceSlice = finalDF.loc[bcrit11 & ((bcrit21 & bcrit22) | (bcrit31 & bcrit32))]
+            
         # Pre-init y-value list
         yVal = [0] * (len(range(xAxisMin, xAxisMax)))
         organism = ds.split("_")[0] # Prefix of the curret data frame, first filter
@@ -2036,7 +2066,10 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal, 
             name = elem.name.split('.')[1].replace('_', '.')
         isoformRanges.append((elem.chromStart, elem.chromEnd, name))
     # create master sequence
-    combinedSeq = generateMasterSequence(sequences, isoformRanges, xAxisMax)
+    try:
+        combinedSeq = generateMasterSequence(sequences, isoformRanges, xAxisMax)
+    except TypeError:
+        combinedSeq = ''
 
     try:  # Create traces for sequence display, either scatter or heatmap
         traces = generateSequenceTrace(seqDisp, strand, combinedSeq, xAxisMin, xAxisMax)

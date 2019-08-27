@@ -15,6 +15,11 @@ from Bio import SeqIO
 from Bio.Alphabet import generic_dna
 import converter
 
+from pympler import tracker
+from pympler import muppy
+from pympler import summary
+
+
 
 __author__ = "Yannik Bramkamp"
 
@@ -239,6 +244,12 @@ parser.add_argument('-pswd',
                     type = str,
                     default = '',
                     metavar = 'String')
+parser.add_argument('--lowmem',
+                    dest = 'lowMem',
+                    help = '''Low memory mode''',
+                    type = bool,
+                    default = False
+                    )
 
 
 args=parser.parse_args()
@@ -257,6 +268,7 @@ if args.cfg != None:
 binFilePath = os.path.join(os.path.dirname(__file__),'bin_data/')
 if not os.path.exists(binFilePath):
         os.mkdir(binFilePath)
+        os.mkdir(os.path.join(binFilePath, 'coverage/'))
 # Dict containing checksums for gene annotation files, files loaded once will
 # be serialized to speed up future loading
 try:
@@ -278,6 +290,7 @@ if useCfg == False: # Use command line arguments for setup
     sortKeys = args.keys
     spliceSitePaths = args.splice_data
     spliceEventsPaths = args.splice_events
+    lowMemoryMode = args.lowMem
     try:
         advancedDescPath = Path(args.advancedDesc)
     except TypeError:
@@ -682,108 +695,139 @@ spliceSetNames = [[],[]]
 spliceElements = 0
 if len(spliceSitePaths) > 0:
     print('Loading RNA-seq data')
-for i in spliceSitePaths:
-        try:
-            checksum = hashlib.md5(open(str(i)).read().encode('utf-8'))
-            if coverageChecksums.get(str(i.stem), None) != checksum.hexdigest():
-                coverageChecksums[str(i.stem)] = checksum.hexdigest()
-                dtypes = {'chrom' : 'category' ,'chromStart' : 'uint64','chromEnd' : 'uint64', 'count' : 'uint32'}
-                df = pandas.read_csv(i, sep= '\t', names= rawHeader, dtype = dtypes)
-                validation = validateBedGraph(df)
-                file_name = i.stem.split('_')[0]+'_'+i.stem.split('_')[1]
-                if validation[0]:
-                    if file_name in spliceProcDFs:
-                        print('Warning, you are using the same prefix for multiple bedgraph files, file ' + str(i) + ' will be ignored')
-                    else:
-                        spliceProcDFs.update({file_name : df})
-                        if i.stem.split('_')[0] not in spliceSetNames[1]:
-                            spliceSetNames[0].append(i.stem.split('_')[1])
-                            spliceSetNames[1].append(i.stem.split('_')[0])
-                        out = open(binFilePath + str(i.stem)+'.bin', 'wb')
-                        pickle.dump(df, out)
-                        out.close()
-                else:
-                    print('Error in file ' + str(i) + ':')
-                    print(validation[1])
-            else:
-                try:
-                    df = pickle.load(open(binFilePath + str(i.stem)+'.bin', 'rb'))
-                    file_name = i.stem.split('_')[0]+'_'+i.stem.split('_')[1]
-                    if file_name in spliceProcDFs:
-                       print('Warning, you are using the same prefix for multiple bedgraph files, file ' + str(i) + ' will be ignored')
-                    else:
-                        spliceProcDFs.update({file_name : df})
-                        if i.stem.split('_')[0] not in spliceSetNames[1]:
-                            spliceSetNames[0].append(i.stem.split('_')[1])
-                            spliceSetNames[1].append(i.stem.split('_')[0])
-                    print('Loaded from pickle')
-                except IOError:
-                    print('pickle not  found, loading from raw file')
-                    dtypes = {'chrom' : 'category' ,'chromStart' : 'uint64','chromEnd' : 'uint64', 'count' : 'uint32'}
-                    df = pandas.read_csv(i, sep= '\t', names= rawHeader, dtype = dtypes)
-                    validation = validateBedGraph(df)
-                    file_name = i.stem.split('_')[0]+'_'+i.stem.split('_')[1]
-                    if validation[0]:
-                        if file_name in spliceProcDFs:
-                            print('Warning, you are using the same prefix for multiple bedgraph files, file ' + str(i) + ' will be ignored')
-                        else:
-                            spliceProcDFs.update({file_name : df})
-                            if i.stem.split('_')[0] not in spliceSetNames[1]:
-                                spliceSetNames[0].append(i.stem.split('_')[1])
-                                spliceSetNames[1].append(i.stem.split('_')[0])
-                            out = open(binFilePath + str(i.stem)+'.bin', 'wb')
-                            pickle.dump(df, out)
-                            out.close()
-                    else:
-                        print('Error in file ' + str(i) + ':')
-                        print(validation[1])
-                except UnicodeDecodeError:
-                    print('Error decoding pickle binary file, will load from raw file instead')
-                    dtypes = {'chrom' : 'category' ,'chromStart' : 'uint64','chromEnd' : 'uint64', 'count' : 'uint32'}
-                    df = pandas.read_csv(i, sep= '\t', names= rawHeader, dtype = dtypes)
-                    validation = validateBedGraph(df)
-                    file_name = i.stem.split('_')[0]+'_'+i.stem.split('_')[1]
-                    if validation[0]:
-                        if file_name in spliceProcDFs:
-                            print('Warning, you are using the same prefix for multiple bedgraph files, file ' + str(i) + ' will be ignored')
-                        else:
-                            spliceProcDFs.update({file_name : df})
-                            if i.stem.split('_')[0] not in spliceSetNames[1]:
-                                spliceSetNames[0].append(i.stem.split('_')[1])
-                                spliceSetNames[1].append(i.stem.split('_')[0])
-                            out = open(binFilePath + str(i.stem)+'.bin', 'wb')
-                            pickle.dump(df, out)
-                            out.close()
-                    else:
-                        print('Error in file ' + str(i) + ':')
-                        print(validation[1])
-                except ModuleNotFoundError:
-                    print('Pickle was created using different package versions, will load from raw file instead')
-                    dtypes = {'chrom' : 'category' ,'chromStart' : 'uint64','chromEnd' : 'uint64', 'count' : 'uint32'}
-                    df = pandas.read_csv(i, sep= '\t', names= rawHeader, dtype = dtypes)
-                    validation = validateBedGraph(df)
-                    file_name = i.stem.split('_')[0]+'_'+i.stem.split('_')[1]
-                    if validation[0]:
-                        if file_name in spliceProcDFs:
-                            print('Warning, you are using the same prefix for multiple bedgraph files, file ' + str(i) + ' will be ignored')
-                        else:
-                            spliceProcDFs.update({file_name : df})
-                            if i.stem.split('_')[0] not in spliceSetNames[1]:
-                                spliceSetNames[0].append(i.stem.split('_')[1])
-                                spliceSetNames[1].append(i.stem.split('_')[0])
-                            out = open(binFilePath + str(i.stem)+'.bin', 'wb')
-                            pickle.dump(df, out)
-                            out.close()
-                    else:
-                        print('Error in file ' + str(i) + ':')
-                        print(validation[1])
-        except FileNotFoundError:
-            print('File ' + str(i) + ' was not found')
-if len(spliceSitePaths) > 0:
-    print('Done.')
-if len(spliceProcDFs) > 0:
-        spliceElements += 1
-        spliceAvail = True
+#for i in spliceSitePaths:
+#        try:
+#            checksum = hashlib.md5(open(str(i)).read().encode('utf-8'))
+#            if coverageChecksums.get(str(i.stem), None) != checksum.hexdigest():
+#                coverageChecksums[str(i.stem)] = checksum.hexdigest()
+#                dtypes = {'chrom' : 'category' ,'chromStart' : 'uint64','chromEnd' : 'uint64', 'count' : 'uint32'}
+#                df = pandas.read_csv(i, sep= '\t', names= rawHeader, dtype = dtypes)
+#                validation = validateBedGraph(df)
+#                file_name = i.stem.split('_')[0]+'_'+i.stem.split('_')[1]
+#                if validation[0]:
+#                    if file_name in spliceProcDFs:
+#                        print('Warning, you are using the same prefix for multiple bedgraph files, file ' + str(i) + ' will be ignored')
+#                    else:
+#                        spliceProcDFs.update({file_name : df})
+#                        if i.stem.split('_')[0] not in spliceSetNames[1]:
+#                            spliceSetNames[0].append(i.stem.split('_')[1])
+#                            spliceSetNames[1].append(i.stem.split('_')[0])
+#                        out = open(binFilePath + str(i.stem)+'.bin', 'wb')
+#                        pickle.dump(df, out)
+#                        out.close()
+#                else:
+#                    print('Error in file ' + str(i) + ':')
+#                    print(validation[1])
+#            else:
+#                try:
+#                    df = pickle.load(open(binFilePath + str(i.stem)+'.bin', 'rb'))
+#                    file_name = i.stem.split('_')[0]+'_'+i.stem.split('_')[1]
+#                    if file_name in spliceProcDFs:
+#                       print('Warning, you are using the same prefix for multiple bedgraph files, file ' + str(i) + ' will be ignored')
+#                    else:
+#                        spliceProcDFs.update({file_name : df})
+#                        if i.stem.split('_')[0] not in spliceSetNames[1]:
+#                            spliceSetNames[0].append(i.stem.split('_')[1])
+#                            spliceSetNames[1].append(i.stem.split('_')[0])
+#                    print('Loaded from pickle')
+#                except IOError:
+#                    print('pickle not  found, loading from raw file')
+#                    dtypes = {'chrom' : 'category' ,'chromStart' : 'uint64','chromEnd' : 'uint64', 'count' : 'uint32'}
+#                    df = pandas.read_csv(i, sep= '\t', names= rawHeader, dtype = dtypes)
+#                    validation = validateBedGraph(df)
+#                    file_name = i.stem.split('_')[0]+'_'+i.stem.split('_')[1]
+#                    if validation[0]:
+#                        if file_name in spliceProcDFs:
+#                            print('Warning, you are using the same prefix for multiple bedgraph files, file ' + str(i) + ' will be ignored')
+#                        else:
+#                            spliceProcDFs.update({file_name : df})
+#                            if i.stem.split('_')[0] not in spliceSetNames[1]:
+#                                spliceSetNames[0].append(i.stem.split('_')[1])
+#                                spliceSetNames[1].append(i.stem.split('_')[0])
+#                            out = open(binFilePath + str(i.stem)+'.bin', 'wb')
+#                            pickle.dump(df, out)
+#                            out.close()
+#                    else:
+#                        print('Error in file ' + str(i) + ':')
+#                        print(validation[1])
+#                except UnicodeDecodeError:
+#                    print('Error decoding pickle binary file, will load from raw file instead')
+#                    dtypes = {'chrom' : 'category' ,'chromStart' : 'uint64','chromEnd' : 'uint64', 'count' : 'uint32'}
+#                    df = pandas.read_csv(i, sep= '\t', names= rawHeader, dtype = dtypes)
+#                    validation = validateBedGraph(df)
+#                    file_name = i.stem.split('_')[0]+'_'+i.stem.split('_')[1]
+#                    if validation[0]:
+#                        if file_name in spliceProcDFs:
+#                            print('Warning, you are using the same prefix for multiple bedgraph files, file ' + str(i) + ' will be ignored')
+#                        else:
+#                            spliceProcDFs.update({file_name : df})
+#                            if i.stem.split('_')[0] not in spliceSetNames[1]:
+#                                spliceSetNames[0].append(i.stem.split('_')[1])
+#                                spliceSetNames[1].append(i.stem.split('_')[0])
+#                            out = open(binFilePath + str(i.stem)+'.bin', 'wb')
+#                            pickle.dump(df, out)
+#                            out.close()
+#                    else:
+#                        print('Error in file ' + str(i) + ':')
+#                        print(validation[1])
+#                except ModuleNotFoundError:
+#                    print('Pickle was created using different package versions, will load from raw file instead')
+#                    dtypes = {'chrom' : 'category' ,'chromStart' : 'uint64','chromEnd' : 'uint64', 'count' : 'uint32'}
+#                    df = pandas.read_csv(i, sep= '\t', names= rawHeader, dtype = dtypes)
+#                    validation = validateBedGraph(df)
+#                    file_name = i.stem.split('_')[0]+'_'+i.stem.split('_')[1]
+#                    if validation[0]:
+#                        if file_name in spliceProcDFs:
+#                            print('Warning, you are using the same prefix for multiple bedgraph files, file ' + str(i) + ' will be ignored')
+#                        else:
+#                            spliceProcDFs.update({file_name : df})
+#                            if i.stem.split('_')[0] not in spliceSetNames[1]:
+#                                spliceSetNames[0].append(i.stem.split('_')[1])
+#                                spliceSetNames[1].append(i.stem.split('_')[0])
+#                            out = open(binFilePath + str(i.stem)+'.bin', 'wb')
+#                            pickle.dump(df, out)
+#                            out.close()
+#                    else:
+#                        print('Error in file ' + str(i) + ':')
+#                        print(validation[1])
+#        except FileNotFoundError:
+#            print('File ' + str(i) + ' was not found')
+#if len(spliceSitePaths) > 0:
+#    print('Done.')
+#if len(spliceProcDFs) > 0:
+#        spliceElements += 1
+#        spliceAvail = True
+        
+
+fileDict = {}
+if lowMemoryMode == True:
+    for path in spliceSitePaths:
+        df = pandas.read_csv(path, sep= '\t', names= rawHeader, dtype = dtypes)
+        validation = validateBedGraph(df)
+        file_name = path.stem.split('_')[0]+'_'+path.stem.split('_')[1]
+        if validation[0]:
+            df.sort_values(by=['chromStart'])
+            dfList = [df.iloc[i:i+10000,] for i in range(0, len(df),10000)]
+            fileIndex = pandas.DataFrame(columns = ['start', 'end', 'fileName'])
+            for i in dfList:
+                end = i['chromEnd'].max()
+                start = i['chromStart'].min()
+                fileName = binFilePath + 'coverage/' + str(file_name) + "_" + str(start) + "_" + str(end) + '.bin'
+                fileIndex.loc[len(fileIndex)] = [start, end, fileName]
+                out = open(fileName, 'wb')
+                pickle.dump(i, out)
+                out.close()
+            fileDict.update({file_name : fileIndex})
+            dfList = []
+            if path.stem.split('_')[0] not in spliceSetNames[1]:
+                 spliceSetNames[0].append(path.stem.split('_')[1])
+                 spliceSetNames[1].append(path.stem.split('_')[0])
+#spliceProcDFs = {}       
+spliceElements += 1
+spliceAvail = True
+        
+
+                
 
 # Write new checksums file
 out = open(binFilePath + 'coverage_checksums', 'wb')
@@ -817,6 +861,7 @@ for i in spliceEventsPaths:
         else:
             print('Error in file ' + str(i) + ':')
             print(validation[1])
+        validation = None
     except FileNotFoundError:
         print('File ' + str(i) + ' was not found')
 if len(spliceEventsPaths) > 0:
@@ -824,6 +869,7 @@ if len(spliceEventsPaths) > 0:
 if len(spliceEventsDFs) > 0:
     spliceEventsElements += 1
     spliceEventsAvail = True
+print('post_splice')
 
 
 # Colors for dna sequence display
@@ -893,6 +939,7 @@ globalDict = {
     'eventColors' : spliceEventColors, # Colorsfor the splice event types
     'coverageColors' : coverageColorDict, # Colors for the coverage plots
     'eventTypes' : sorted(spliceEventTypes),
-    'authentication': password} # Types of splice events
+    'authentication': password,
+    'coverageData' : fileDict} # Types of splice events
 
 runpy.run_module('dashboard_binding_sites', init_globals = globalDict, run_name = '__main__')
