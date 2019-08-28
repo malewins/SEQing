@@ -258,8 +258,9 @@ if args.cfg != None:
 binFilePath = os.path.join(os.path.dirname(__file__),'bin_data/')
 if not os.path.exists(binFilePath):
     os.mkdir(binFilePath)
-if not os.path.exists(os.path.join(binFilePath, 'coverage/')):
-    os.mkdir(os.path.join(binFilePath, 'coverage/'))
+coveragePath = os.path.join(binFilePath, 'coverage/')
+if not os.path.exists(coveragePath):
+    os.mkdir(coveragePath)
 # Dict containing checksums for gene annotation files, files loaded once will
 # be serialized to speed up future loading
 try:
