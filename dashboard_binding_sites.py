@@ -1797,14 +1797,13 @@ def createAreaChart(xVals, yVals, maxYVal, eventData, displayed, colorDict,
     overlappingGenes = []
     for i in geneAnnotations:
         bcrit11 = i['chrom'] == chrom
-        bcrit12 = i['strand'] == strand
         bcrit21 = i['chromStart'] >= xAxisMin
         bcrit22 = i['chromStart'] <= xAxisMax
         bcrit31 = i['chromEnd'] >= xAxisMin
         bcrit32 = i['chromEnd'] <= xAxisMax
         bcrit41 = i['chromStart'] <= xAxisMin
         bcrit42 = i['chromEnd'] >= xAxisMax
-        preDF = i.loc[bcrit11 & bcrit12 & ((bcrit21 & bcrit22) | (bcrit31 & bcrit32) | (bcrit41 & bcrit42))]
+        preDF = i.loc[bcrit11 & ((bcrit21 & bcrit22) | (bcrit31 & bcrit32) | (bcrit41 & bcrit42))]
         result = preDF[~preDF['name'].str.contains(geneName)]
         overlappingGenes.append(result)
         
@@ -1841,8 +1840,8 @@ def createAreaChart(xVals, yVals, maxYVal, eventData, displayed, colorDict,
         for x in data[i]:
             fig.append_trace(x, i + 1, 1)
 
-
-    rnaSequencePlot(fig, geneName, numRows, len(data), isoformList, xAxisMax, xAxisMin, strand)
+    blockHeight = 0.4 # Height of coding blocks in gene models
+    rnaSequencePlot(fig, geneName, numRows, len(data), isoformList, xAxisMax, xAxisMin, strand, blockHeight)
     fig['layout']['yaxis'].update(showticklabels=True, showgrid=True, zeroline=True)
     for i in range(1, numRows+1):
             if spliceEventAvail:
@@ -1851,12 +1850,14 @@ def createAreaChart(xVals, yVals, maxYVal, eventData, displayed, colorDict,
                     fig['layout']['yaxis' + str(i)].update(showticklabels=True, showgrid=True, zeroline=True)
                 else: # Event row
                     fig['layout']['yaxis' + str(i)].update(showticklabels=False, showgrid=False, zeroline=False)
+                    fig['layout']['yaxis' + str(i)].update(range=[-blockHeight, blockHeight])
             else:
                 if i <= len(data): # Coverage row
                     fig['layout']['yaxis' + str(i)].update(range=[0, maxYVal])
                     fig['layout']['yaxis' + str(i)].update(showticklabels=True, showgrid=True, zeroline=True)
                 else: # Gene model row
                     fig['layout']['yaxis' + str(i)].update(showticklabels=False, showgrid=False, zeroline=False)
+                    fig['layout']['yaxis' + str(i)].update(range=[-blockHeight, blockHeight])
     # Setup plot height, add 85 to account for margins
     fig['layout'].update(
         margin=go.layout.Margin(l=30, r=40, t=25, b=60),
@@ -1866,7 +1867,7 @@ def createAreaChart(xVals, yVals, maxYVal, eventData, displayed, colorDict,
     return fig
 
 
-def rnaSequencePlot(fig, geneName, numRows, len_data, isoformList, xAxisMax, xAxisMin, strand):
+def rnaSequencePlot(fig, geneName, numRows, len_data, isoformList, xAxisMax, xAxisMin, strand, blockHeight):
     """ Adds gene model plots to coverage and splice event plots
     
     Positional arguments:
@@ -1874,6 +1875,11 @@ def rnaSequencePlot(fig, geneName, numRows, len_data, isoformList, xAxisMax, xAx
     geneName -- Name of the currently selected gene
     numRows -- Number of rows, needed to prevent zoom on y-axes
     len_data -- Number of RNA-seq rows, used as start point for gene model rows
+    isoformList -- List of all gene isoforms overlapping this genomic region, on either strand
+    xAxisMax -- End of region
+    xAxisMin -- Start of region
+    strand -- Strand of the currently selected gene
+    blockHeight -- Height of coding blocks in gene models
     """
 
 
@@ -1890,7 +1896,7 @@ def rnaSequencePlot(fig, geneName, numRows, len_data, isoformList, xAxisMax, xAx
     counter = len_data+1
 
     # Calculate gene models. We have to distinguish between coding region and non-coding region
-    geneModels = generateGeneModel(isoformList, xAxisMin, xAxisMax, 0.4)
+    geneModels = generateGeneModel(isoformList, xAxisMin, xAxisMax, blockHeight, strand)
     for model in geneModels:
         for part in model:
             fig.append_trace(part, counter, 1)
@@ -1999,14 +2005,13 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal, 
     overlappingGenes = []
     for i in geneAnnotations:
         bcrit11 = i['chrom'] == chrom
-        bcrit12 = i['strand'] == strand
         bcrit21 = i['chromStart'] >= xAxisMin
         bcrit22 = i['chromStart'] <= xAxisMax
         bcrit31 = i['chromEnd'] >= xAxisMin
         bcrit32 = i['chromEnd'] <= xAxisMax
         bcrit41 = i['chromStart'] <= xAxisMin
         bcrit42 = i['chromEnd'] >= xAxisMax
-        preDF = i.loc[bcrit11 & bcrit12 & ((bcrit21 & bcrit22) | (bcrit31 & bcrit32) | (bcrit41 & bcrit42))]
+        preDF = i.loc[bcrit11 & ((bcrit21 & bcrit22) | (bcrit31 & bcrit32) | (bcrit41 & bcrit42))]
         result = preDF[~preDF['name'].str.contains(geneName)]
         overlappingGenes.append(result)
         
@@ -2081,7 +2086,8 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal, 
         counter += dsElements
 
     # Calculate gene models. We have to distinguish between coding region and non-coding region
-    geneModels = generateGeneModel(isoformList, xAxisMin, xAxisMax, 0.4)
+    blockHeight = 0.4
+    geneModels = generateGeneModel(isoformList, xAxisMin, xAxisMax, blockHeight, strand)
     for model in geneModels:
         for part in model:
             fig.append_trace(part, counter, 1)
@@ -2109,7 +2115,7 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal, 
             fig['layout']['yaxis' + str(i + 3)].update(showticklabels=False, showgrid=False, zeroline=False)
     for i in range(len(isoformList)):  # Edit all y axis in gene model plots
         fig['layout']['yaxis' + str(i + numParams * dsElements + 2)].update(showticklabels=False, showgrid=False,
-                                                                            zeroline=False)
+                                                                            zeroline=False, range =[-blockHeight, blockHeight])
     for i in range(numRows + 1):  # Prevent zoom on y axis
         if i == 0:
             fig['layout']['yaxis'].update(fixedrange=True)
@@ -2231,7 +2237,7 @@ def plotICLIP(name, xMax, xMin, chrom, strand, colors):
     return [rawTrace, procSitesList]
 
 
-def generateGeneModel(isoforms, xAxisMin, xAxisMax, blockHeight):
+def generateGeneModel(isoforms, xAxisMin, xAxisMax, blockHeight, strand):
     """Generates gene model based on the given blocks and coding region
 
     Positional arguments:
@@ -2243,7 +2249,12 @@ def generateGeneModel(isoforms, xAxisMin, xAxisMax, blockHeight):
     """
     traces = []
     for i in isoforms.itertuples(): # This loop will check and if necessary cut blockstarts and sizes
+
         # depending on the form of overlap
+        if i.strand != strand:
+            color = 'rgb(128,128,128)'
+        else:
+            color = 'rgb(0,0,0)'
         if i.chromStart >= xAxisMin:
             if i.chromEnd <= xAxisMax: # Gene contained entirely in region, no cutting necessary
                 blockStarts = [int(x)+i.chromStart for x in i.blockStarts.rstrip(',').split(',')]
@@ -2289,6 +2300,7 @@ def generateGeneModel(isoforms, xAxisMin, xAxisMax, blockHeight):
         blockWidths = []
         blockYs = []
         name = i.name
+
     # Calculate blocks from block start and end positions, as well as thickness
         for j in range(len(blockStarts)):
             blockStart = blockStarts[j]
@@ -2334,7 +2346,6 @@ def generateGeneModel(isoforms, xAxisMin, xAxisMax, blockHeight):
                     blockVals.append(codingRegionEnd + (blockEnd - codingRegionEnd) / 2)
                     blockWidths.append(blockEnd - codingRegionEnd + 1)
                     blockYs.append(blockHeight / 2)
-    
         # Find first and last block to draw line properly
         f = lambda i: blockVals[i]
         lineCoords = []
@@ -2352,6 +2363,7 @@ def generateGeneModel(isoforms, xAxisMin, xAxisMax, blockHeight):
             lineName = name
             lineHover = 'name'
             lineLegend = True
+        
         line = go.Scatter(
             x = lineCoords,
             y = [0, 0],
@@ -2361,7 +2373,7 @@ def generateGeneModel(isoforms, xAxisMin, xAxisMax, blockHeight):
                 'namelength' : -1, },
             mode = 'lines',
             line = dict(
-                color = 'rgb(0, 0, 0)',
+                color = color,
             ),
             showlegend = lineLegend,
             legendgroup = name
@@ -2373,7 +2385,7 @@ def generateGeneModel(isoforms, xAxisMin, xAxisMax, blockHeight):
             hoverinfo = 'none',
             width = blockWidths,
             marker = go.bar.Marker(
-                color = 'rgb(0, 0, 0)'
+                color = color
             ),
             showlegend = False,
             legendgroup = name
@@ -2387,7 +2399,7 @@ def generateGeneModel(isoforms, xAxisMin, xAxisMax, blockHeight):
             y = [-x for x in blockYs],
             width = blockWidths,
             marker = go.bar.Marker(
-                color = 'rgb(0, 0, 0)'
+                color = color
             ),
             showlegend=True,
             legendgroup=name
