@@ -1510,11 +1510,6 @@ def rnaPlot(submit, confirm, eventConfirm, geneName, displayMode,rnaParamList, c
         yVal = [0] * (len(range(xAxisMin, xAxisMax)))
         organism = ds.split("_")[0] # Prefix of the curret data frame, first filter
         spliceEvents = pandas.DataFrame() # will hold splice event data for the current data set
-        print(ds)
-        print(organism)
-        print(spliceEventNames[1])
-        print(spliceEventDFs.keys())
-        print('___')
         if any(organism in s for s in spliceEventNames[1]): # Check if there are splice events for the current prefix
             for d in sorted(spliceEventDFs.keys()):
                 if ds in d: # Check for remaining filename, to match the correct files
