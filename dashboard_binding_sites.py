@@ -1510,7 +1510,12 @@ def rnaPlot(submit, confirm, eventConfirm, geneName, displayMode,rnaParamList, c
         yVal = [0] * (len(range(xAxisMin, xAxisMax)))
         organism = ds.split("_")[0] # Prefix of the curret data frame, first filter
         spliceEvents = pandas.DataFrame() # will hold splice event data for the current data set
-        if organism in spliceEventNames[1]: # Check if there are splice events for the current prefix
+        print(ds)
+        print(organism)
+        print(spliceEventNames[1])
+        print(spliceEventDFs.keys())
+        print('___')
+        if any(organism in s for s in spliceEventNames[1]): # Check if there are splice events for the current prefix
             for d in sorted(spliceEventDFs.keys()):
                 if ds in d: # Check for remaining filename, to match the correct files
                     # Criteria to filter relevant lines from current dataframe
@@ -1849,8 +1854,11 @@ def createAreaChart(xVals, yVals, maxYVal, eventData, displayed, colorDict,
                     fig['layout']['yaxis' + str(i)].update(range=[0, maxYVal])
                     fig['layout']['yaxis' + str(i)].update(showticklabels=True, showgrid=True, zeroline=True)
                 else: # Event row
-                    fig['layout']['yaxis' + str(i)].update(showticklabels=False, showgrid=False, zeroline=False)
-                    fig['layout']['yaxis' + str(i)].update(range=[-blockHeight, blockHeight])
+                    if i > len(data):
+                        fig['layout']['yaxis' + str(i)].update(showticklabels=False, showgrid=False, zeroline=False)
+                        fig['layout']['yaxis' + str(i)].update(range=[-blockHeight, blockHeight])
+                    else:
+                        fig['layout']['yaxis' + str(i)].update(showticklabels=False, showgrid=False, zeroline=False)
             else:
                 if i <= len(data): # Coverage row
                     fig['layout']['yaxis' + str(i)].update(range=[0, maxYVal])
