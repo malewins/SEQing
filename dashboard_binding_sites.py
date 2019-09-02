@@ -769,7 +769,7 @@ def showHelpPopup(open_click, close_click):
     open_click -- Open the popup
     close_click -- Close the popup
     """
-    if button_click > close_click:
+    if open_click > close_click:
         return {"display": "block"}
     else:
         return {"display": "none"}
@@ -1635,6 +1635,7 @@ def createAreaChart(xVals, yVals, maxYVal, eventData, displayed, colorDict,
     data = []
     subplotTitles = []
     legendSet = {}
+    eventMaxHeights = []
     colorbarSet = False
     for val in eventTypes:
                 legendSet[val] = False
@@ -1726,6 +1727,7 @@ def createAreaChart(xVals, yVals, maxYVal, eventData, displayed, colorDict,
                             eventBases[key] = [numOverlaps + 0.5*numOverlaps]
                             eventScores[key] = [row.score]
                             intervals.append(((minVal, maxVal), numOverlaps))
+                eventMaxHeights.append(maxStack)
                 traces = []
                 for k in sorted(eventXValues.keys()):
                     legend = False # Show legend item 
@@ -1862,11 +1864,22 @@ def createAreaChart(xVals, yVals, maxYVal, eventData, displayed, colorDict,
 
     # Setup row heights based on available data
     rowHeights = []
+    eventHeights = []
+    for i in eventMaxHeights:
+        if i <= 5:
+            eventHeights.append(1)
+        if i >= 6 and i < 8:
+            eventHeights.append(2)
+        if i >= 8:
+            eventHeights.append(3)
     if spliceEventAvail:
         for i in range(numRows):
             if i > len(data)-1: rowHeights.append(1/numRows) # Gene model row
             elif (i % 2 != 0):
-                rowHeights.append(3/numRows) # Splice event row
+                try:
+                    rowHeights.append(eventHeights[i//2]/numRows) # Splice event row
+                except IndexError:
+                     rowHeights.append(1/numRows)
             else:
                 rowHeights.append(3/numRows) # Coverage row
     else:
