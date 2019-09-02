@@ -254,7 +254,7 @@ if args.cfg != None:
         print('Could not open config file, aborting.')
         exit()
 
-
+# Setup directories to store pickles
 binFilePath = os.path.join(os.path.dirname(__file__),'bin_data/')
 if not os.path.exists(binFilePath):
     os.mkdir(binFilePath)
@@ -685,7 +685,7 @@ spliceSetNames = [[],[]]
 spliceElements = 0
 if len(spliceSitePaths) > 0:
     print('Loading RNA-seq data')
-fileDict = {}
+fileDict = {} # This dictionary will holde the file indexes for each dataset
 for path in spliceSitePaths:
     try:
         checksum = hashlib.md5(open(str(path)).read().encode('utf-8'))
@@ -706,9 +706,12 @@ for path in spliceSitePaths:
             validation = [False]
         if validation[0]:
             df.sort_values(by=['chromStart'])
+            # Split dataframe into small parts, these will be pickled and loaded on demand.
+            # Store covered region as minimum starting point and maximum ending point in the file name.
             dfList = [df.iloc[i:i+10000,] for i in range(0, len(df),10000)]
+            # This index will be used to filter out relevant files during runtime
             fileIndex = pandas.DataFrame(columns = ['start', 'end', 'fileName'])
-            for i in dfList:
+            for i in dfList: 
                 end = i['chromEnd'].max()
                 start = i['chromStart'].min()
                 fileName = binFilePath + 'coverage/' + str(file_name) + "_" + str(start) + "_" + str(end) + '.bin'
@@ -721,6 +724,7 @@ for path in spliceSitePaths:
             indexOut.close()
             fileDict.update({file_name : fileIndex})
             dfList = []
+            # Add the dataset to the list of datasets, check  for number of underscores
             if path.stem.split('_')[0] not in spliceSetNames[1]:
                 try:
                     spliceSetNames[0].append(path.stem.split('_')[1])
@@ -731,7 +735,7 @@ for path in spliceSitePaths:
             out = open(binFilePath + str(path.stem)+'.bin', 'wb')
             pickle.dump(df, out)
             out.close()
-    else: # checksum matches, try to load old index from pickle
+    else: # Checksum matches, try to load old index from pickle
         try:
             fileIndex = pickle.load(open(binFilePath + 'coverage/' + str(file_name) + '_' + 'index.bin', 'rb'))
             fileDict.update({file_name : fileIndex})
@@ -898,8 +902,8 @@ globalDict = {
     'spliceEventAvail' : spliceEventsAvail, # splice event data available True/False,
     'eventColors' : spliceEventColors, # Colorsfor the splice event types
     'coverageColors' : coverageColorDict, # Colors for the coverage plots
-    'eventTypes' : sorted(spliceEventTypes),
-    'authentication': password,
+    'eventTypes' : sorted(spliceEventTypes), # List containing types of splice events
+    'authentication': password, # Password for authentication
     'coverageData' : fileDict} # Types of splice events
 
 runpy.run_module('dashboard_binding_sites', init_globals = globalDict, run_name = '__main__')

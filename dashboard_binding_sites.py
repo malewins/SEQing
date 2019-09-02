@@ -40,8 +40,8 @@ helpText = '''
             ##### RNA-seq
             
             In this tab you can view RNA-seq coverage plots as well as splice events, if the necessary data was provided.
-            Use the checkboxes in the Datasets panel to select which plots you want to view. Functionality for the Options
-            panel will be provided in the future.
+            Use the checkboxes in the Datasets panel to select which plots you want to view. The options panel allows you to select 
+            between different display variants: Default, event type based cooring and score based coloring.
             
             ##### Details
             
@@ -51,7 +51,9 @@ helpText = '''
             ##### Settings
             
             Here you can select colors for the graphs in the iCLIP-seq tab. Select a dataset from the dropdown, choose your color using
-            the sliders and hit confirm. You don't need to hit submit for this.
+            the sliders and hit confirm. You don't need to hit submit for this. Should the plot legend elements overlap you can change the
+             distance between the colorbar and the trace legend with the colorbar margin slider. You can also select your desired format for
+             image export, currently png and svg are supported.
             '''
 
 
@@ -75,7 +77,7 @@ else:
         advStart = None
         advDisabled = True
 
-imgFormat = 'svg'
+imgFormat = 'svg' # Default format for image export
 
 # Hide sequence related controls if no sequence data is available
 if len(sequences) == 0:
@@ -115,7 +117,8 @@ except IndexError:
     disableSettings = False
     
 def help_popup():
- return html.Div(
+    """ Defines the help popup that can be opened in the dashboard"""
+    return html.Div(
         id='help',
         className="model",
         style={'display': 'none'},
@@ -157,7 +160,7 @@ legendColumnOffset = 1.05
 
 
 app = dash.Dash(__name__)
-if authentication != '':
+if authentication != '': # Enable authentication if a password was provided
     auth = dash_auth.BasicAuth(
             app,
             {'u' : authentication})
@@ -726,6 +729,11 @@ app.layout = html.Div(
     [dash.dependencies.Input('imgFormatDrop', 'value')]
 )
 def changeFormatiCLIP(imgFormat):
+    """ Changes the image format for the iCLIP plot
+    
+    Positional arguments:
+    imgFormat -- Image format to use.
+    """
     return {'toImageButtonOptions' : {'filename' : 'iCLIP', 'width' : None,
                 'scale' : 1.0, 'height' : None, 'format' : imgFormat} }
           
@@ -734,6 +742,11 @@ def changeFormatiCLIP(imgFormat):
     [dash.dependencies.Input('imgFormatDrop', 'value')]
 )
 def changeFormatRNA(imgFormat):
+    """ Changes the image format for the iCLIP plot
+    
+    Positional arguments:
+    imgFormat -- Image format to use
+    """
     return {'toImageButtonOptions' : {'filename' : 'RNA', 'width' : None,
                 'scale' : 1.0, 'height' : None, 'format' : imgFormat} }
                                      
@@ -749,7 +762,13 @@ def changeLegendSpacing(value):
     [dash.dependencies.Input("helpButton", "n_clicks"),
      dash.dependencies.Input("help_close", "n_clicks")]
 )
-def update_click_output(button_click, close_click):
+def showHelpPopup(open_click, close_click):
+    """ Display and hide the help popup depending on the clicked button
+    
+    Positional arguments:
+    open_click -- Open the popup
+    close_click -- Close the popup
+    """
     if button_click > close_click:
         return {"display": "block"}
     else:
@@ -1485,7 +1504,7 @@ def rnaPlot(submit, confirm, eventConfirm, geneName, displayMode,rnaParamList, c
     
     legendColumnSpacing = json.loads(legendSpacing)
 
-    # select appropriate data from gene annotations
+    # Select appropriate data from gene annotations
     currentGene = pandas.DataFrame()
     for index, elem in enumerate(geneAnnotations):
         currentGene = elem[elem['name'].str.contains(geneName)]
@@ -1511,7 +1530,7 @@ def rnaPlot(submit, confirm, eventConfirm, geneName, displayMode,rnaParamList, c
     yVals = {}
     maxYVal = 0 # Used to scale y-axes later
     eventDict = {} # stores dataframes with relevant splice event data
-    for ds in sorted(displayed_rnaDataSet):
+    for ds in sorted(displayed_rnaDataSet): # Select relevant coverage files from Index
         fileIndex = coverageData[ds]
         dfBcrit11 = fileIndex['start'] <= xAxisMin
         dfBcrit12 = fileIndex['end'] >= xAxisMin
@@ -1522,7 +1541,7 @@ def rnaPlot(submit, confirm, eventConfirm, geneName, displayMode,rnaParamList, c
         relevantFiles = fileIndex.loc[(dfBcrit11 & dfBcrit12) | (dfBcrit21 & dfBcrit22) | (dfBcrit31 & dfBcrit32)]
         finalDF = []
         start = time.time()
-        for i in relevantFiles.itertuples():
+        for i in relevantFiles.itertuples(): # Build dataframe from parts
             try:
                 df = pickle.load(open(i.fileName, 'rb'))
                 finalDF.append(df)
@@ -1530,7 +1549,7 @@ def rnaPlot(submit, confirm, eventConfirm, geneName, displayMode,rnaParamList, c
                 print(i.fileName + ' was not found')
         end = time.time()
         print(end-start)
-        try:
+        try: # Final selection of relevant values from the combined df
             finalDF = pandas.concat(finalDF)
             bcrit11 = finalDF['chrom'] == chrom
             bcrit21 = finalDF['chromStart'] >= xAxisMin
@@ -1571,7 +1590,7 @@ def rnaPlot(submit, confirm, eventConfirm, geneName, displayMode,rnaParamList, c
         xVals[ds] = xVal
         # Find maximum y-axis value for axis scaling
         if max(yVal) > maxYVal: maxYVal = max(yVal)
-    colorScale = (-1.0,1.0)
+    colorScale = (-1.0,1.0) # Scores range from -1 to 1, setup color scale for consistent coloring
     fig = createAreaChart(xVals, yVals, maxYVal, eventDict, displayed_rnaDataSet, 
                           color_dict, geneName, displayMode, eventConfirm, submit, eventColors, eventColorsFinal, colorScale,
                           legendColumnSpacing)
@@ -1595,10 +1614,10 @@ def createAreaChart(xVals, yVals, maxYVal, eventData, displayed, colorDict,
     Positional arguments:
     xVals -- x-axis values for coverage plot
     yVals -- y-axis values for coverage plot
-    max_yVal -- maximum y value across all coverage tracks, used to scale all y-axes
+    maxYVal -- maximum y value across all coverage tracks, used to scale all y-axes
     eventData -- Dict containing the dataframes with relevant splice events
     displayed -- displayed datasets
-    color_dict -- colors for the coverage plots
+    colorDict -- colors for the coverage plots
     geneName -- name of the selected gene, needed for gene models
     displayMode -- determines how splice events are visualized
     eventconfirm -- confirm button for event color selection
@@ -1683,7 +1702,7 @@ def createAreaChart(xVals, yVals, maxYVal, eventData, displayed, colorDict,
                                     slot = value
                                     break
                             numOverlaps = slot # Set numOverlaps accordingly
-                        try:
+                        try: # Try to append values to the list
                             eventXValues[key].append(minVal + (maxVal - minVal) / 2)
                             eventWidths[key].append(maxVal - minVal)
                             if numOverlaps > maxStack:
@@ -1695,7 +1714,7 @@ def createAreaChart(xVals, yVals, maxYVal, eventData, displayed, colorDict,
                             eventBases[key].append(numOverlaps + 0.5*numOverlaps)
                             eventScores[key].append(row.score)
                             intervals.append(((minVal, maxVal),numOverlaps))
-                        except KeyError:
+                        except KeyError: # Create the list corresponding to key
                             eventXValues[key]  = [minVal + (maxVal - minVal) / 2]
                             eventWidths[key] = [maxVal - minVal]
                             if numOverlaps > maxStack:
@@ -1782,11 +1801,6 @@ def createAreaChart(xVals, yVals, maxYVal, eventData, displayed, colorDict,
                         eventBases.append(numOverlaps + 0.5*numOverlaps)
                         eventScores.append(row.score)
                         intervals.append(((minVal, maxVal),numOverlaps))
-                if colorbarSet == False:
-                    showBar = True
-                    colorbarSet = True
-                else:
-                    showBar = True
                 trace = go.Bar(
                     x=eventXValues,
                     y=[1]*len(eventXValues),
@@ -1799,11 +1813,10 @@ def createAreaChart(xVals, yVals, maxYVal, eventData, displayed, colorDict,
                     ),
                     text = eventScores,
                     hoverinfo = 'x+text',
-                    
                     marker=dict(
                         color= eventScores,
                         colorscale = 'Viridis',
-                        showscale = showBar,
+                        showscale = True,
                         cmin = colorScale[0],
                         cmax = colorScale[1],
                         colorbar =dict(
@@ -1829,7 +1842,7 @@ def createAreaChart(xVals, yVals, maxYVal, eventData, displayed, colorDict,
     chrom = currentGene['chrom'].iloc[0]
     strand = currentGene['strand'].iloc[0]
     overlappingGenes = []
-    for i in geneAnnotations:
+    for i in geneAnnotations: # Select data for gene models from all annotation files
         bcrit11 = i['chrom'] == chrom
         bcrit21 = i['chromStart'] >= xAxisMin
         bcrit22 = i['chromStart'] <= xAxisMax
@@ -1864,13 +1877,13 @@ def createAreaChart(xVals, yVals, maxYVal, eventData, displayed, colorDict,
     fig = tools.make_subplots(rows=numRows, cols=1, subplot_titles=subplotTitles,
                               shared_xaxes=True, row_width=rowHeights[::-1])
 
-    eventIndices = [] # save indices of all elements that contain event traces
+    eventIndices = [] # Save indices of all elements that contain event traces
     for index, t in enumerate(data):
         try:
             fig.append_trace(t, index + 1, 1)
         except ValueError:
             eventIndices.append(index)
-    for i in eventIndices: # add event traces after all coverage traces have been added for legend item positioning
+    for i in eventIndices: # Add event traces after all coverage traces have been added for legend item positioning
         for x in data[i]:
             fig.append_trace(x, i + 1, 1)
 
@@ -1904,14 +1917,14 @@ def createAreaChart(xVals, yVals, maxYVal, eventData, displayed, colorDict,
     return fig
 
 
-def rnaSequencePlot(fig, geneName, numRows, len_data, isoformList, xAxisMax, xAxisMin, strand, blockHeight):
+def rnaSequencePlot(fig, geneName, numRows, lenData, isoformList, xAxisMax, xAxisMin, strand, blockHeight):
     """ Adds gene model plots to coverage and splice event plots
     
     Positional arguments:
     fig -- Current figure, needed to add additional rows
     geneName -- Name of the currently selected gene
     numRows -- Number of rows, needed to prevent zoom on y-axes
-    len_data -- Number of RNA-seq rows, used as start point for gene model rows
+    lenData -- Number of RNA-seq rows, used as start point for gene model rows
     isoformList -- List of all gene isoforms overlapping this genomic region, on either strand
     xAxisMax -- End of region
     xAxisMin -- Start of region
@@ -1928,9 +1941,7 @@ def rnaSequencePlot(fig, geneName, numRows, len_data, isoformList, xAxisMax, xAx
     fig['layout'].update(hovermode='x')
     fig['layout']['yaxis'].update(fixedrange=True)
 
-    chromEnds = []  # used for arrow positioning
-
-    counter = len_data+1
+    counter = lenData+1
 
     # Calculate gene models. We have to distinguish between coding region and non-coding region
     geneModels = generateGeneModel(isoformList, xAxisMin, xAxisMax, blockHeight, strand)
@@ -2031,7 +2042,6 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal, 
         currentGene = elem[elem['name'].str.contains(geneName)]
         if not currentGene.empty:
             break
-    # Row heights and spacing
     
     xAxisMax = currentGene['chromEnd'].max()
 
@@ -2040,7 +2050,7 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal, 
     chrom = currentGene['chrom'].iloc[0]
    
     overlappingGenes = []
-    for i in geneAnnotations:
+    for i in geneAnnotations: # Select data for gene model from all annotaion files
         bcrit11 = i['chrom'] == chrom
         bcrit21 = i['chromStart'] >= xAxisMin
         bcrit22 = i['chromStart'] <= xAxisMax
@@ -2054,7 +2064,7 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal, 
         
     overlaps = pandas.concat(overlappingGenes)
     isoformList = pandas.concat([currentGene, overlaps]) 
-    
+    # Determine what types of data are available and setup appropriate row counts for the dynamic layout
     if rawAvail == True:
         rawDataRows = numParams * rowOffset
     else:
@@ -2074,7 +2084,7 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal, 
         vSpace = spacingSpace
 
     # Final height values for rows respecting type, has to be in bottom-up order
-    dataSetHeights = []
+    dataSetHeights = [] # Base unit to build height list from contains entries for one dataset
     if procAvail == True:
         dataSetHeights.append(rowHeight / 2)
     if rawAvail == True:
@@ -2090,7 +2100,7 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal, 
 
     if strand == '-':
         fig['layout']['xaxis'].update(autorange='reversed')
-    # create list of 3-tupels containing start, end, name for each isoform.
+    # Create list of 3-tupels containing start, end, name for each isoform.
     # Format name properly
     isoformRanges = []
     for elem in currentGene.itertuples():
@@ -2098,7 +2108,7 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal, 
         if len(elem.name.split('_')) > 1:
             name = elem.name.split('.')[1].replace('_', '.')
         isoformRanges.append((elem.chromStart, elem.chromEnd, name))
-    # create master sequence
+    # Create master sequence for sequence display
     try:
         combinedSeq = generateMasterSequence(sequences, isoformRanges, xAxisMax)
     except TypeError:
@@ -2129,17 +2139,6 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal, 
         for part in model:
             fig.append_trace(part, counter, 1)
         counter += 1
-   # for i in currentGene.itertuples():
-       # Setup various helpers to work out the different sized blocks
-     #   blockStarts = [int(x) for x in i.blockStarts.rstrip(',').split(',')]
-      #  blockSizes = [int(x) for x in i.blockSizes.rstrip(',').split(',')]
-       # genemodel = generateGeneModel(int(i.chromStart), int(i.thickStart), int(i.thickEnd - 1),
-      #                                blockStarts, blockSizes,
-       #                               0.4, i.name)
-        #for j in range(len(genemodel)):
-         #   fig.append_trace(genemodel[j], counter, 1)
-            # Move on to the next gene model
-        #counter += 1
 
     # The trailing ',' actually matters for some reason, don't remove
     fig['layout'].update(
@@ -2185,13 +2184,13 @@ def generateMasterSequence(sequences, isoforms, xAxisMax):
         if isoforms[0][2] in i:
             seqDict = i
     combinedSeq = str(seqDict[isoforms[0][2]].seq)
-    # loop through elements and try to append sequences
+    # Loop through elements and try to append sequences
     for elem in isoforms:
         if elem[1] > currentEnd: 
             if elem[0] <= currentEnd: # current element overlaps and adds to the sequence
                 combinedSeq += str(seqDict[elem[2]].seq)[(currentEnd - elem[0]):]
                 currentEnd = elem[1]
-            else: # current element does not overlap but will add to the sequence, fill with gaps
+            else: # Current element does not overlap but will add to the sequence, fill with gaps
                 fillerDist = elem[0] - currentEnd
                 combinedSeq += [''] * fillerDist
                 combinedSeq += str(seqDict[elem[2]].seq)
@@ -2278,11 +2277,11 @@ def generateGeneModel(isoforms, xAxisMin, xAxisMax, blockHeight, strand):
     """Generates gene model based on the given blocks and coding region
 
     Positional arguments:
-        isoforms -- List of all isoforms overlapping relevant region
-        xAxisMin -- Start of the relevant region
-        xAxisMax -- End of the relevant region
-        blockHeight -- Hight for thick blocks
-    name -- Name for the trace
+    isoforms -- List of all isoforms overlapping relevant region
+    xAxisMin -- Start of the relevant region
+    xAxisMax -- End of the relevant region
+    blockHeight -- Hight for thick blocks
+    strand -- Strand that the selected gene is on,for coloring
     """
     traces = []
     for i in isoforms.itertuples(): # This loop will check and if necessary cut blockstarts and sizes
@@ -2394,13 +2393,12 @@ def generateGeneModel(isoforms, xAxisMin, xAxisMax, blockHeight, strand):
             aminBlockVals = min(range(len(blockVals)), key=f)
             lineCoords.append(blockVals[amaxBlockVals] + blockWidths[amaxBlockVals] / 2)
             lineCoords.append(blockVals[aminBlockVals] - blockWidths[aminBlockVals] / 2)
-        except ValueError:
+        except ValueError: # Case that no exons are present and only a line is drawn
             lineCoords.append(xAxisMin)
             lineCoords.append(xAxisMax)
             lineName = name
             lineHover = 'name'
             lineLegend = True
-        
         line = go.Scatter(
             x = lineCoords,
             y = [0, 0],
@@ -2442,7 +2440,7 @@ def generateGeneModel(isoforms, xAxisMin, xAxisMax, blockHeight, strand):
             legendgroup=name
         )
         traces.append([line, upper, lower])
-    # return traces for gene model
+    # Return traces for gene model
     return traces
 
 
