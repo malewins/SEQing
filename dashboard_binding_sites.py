@@ -75,6 +75,7 @@ else:
         advStart = None
         advDisabled = True
 
+imgFormat = 'svg'
 
 # Hide sequence related controls if no sequence data is available
 if len(sequences) == 0:
@@ -290,7 +291,7 @@ app.layout = html.Div(
                                                         style = {'padding' : '3px'},
                                                         config = {'toImageButtonOptions' : 
                                                             {'filename' : 'iCLIP', 'width' : None,
-                                                            'scale' : 3.0, 'height' : None, 'format' : 'png'} }
+                                                            'scale' : 1.0, 'height' : None, 'format' : 'svg'} }
                                                     ),
                                                     html.Div(
                                                         children = [
@@ -393,7 +394,7 @@ app.layout = html.Div(
                                 dcc.Graph(id='spliceGraph',
                                     style = {'padding' : '3px'},
                                     config = {'toImageButtonOptions' : 
-                                        {'filename' : 'iCLIP', 'width' : None, 'scale' : 3.0, 'height' : None, 'format' : 'png'} }
+                                        {'filename' : 'iCLIP', 'width' : None, 'scale' : 1.0, 'height' : None, 'format' : 'svg'} }
                                 )
                             ])
                         ]
@@ -687,6 +688,23 @@ app.layout = html.Div(
                                                     ]
                                                 )
                                             ]
+                                        ),
+                                        html.Div(className = 'table-cell', 
+                                            children = [
+                                                html.Fieldset(title = 'Image Export', 
+                                                    className = 'field-set',
+                                                    children = [
+                                                        html.Legend('Image export format'),
+                                                        dcc.Dropdown(
+                                                            id = 'imgFormatDrop',
+                                                            options = [{'label': i, 'value': i} for i in ['png', 'svg']],
+                                                            value = imgFormat
+                                                        ),
+                                                        html.Div(
+                                                            style = {'height' : '15px'})
+                                                    ]
+                                                )
+                                            ]
                                         )
                                     ],
                                 ),
@@ -702,7 +720,23 @@ app.layout = html.Div(
     ],
     style = {'backgroundColor' : 'rgb(240,240,240)'}
 )
-                                                    
+
+@app.callback(
+    dash.dependencies.Output('bsGraph', 'config'),
+    [dash.dependencies.Input('imgFormatDrop', 'value')]
+)
+def changeFormatiCLIP(imgFormat):
+    return {'toImageButtonOptions' : {'filename' : 'iCLIP', 'width' : None,
+                'scale' : 1.0, 'height' : None, 'format' : imgFormat} }
+          
+@app.callback(
+    dash.dependencies.Output('spliceGraph', 'config'),
+    [dash.dependencies.Input('imgFormatDrop', 'value')]
+)
+def changeFormatRNA(imgFormat):
+    return {'toImageButtonOptions' : {'filename' : 'RNA', 'width' : None,
+                'scale' : 1.0, 'height' : None, 'format' : imgFormat} }
+                                     
 @app.callback(
     dash.dependencies.Output('legendSpacingDiv', 'children'),
     [dash.dependencies.Input('legendSpacingSlider', 'value')]
