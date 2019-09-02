@@ -692,7 +692,10 @@ for path in spliceSitePaths:
     except FileNotFoundError:
         print('Error loading file ' + str(path) + ', skipping.')
         continue
-    file_name = path.stem.split('_')[0]+'_'+path.stem.split('_')[1]
+    try:
+        file_name = path.stem.split('_')[0]+'_'+path.stem.split('_')[1]
+    except IndexError:
+        file_name = path.stem.split('_')[0] 
     print(file_name)
     if coverageChecksums.get(str(path.stem), None) != checksum.hexdigest():
         try: 
@@ -719,8 +722,12 @@ for path in spliceSitePaths:
             fileDict.update({file_name : fileIndex})
             dfList = []
             if path.stem.split('_')[0] not in spliceSetNames[1]:
-                 spliceSetNames[0].append(path.stem.split('_')[1])
-                 spliceSetNames[1].append(path.stem.split('_')[0])
+                try:
+                    spliceSetNames[0].append(path.stem.split('_')[1])
+                    spliceSetNames[1].append(path.stem.split('_')[0])
+                except IndexError:
+                    spliceSetNames[1].append(path.stem.split('_')[0])
+                    spliceSetNames[0].append(path.stem.split('_')[0])
             out = open(binFilePath + str(path.stem)+'.bin', 'wb')
             pickle.dump(df, out)
             out.close()
@@ -729,8 +736,12 @@ for path in spliceSitePaths:
             fileIndex = pickle.load(open(binFilePath + 'coverage/' + str(file_name) + '_' + 'index.bin', 'rb'))
             fileDict.update({file_name : fileIndex})
             if path.stem.split('_')[0] not in spliceSetNames[1]:
-                spliceSetNames[0].append(path.stem.split('_')[1])
-                spliceSetNames[1].append(path.stem.split('_')[0])
+                try:
+                    spliceSetNames[0].append(path.stem.split('_')[1])
+                    spliceSetNames[1].append(path.stem.split('_')[0])
+                except IndexError:
+                    spliceSetNames[1].append(path.stem.split('_')[0])
+                    spliceSetNames[0].append(path.stem.split('_')[0])
         except (FileNotFoundError, UnicodeDecodeError, IOError, ImportError):
             try:
                 df = pandas.read_csv(path, sep= '\t', names= rawHeader, dtype = dtypes)
@@ -756,8 +767,12 @@ for path in spliceSitePaths:
                 fileDict.update({file_name : fileIndex})
                 dfList = []
                 if path.stem.split('_')[0] not in spliceSetNames[1]:
-                    spliceSetNames[0].append(path.stem.split('_')[1])
-                    spliceSetNames[1].append(path.stem.split('_')[0])
+                    try:
+                        spliceSetNames[0].append(path.stem.split('_')[1])
+                        spliceSetNames[1].append(path.stem.split('_')[0])
+                    except IndexError:
+                        spliceSetNames[1].append(path.stem.split('_')[0])
+                        spliceSetNames[0].append(path.stem.split('_')[0])
             else:
                 print('Error loading file ' + str(path))
                     
@@ -784,7 +799,10 @@ for i in spliceEventsPaths:
         dtypes = {'chrom' : 'category', 'chromStart' : 'uint64','chromEnd' : 'uint64','type' : 'category', 'score' : 'float32', 'strand' : 'category'}
         df = pandas.read_csv(i, sep= '\t', names= bsHeader, dtype = dtypes)
         validation = validateBed(df)
-        file_name = i.stem.split('_')[0]+'_'+i.stem.split('_')[1]
+        try:
+            file_name = i.stem.split('_')[0]+'_'+i.stem.split('_')[1]
+        except IndexError:
+            file_name = i.stem.split('_')[0]       
         if validation[0]:
             if file_name in spliceEventsDFs:
                 print('Warning, you are using the same prefix for multiple bed files, file ' + str(
@@ -792,8 +810,12 @@ for i in spliceEventsPaths:
             else:
                 spliceEventsDFs.update({file_name: df})
             if i.stem.split('_')[0] not in spliceEventNames[1]:
+                try:
                     spliceEventNames[0].append(i.stem.split('_')[1])
                     spliceEventNames[1].append(i.stem.split('_')[0])
+                except:
+                    spliceEventNames[1].append(i.stem.split('_')[0])
+                    spliceEventNames[0].append(i.stem.split('_')[0])
             for i in df['type'].cat.categories.tolist():
                 if i not in spliceEventTypes:
                     spliceEventTypes.append(i)
