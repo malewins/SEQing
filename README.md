@@ -51,7 +51,7 @@ Debugger PIN: XXX-XXX-XXX
 
 Once you have activated your virtual environment (env) you can perform a minimal startup of the tool with the following command:
 ```
-python validator.py gene_annotation_file
+python validator.py gene_annotation_file 
 ```
 Note that some_gene_annotation_file is either a BED12 or gtf file containing gene annotations for the organism of your choice. You can also provide mroe than one file. In this case multiple annotation tracks will be added. Please ensure that all files have the correct file extension and do NOT have a header line.
 
@@ -69,6 +69,16 @@ python validator.py some_gene_annotation_file -bsraw prefix_your_iCLIP_data_file
 ```
 These files must be 6 column BED files. The two files with the same prefix will be treated as one dataset the tool and their graphs will be grouped together. Please note that an iCLIP data set consists of maximal two files, it must have a raw iCLIP file and may have a binding site file. You can have multiple datasets, just pass multiple files to the command line options, seperated by spaces.
 
+### Adding RNA-seq coverage and splice event data
+Besides iCLIP data, SEQing can also be used to display RNA-seq data, in the form of coverage and splice event plots. Coverage data is accepted as 4 column bedGraph format, while splice events can be provided as 6 column BED files. The following code will load in the files "sample01.bedgraph" and "sample01.bed":
+```
+python validator.py gene_annotation_file  -splice_data sample01.bedgraph -splice_events sample01.bed
+```
+Naming works slightly different than it did for the iCLIP case: Files have to share the filename (except file extensions) in order to be associated. An underscore can be used to define a prefix, which can be shared by multiple files and allows them to be (de)selected with one click by the user:
+```
+python validator.py gene_annotation_file  -splice_data sa_sample01.bedgraph sa_sample02.bedgraph -splice_events sa_sample01.bed sa_sample02.bed
+```
+This will create the category sa, which will have to datasets, sample01 and sample02. Coverage and splice event files still have a one-to-one relationship, i.e. you can't associate multiple event files with a single coverage file.
 ### Displaying descriptions and sequences
 
 Apart from visualising iCLIP and binding site information the program can also show gene descriptions:
