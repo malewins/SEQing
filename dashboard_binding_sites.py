@@ -1866,12 +1866,14 @@ def createAreaChart(xVals, yVals, maxYVal, eventData, displayed, colorDict,
     rowHeights = []
     eventHeights = []
     for i in eventMaxHeights:
-        if i <= 5:
+        if i == 0:
+            eventHeights.append(0)           
+        if i > 0 and i <= 5:
             eventHeights.append(1)
-        if i >= 6 and i < 8:
+        if i >= 6 and i < 10:
             eventHeights.append(2)
-        if i >= 8:
-            eventHeights.append(3)
+        if i >= 10:
+            eventHeights.append(i % 5 +1)
     if spliceEventAvail:
         for i in range(numRows):
             if i > len(data)-1: rowHeights.append(1/numRows) # Gene model row
