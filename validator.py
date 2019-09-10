@@ -363,6 +363,10 @@ else: # Use xml document for setup
         spliceEventsPaths = [Path(i.firstChild.data) for i in configFile.getElementsByTagName('spliceEvents')]
     except (AttributeError, IndexError):
         spliceEventsPaths = []
+    try:
+        password = configFile.getElementsByTagName('password')[0].firstChild.data
+    except (AttributeError, IndexError):
+        password = ''
 
 
 if len(plotColors) == 0:
