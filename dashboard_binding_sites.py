@@ -1735,7 +1735,10 @@ def createAreaChart(xVals, yVals, maxYVal, eventData, displayed, colorDict,
                             eventBases[key] = [numOverlaps + 0.5*numOverlaps]
                             eventScores[key] = [row.score]
                             intervals.append(((minVal, maxVal), numOverlaps))
-                eventMaxHeights.append(maxStack)
+                if len(intervals) > 0:
+                    eventMaxHeights.append(maxStack+1)
+                else:
+                    eventMaxHeights.append(maxStack)         
                 traces = []
                 for k in sorted(eventXValues.keys()):
                     legend = False # Show legend item 
@@ -1763,6 +1766,7 @@ def createAreaChart(xVals, yVals, maxYVal, eventData, displayed, colorDict,
                         )
                     )
                     traces.append(trace)
+                    print(trace)
                 subplotTitles.append("")
                 data.append(traces)
             else: # Displaymode: Score heatmap
@@ -1811,6 +1815,10 @@ def createAreaChart(xVals, yVals, maxYVal, eventData, displayed, colorDict,
                         eventBases.append(numOverlaps + 0.5*numOverlaps)
                         eventScores.append(row.score)
                         intervals.append(((minVal, maxVal),numOverlaps))
+                if len(intervals) > 0:
+                    eventMaxHeights.append(maxStack+1)
+                else:
+                    eventMaxHeights.append(maxStack)    
                 trace = go.Bar(
                     x=eventXValues,
                     y=[1]*len(eventXValues),
@@ -1838,7 +1846,10 @@ def createAreaChart(xVals, yVals, maxYVal, eventData, displayed, colorDict,
                     )
                 )
                 subplotTitles.append("")
-                data.append(trace)   
+                if len(eventXValues) > 0:
+                    data.append(trace)
+                else:
+                    data.append([])
 
                     
     currentGene = pandas.DataFrame()
@@ -1873,7 +1884,6 @@ def createAreaChart(xVals, yVals, maxYVal, eventData, displayed, colorDict,
     # Setup row heights based on available data
     rowHeights = []
     eventHeights = []
-    vSpace = .1/numRows
     for i in eventMaxHeights:
         if i == 0:
             eventHeights.append(0)           
@@ -1890,7 +1900,7 @@ def createAreaChart(xVals, yVals, maxYVal, eventData, displayed, colorDict,
                 try:
                     rowHeights.append(eventHeights[i//2]/numRows) # Splice event row
                 except IndexError:
-                     rowHeights.append(1/numRows)
+                     rowHeights.append(0/numRows)
             else:
                 rowHeights.append(3/numRows) # Coverage row
     else:
@@ -1910,7 +1920,6 @@ def createAreaChart(xVals, yVals, maxYVal, eventData, displayed, colorDict,
     for i in eventIndices: # Add event traces after all coverage traces have been added for legend item positioning
         for x in data[i]:
             fig.append_trace(x, i + 1, 1)
-
     blockHeight = 0.4 # Height of coding blocks in gene models
     rnaSequencePlot(fig, geneName, numRows, len(data), isoformList, xAxisMax, xAxisMin, strand, blockHeight)
     try:
