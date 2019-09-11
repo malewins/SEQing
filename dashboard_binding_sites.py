@@ -1898,7 +1898,7 @@ def createAreaChart(xVals, yVals, maxYVal, eventData, displayed, colorDict,
             if i > len(data)-1: rowHeights.append(1/numRows) # Gene model row
             else:
                 rowHeights.append(3/numRows) # Coverage row
-    fig = tools.make_subplots(rows=numRows, cols=1, subplot_titles = subplotTitles,
+    fig = tools.make_subplots(rows=numRows, cols=1,
                               shared_xaxes=True, row_width=rowHeights[::-1])
 
     eventIndices = [] # Save indices of all elements that contain event traces
@@ -1913,28 +1913,29 @@ def createAreaChart(xVals, yVals, maxYVal, eventData, displayed, colorDict,
 
     blockHeight = 0.4 # Height of coding blocks in gene models
     rnaSequencePlot(fig, geneName, numRows, len(data), isoformList, xAxisMax, xAxisMin, strand, blockHeight)
-    fig['layout']['yaxis'].update(showticklabels=True, showgrid=True, zeroline=True)
+    fig['layout']['yaxis'].update(showticklabels=True, showgrid=True, zeroline=True, title=subplotTitles[0])
+    subplotTitles.extend([""]*numIsoforms)
     for i in range(1, numRows+1):
             if spliceEventAvail:
                 if i % 2 != 0 and i <= len(data): # Coverage row
-                    fig['layout']['yaxis' + str(i)].update(range=[0, maxYVal])
+                    fig['layout']['yaxis' + str(i)].update(range=[0, maxYVal],title={'text': subplotTitles[i-1]})
                     fig['layout']['yaxis' + str(i)].update(showticklabels=True, showgrid=True, zeroline=True)
                 else: # Event row
                     if i > len(data):
-                        fig['layout']['yaxis' + str(i)].update(showticklabels=False, showgrid=False, zeroline=False)
+                        fig['layout']['yaxis' + str(i)].update(showticklabels=False, showgrid=False, zeroline=False, title={'text': subplotTitles[i-1]})
                         fig['layout']['yaxis' + str(i)].update(range=[-blockHeight, blockHeight])
                     else:
-                        fig['layout']['yaxis' + str(i)].update(showticklabels=False, showgrid=False, zeroline=False)
+                        fig['layout']['yaxis' + str(i)].update(showticklabels=False, showgrid=False, zeroline=False, title={'text': subplotTitles[i-1]})
             else:
                 if i <= len(data): # Coverage row
-                    fig['layout']['yaxis' + str(i)].update(range=[0, maxYVal])
+                    fig['layout']['yaxis' + str(i)].update(range=[0, maxYVal], title={'text': subplotTitles[i-1]})
                     fig['layout']['yaxis' + str(i)].update(showticklabels=True, showgrid=True, zeroline=True)
                 else: # Gene model row
                     fig['layout']['yaxis' + str(i)].update(showticklabels=False, showgrid=False, zeroline=False)
-                    fig['layout']['yaxis' + str(i)].update(range=[-blockHeight, blockHeight])
+                    fig['layout']['yaxis' + str(i)].update(range=[-blockHeight, blockHeight], title={'text': subplotTitles[i-1]})
     # Setup plot height, add 85 to account for margins
     fig['layout'].update(
-        margin=go.layout.Margin(l=30, r=40, t=25, b=60),
+        margin=go.layout.Margin(l=60, r=40, t=25, b=60),
     )
     fig['layout']['height'] = (80 * len(data) + 50 * numIsoforms + 85)
     fig['layout']['legend'].update(x = legendColumnSpacing)
