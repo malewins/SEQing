@@ -1913,7 +1913,10 @@ def createAreaChart(xVals, yVals, maxYVal, eventData, displayed, colorDict,
 
     blockHeight = 0.4 # Height of coding blocks in gene models
     rnaSequencePlot(fig, geneName, numRows, len(data), isoformList, xAxisMax, xAxisMin, strand, blockHeight)
-    fig['layout']['yaxis'].update(showticklabels=True, showgrid=True, zeroline=True, title=subplotTitles[0])
+    try:
+        fig['layout']['yaxis'].update(showticklabels=True, showgrid=True, zeroline=True, title={'text': subplotTitles[0]})
+    except IndexError:
+        fig['layout']['yaxis'].update(showticklabels=True, showgrid=True, zeroline=True)
     subplotTitles.extend([""]*numIsoforms)
     for i in range(1, numRows+1):
             if spliceEventAvail:
