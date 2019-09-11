@@ -17,712 +17,718 @@ import time
 
 __author__ = "Yannik Bramkamp"
 
-helpText = '''
-            ##### General
-            
-            Welcome to SEQing, an interactive, web based visualisation and exploration tool for iCLIP-seq and RNA-seq data.
-            Use the drop down menu at the top to select your gene of interest. You can search by gene identifier,
-            and depending on provided data, also by gene name and partial descriptions. 
-            For more detailed information on the different tabs please consult the following paragraphs.
-            
-            ##### iCLIP-seq
-            
-            In this tab you can explore raw iCLIP-seq data and, if available, also predicted binding sites. Besides the basic
-            interactive plot controls provided by the Dash framework, which you can access by hovering over the graphs,
-            there are two main control elements:
-              -    On the left side you have checkboxes to select which datasets you wish to display, if more than one was provided to the tool.
-              -    On the right side, if dna sequence data was provided, you can select the display mode for said sequences. You can choose from
-                   heatmap, letters, and no display at all. heatmap is strongly recommended for interactive use, as letters has a signifficantly
-                   higher performance impact and is recommended only for the creation of static images.
+if __name__ == '__main__':
+    helpText = '''
+                ##### General
                 
-            Please note that you will have to hit the submit button for changes to be applied.
+                Welcome to SEQing, an interactive, web based visualisation and exploration tool for iCLIP-seq and RNA-seq data.
+                Use the drop down menu at the top to select your gene of interest. You can search by gene identifier,
+                and depending on provided data, also by gene name and partial descriptions. 
+                For more detailed information on the different tabs please consult the following paragraphs.
                 
-            ##### RNA-seq
-            
-            In this tab you can view RNA-seq coverage plots as well as splice events, if the necessary data was provided.
-            Use the checkboxes in the Datasets panel to select which plots you want to view. The options panel allows you to select 
-            between different display variants: Default, event type based cooring and score based coloring.
-            
-            ##### Details
-            
-            In this tab you can view further information on your selected gene. Which information is available depends on what your administrator has provided
-            when setting up the tool.
-            
-            ##### Settings
-            
-            Here you can select colors for the graphs in the iCLIP-seq tab. Select a dataset from the dropdown, choose your color using
-            the sliders and hit confirm. You don't need to hit submit for this. Should the plot legend elements overlap you can change the
-             distance between the colorbar and the trace legend with the colorbar margin slider. You can also select your desired format for
-             image export, currently png and svg are supported.
-            '''
-
-
-
-if 'dropList' not in globals():
-    print('Please start the program via validator.py')
-    exit()
-
-# Set defaults if no advanced descriptions are available
-if advancedDesc is None:
-    advList = []
-    advStart = None
-    advDisabled = True
-else:
-    advList = list(advancedDesc.columns.values)
-    advList.remove('gene_ids')
-    try:
-        advStart = advList[0]
-        advDisabled = False
-    except IndexError:
+                ##### iCLIP-seq
+                
+                In this tab you can explore raw iCLIP-seq data and, if available, also predicted binding sites. Besides the basic
+                interactive plot controls provided by the Dash framework, which you can access by hovering over the graphs,
+                there are two main control elements:
+                  -    On the left side you have checkboxes to select which datasets you wish to display, if more than one was provided to the tool.
+                  -    On the right side, if dna sequence data was provided, you can select the display mode for said sequences. You can choose from
+                       heatmap, letters, and no display at all. heatmap is strongly recommended for interactive use, as letters has a signifficantly
+                       higher performance impact and is recommended only for the creation of static images.
+                    
+                Please note that you will have to hit the submit button for changes to be applied.
+                    
+                ##### RNA-seq
+                
+                In this tab you can view RNA-seq coverage plots as well as splice events, if the necessary data was provided.
+                Use the checkboxes in the Datasets panel to select which plots you want to view. The options panel allows you to select 
+                between different display variants: Default, event type based cooring and score based coloring.
+                
+                ##### Details
+                
+                In this tab you can view further information on your selected gene. Which information is available depends on what your administrator has provided
+                when setting up the tool.
+                
+                ##### Settings
+                
+                Here you can select colors for the graphs in the iCLIP-seq tab. Select a dataset from the dropdown, choose your color using
+                the sliders and hit confirm. You don't need to hit submit for this. Should the plot legend elements overlap you can change the
+                 distance between the colorbar and the trace legend with the colorbar margin slider. You can also select your desired format for
+                 image export, currently png and svg are supported.
+                '''
+    
+    
+    
+    if 'dropList' not in globals():
+        print('Please start the program via validator.py')
+        exit()
+    
+    # Set defaults if no advanced descriptions are available
+    if advancedDesc is None:
+        advList = []
         advStart = None
         advDisabled = True
-
-imgFormat = 'svg' # Default format for image export
-
-# Hide sequence related controls if no sequence data is available
-if len(sequences) == 0:
-    seqDispStyle = {'display': 'none', 'height' : '100%', 'width' : '20vw'}
-else:
-    seqDispStyle = {'height' : '100%', 'width' : '20vw'}
-if len(dataSetNames) == 0:
-    dataSetStyle = {'display': 'none', 'height' : '100%', 'width' : '15vw'}
-else:
-    dataSetStyle = {'height' : '100%', 'width' : '15vw'}
-if len(spliceSetNames[1]) == 0:
-    rnaDataStyle = {'display': 'none', 'height' : '100%', 'width' : '15vw'}
-else:
-    rnaDataStyle = {'height' : '100%', 'width' : '15vw'}
-
-
-# Try to setup color picker for iCLIP-seq tracks
-try:
-    initialColor = dataSetNames[0]
-    disableSettings = False
-except IndexError:
-    initialColor = None
-    disableSettings = False
-# Try to setup color picker for coverage tracks
-try:
-    initialColorCoverage = spliceSetNames[1][0]
-    disableSettings = False
-except IndexError:
-    initialColorCoverage = None
-    disableSettings = False
-# Try to setup color picker for coverage tracks
-try:
-    initialColorEvents = eventTypes[0]
-    disableSettings = False
-except IndexError:
-    initialColorEvents = None
-    disableSettings = False
+    else:
+        advList = list(advancedDesc.columns.values)
+        advList.remove('gene_ids')
+        try:
+            advStart = advList[0]
+            advDisabled = False
+        except IndexError:
+            advStart = None
+            advDisabled = True
     
-def help_popup():
-    """ Defines the help popup that can be opened in the dashboard"""
-    return html.Div(
-        id='help',
-        className="model",
-        style={'display': 'none'},
-        children=(
-            html.Div(
-                className="help-container",
-                children=[
-                    html.Div(
-                        className='close-container',
-                        children=html.Button(
-                            "Close",
-                            id="help_close",
-                            n_clicks=0,
-                            className="closeButton",
-                            style={'border': 'none', 'height': '100%'}
-                        )
-                    ),
-                    html.Div(
-                        className='help-text',
-                        children=[dcc.Markdown(
-                            children= dedent(helpText)
-                            )
-                        ]
-                    )
-                ]
-            )
-        )
-)
-
-# Default tab style
-tabStyle = {'padding' : '0', 'line-height' : '5vh'}
-# Colors for the alternating coloring in Details
-tableColors = ['rgb(255, 255 ,255)', 'rgb(125, 244, 66)']
-# For plots with multiple columns in the legend, basically anything using a color scale or heatmap,
-# this value determines the margin between colorbar and legend items. For very wide or very narrow
-# screens this value might need to be adjusted a bit, this can unfortunately not be done
-# automatically right now.
-legendColumnOffset = 1.05
-
-
-app = dash.Dash(__name__)
-if authentication != '': # Enable authentication if a password was provided
-    auth = dash_auth.BasicAuth(
-            app,
-            {'u' : authentication})
-app.config['suppress_callback_exceptions']=True
-
-app.layout = html.Div(
-    children=[
-        html.Div(
-            children = [
-                html.H1(id='headline', children='Report')
-            ],
-            style={'width': '90vw', 'display': 'table-cell', 'verticalalign': 'middle'}
-        ),
-        html.Div(
-            children=[
+    imgFormat = 'svg' # Default format for image export
+    
+    # Hide sequence related controls if no sequence data is available
+    if len(sequences) == 0:
+        seqDispStyle = {'display': 'none', 'height' : '100%', 'width' : '20vw'}
+    else:
+        seqDispStyle = {'height' : '100%', 'width' : '20vw'}
+    if len(dataSetNames) == 0:
+        dataSetStyle = {'display': 'none', 'height' : '100%', 'width' : '15vw'}
+    else:
+        dataSetStyle = {'height' : '100%', 'width' : '15vw'}
+    if len(spliceSetNames[1]) == 0:
+        rnaDataStyle = {'display': 'none', 'height' : '100%', 'width' : '15vw'}
+    else:
+        rnaDataStyle = {'height' : '100%', 'width' : '15vw'}
+    
+    
+    # Try to setup color picker for iCLIP-seq tracks
+    try:
+        initialColor = dataSetNames[0]
+        disableSettings = False
+    except IndexError:
+        initialColor = None
+        disableSettings = False
+    # Try to setup color picker for coverage tracks
+    try:
+        initialColorCoverage = spliceSetNames[1][0]
+        disableSettings = False
+    except IndexError:
+        initialColorCoverage = None
+        disableSettings = False
+    # Try to setup color picker for coverage tracks
+    try:
+        initialColorEvents = eventTypes[0]
+        disableSettings = False
+    except IndexError:
+        initialColorEvents = None
+        disableSettings = False
+        
+    def help_popup():
+        """ Defines the help popup that can be opened in the dashboard. Code is
+        based on https://community.plot.ly/t/any-way-to-create-an-instructions-popout/18828/2
+        by mbkupfer.
+        """
+        return html.Div(
+            id='help',
+            className="model",
+            style={'display': 'none'},
+            children=(
                 html.Div(
+                    className="help-container",
                     children=[
                         html.Div(
-                            children=[
-                                dcc.Dropdown(
-                                    id='geneDrop',
-                                    options=[{'label': i[0], 'value': i[1]} for i in dropList],
-                                    value=dropList[0][1]
-                                )
-                            ],
-                            style={'width': '70vw', 'display': 'table-cell', 'verticalalign': 'middle'}
-                        ),
-                        html.Div(
-                            style={'width': '1vw', 'display': 'table-cell', 'verticalalign': 'middle'}
-                        ),
-                        html.Div(
-                            children=[
-                                html.Button(id='submit', n_clicks=0, n_clicks_timestamp=0, children='Submit', 
-                                            style = {'backgroundColor' : 'rgb(255,255,255)'})
-                            ],
-                            style={'width': '8vw', 'display': 'table-cell', 'verticalalign': 'middle'}
-                        ),
-                        html.Div(
-                            style={'width': '3vw', 'display': 'table-cell', 'verticalalign': 'middle'}
-                        ),
-                        html.Div(
-                            children = [
-                                html.Button(id='helpButton', n_clicks=0, n_clicks_timestamp=0, children='help',
-                                        style = {'backgroundColor' : 'rgb(255,255,255)'}
-                                )
-                            ],
-                            style={'width': '8vw', 'display': 'table-cell', 'verticalalign': 'middle'}
-                        )
-                    ]
-                ),
-                dcc.Tabs(
-                    id='tabs',
-                    style={
-                        'width': '50%',
-                        'height': '5vh'
-                    },
-                    children=[
-                        dcc.Tab(
-                            label='iCLIP-seq',
-                            style=tabStyle,
-                            selected_style=tabStyle,
-                            id='clipTab',
-                            children=[
-                                html.Div(children = [
-                                    html.Div(className = 'table-cont',
-                                        children=[
-                                                html.Div(className = 'table-row',
-                                                    children = [
-                                                    html.Details(open = 'open', children = [
-                                                    html.Summary("Controls"),
-                                                    html.Div(
-                                                        className = 'table-cell column-1',
-                                                        children = [
-                                                            html.Fieldset(
-                                                                className = 'field-set',
-                                                                children = [ 
-                                                                    html.Legend('Gene Description'),
-                                                                    html.Div(id='descDiv',
-                                                                        children = html.P(html.B(''))
-                                                                    )
-                                                                ],
-                                                            )
-                                                        ]
-                                                    ),
-                                                    html.Div(style = dataSetStyle,
-                                                        className = 'table-cell column-2',
-                                                        children = [
-                                                            html.Fieldset(
-                                                                className = 'field-set',
-                                                                children = [
-                                                                    html.Legend('Datasets'),                                                     
-                                                                    dcc.Checklist(
-                                                                        id='paramList',
-                                                                        options=[{'label': i, 'value': i} for i in dataSetNames],
-                                                                        values=[i for i in dataSetNames]
-                                                                    )
-                                                                ]
-                                                            
-                                                            )
-                                                        ]
-                                                    ),
-                                                    html.Div(style = seqDispStyle,
-                                                        className = 'table-cell column-3',
-                                                        children = [
-                                                            html.Fieldset(
-                                                                className = 'field-set',
-                                                                children = [
-                                                                    html.Legend('DNA sequence options'),
-                                                                    dcc.RadioItems(
-                                                                        id='sequenceRadio',
-                                                                        options=[
-                                                                            {'label': 'Do not show dna sequence', 'value': 'noSeq'},
-                                                                            {'label': 'Show dna sequence as letters', 'value': 'letterSeq'},
-                                                                            {'label': 'Show dna sequence as heatmap', 'value': 'heatSeq'}
-                                                                        ],
-                                                                        value='heatSeq'
-                                                                    )
-                                                                ]
-                                                            )
-                                                        ]
-                                                    )
-                                                ]
-                                            ),
-                                            ])
-                                        ],
-                                    ),
-                                    html.Div(style = {'height' : '25px'}),
-                                    html.Div(
-                                        children = [
-                                                    dcc.Graph(id='bsGraph',
-                                                        style = {'padding' : '3px'},
-                                                        config = {'toImageButtonOptions' : 
-                                                            {'filename' : 'iCLIP', 'width' : None,
-                                                            'scale' : 1.0, 'height' : None, 'format' : 'svg'} }
-                                                    ),
-                                                    html.Div(
-                                                        children = [
-                                                            html.Div(id = 'advMem',
-                                                                style = {'display' : 'none'}
-                                                            )
-                                                        ]
-                                                    )    
-                                           
-                                           
-                                        ]         
-                                    )
-                                ]
+                            className='close-container',
+                            children=html.Button(
+                                "Close",
+                                id="help_close",
+                                n_clicks=0,
+                                className="closeButton",
+                                style={'border': 'none', 'height': '100%'}
                             )
-                            ]
                         ),
-                        dcc.Tab(
-                            label='RNA-seq',
-                            style=tabStyle,
-                            selected_style=tabStyle,
-                            id='rnaTab',
-                            children=[
-                                html.Div(children=[
-                                    html.Div(className='table-cont',
-                                             children=[
-                                                 html.Div(className='table-row',
-                                                          children=[
-                                                          html.Details(open = 'open', children = [
-                                                          html.Summary("Controls"),
-                                                              html.Div(
-                                                                  className='table-cell column-1',
-                                                                  children=[
-                                                                      html.Fieldset(
-                                                                          className='field-set',
-                                                                          children=[
-                                                                              html.Legend('Gene Description'),
-                                                                              html.Div(id='rnaDescDiv',
-                                                                                       children=html.P(html.B(''))
-                                                                                       )
-                                                                          ],
-                                                                      )
-                                                                  ]
-                                                              ),
-                                                              html.Div(style=rnaDataStyle,
-                                                                       className='table-cell column-2',
-                                                                       children=[
-                                                                           html.Fieldset(
-                                                                               className='field-set',
-                                                                               children=[
-                                                                                   html.Legend('Datasets'),
-                                                                                   dcc.Checklist(
-                                                                                       id='rnaParamList',
-                                                                                       options=[{'label':
-                                                                                                     spliceSetNames[1][
-                                                                                                         i], 'value':
-                                                                                                     spliceSetNames[1][
-                                                                                                         i]} for
-                                                                                                i in range(
-                                                                                               len(spliceSetNames[1]))],
-                                                                                       values=[spliceSetNames[1][i] for
-                                                                                               i in range(
-                                                                                               len(spliceSetNames[1]))],
-                                                                                   ),
-                                                                               ]
-
-                                                                           )
-                                                                       ]
-                                                                       ),
-                                                              html.Div(style={'height': '100%', 'width': '20vw'},
-                                                                       className='table-cell column-3',
-                                                                       children=[
-                                                                           html.Fieldset(
-                                                                               className='field-set',
-                                                                               children=[
-                                                                                   html.Legend('Options'),
-                                                                                   dcc.RadioItems(
-                                                                                       id='rnaRadio',
-                                                                                       options=[
-                                                                                           {'label': 'Default display',
-                                                                                            'value': 'one'},
-                                                                                           {'label': 'Color event types',
-                                                                                            'value': 'two'},
-                                                                                           {'label': 'Color event scores',
-                                                                                            'value': 'three'}
-                                                                                       ],
-                                                                                       value='one'
-                                                                                   )
-                                                                               ]
-                                                                           )
-                                                                       ]
-                                                                       )
-                                                          ]
-                                                          ),
-                                                          ])
-                                                        
-                                                    ],
-
-                                ),
-                                html.Div(style = {'height' : '25px'}),
-                                dcc.Graph(id='spliceGraph',
-                                    style = {'padding' : '3px'},
-                                    config = {'toImageButtonOptions' : 
-                                        {'filename' : 'iCLIP', 'width' : None, 'scale' : 1.0, 'height' : None, 'format' : 'svg'} }
+                        html.Div(
+                            className='help-text',
+                            children=[dcc.Markdown(
+                                children= dedent(helpText)
                                 )
-                            ])
-                        ]
-                        ),
-                        dcc.Tab(
-                            label = 'Details',
-                            id = 'deTab',
-                            disabled = advDisabled,
-                            style = tabStyle,
-                            selected_style = tabStyle,
-                            disabled_style = tabStyle,
-                            children = [
-                                html.Div(
-                                    id='detailMainDiv',
-                                    children=[]
-                                )
-                            ]
-                        ),
-                        dcc.Tab(
-                            label='Settings',
-                            id='settings',
-                            style=tabStyle,
-                            selected_style=tabStyle,
-                            disabled=disableSettings,
-                            disabled_style=tabStyle,
-                            children=[
-                                html.Div(style = {'display' : 'table'},
-                                children =[
-                                html.Div(style={'width': '100vw', 'display': 'table-row', 'verticalalign': 'middle'},
-                                    children=[
-                                        html.Div(className = 'table-cell', 
-                                        children = [
-                                        html.Fieldset(title = 'iCLIP Settings', 
-                                            className = 'field-set',
-                                            children = [ 
-                                                html.Legend('iCLIP Settings'),
-                                                html.Div(
-                                                    style={'display': 'none'},
-                                                    id='colorDiv',
-                                                    children=json.dumps(colorMap)
-                                                ),
-                                                html.Div(
-                                                    style={'display': 'none'},
-                                                    id='colorFinal',
-                                                    children=json.dumps(colorMap)
-                                                ),
-                                                dcc.Dropdown(
-                                                    id='colorDrop',
-                                                    options=[{'label': i, 'value': i} for i in dataSetNames],
-                                                    value=initialColor
-                                                ),
-                                                html.Div(
-                                                    id='rDisp',
-                                                    children=html.P(html.B('R: ')),
-                                                    style={'width': '10vw', 'display': 'table-cell'}
-                                                ),
-                                                dcc.Slider(
-                                                    id='rInput',
-                                                    min=0,
-                                                    max=255,
-                                                    step=1,
-                                                    updatemode='drag'
-                                                ),
-                                                html.Div(
-                                                    id='gDisp',
-                                                    children=html.P(html.B('G: ')),
-                                                    style={'width': '10vw', 'display': 'table-cell'}
-                                                ),
-                                                dcc.Slider(
-                                                    id='gInput',
-                                                    min=0,
-                                                    max=255,
-                                                    step=1,
-                                                    updatemode='drag'
-                                                ),
-                                                html.Div(
-                                                    id='bDisp',
-                                                    children=html.P(html.B('B: ')),
-                                                    style={'width': '10vw', 'display': 'table-cell'}
-                                                ),
-                                                dcc.Slider(
-                                                    id='bInput',
-                                                    min=0,
-                                                    max=255,
-                                                    step=1,
-                                                    updatemode='drag'
-                                                ),
-                                                html.Div(
-                                                    children=[
-                                                        html.Div(id='preview',
-                                                                 children=html.P(html.B('Preview')),
-                                                                 style={'width': '30vw', 'display': 'table-cell',
-                                                                        'verticalalign': 'middle'}
-                                                                 ),
-                                                        html.Div(
-                                                            children=[
-                                                                html.Button(id='colorConfirm', n_clicks_timestamp=0,
-                                                                            children='confirm')
-                                                            ],
-                                                            style={'width': '10vw', 'display': 'table-cell',
-                                                                   'verticalalign': 'middle'}
-                                                        )
-                                                    ],
-                                                    style={'width': '10vw', 'display': 'table-cell'}
-                                                )
-                                            ]
-                                        )]),
-                                        html.Div(className = 'table-cell', 
-                                        children = [
-                                        html.Fieldset(title = 'coverage settings', 
-                                            className = 'field-set',
-                                            children = [ 
-                                                html.Legend('Coverage plot settings'),
-                                                html.Div(
-                                                    style={'display': 'none'},
-                                                    id='covColorDiv',
-                                                    children=json.dumps(coverageColors)
-                                                ),
-                                                html.Div(
-                                                    style={'display': 'none'},
-                                                    id='covColorFinal',
-                                                    children=json.dumps(coverageColors)
-                                                ),
-                                                dcc.Dropdown(
-                                                    id='covColorDrop',
-                                                    options=[{'label': i, 'value': i} for i in spliceSetNames[1]],
-                                                    value=initialColorCoverage
-                                                ),
-                                                html.Div(
-                                                    id='covRDisp',
-                                                    children=html.P(html.B('R: ')),
-                                                    style={'width': '10vw', 'display': 'table-cell'}
-                                                ),
-                                                dcc.Slider(
-                                                    id='covRInput',
-                                                    min=0,
-                                                    max=255,
-                                                    step=1,
-                                                    updatemode='drag'
-                                                ),
-                                                html.Div(
-                                                    id='covGDisp',
-                                                    children=html.P(html.B('G: ')),
-                                                    style={'width': '10vw', 'display': 'table-cell'}
-                                                ),
-                                                dcc.Slider(
-                                                    id='covGInput',
-                                                    min=0,
-                                                    max=255,
-                                                    step=1,
-                                                    updatemode='drag'
-                                                ),
-                                                html.Div(
-                                                    id='covBDisp',
-                                                    children=html.P(html.B('B: ')),
-                                                    style={'width': '10vw', 'display': 'table-cell'}
-                                                ),
-                                                dcc.Slider(
-                                                    id='covBInput',
-                                                    min=0,
-                                                    max=255,
-                                                    step=1,
-                                                    updatemode='drag'
-                                                ),
-                                                html.Div(
-                                                    children=[
-                                                        html.Div(id='covPreview',
-                                                                 children=html.P(html.B('Preview')),
-                                                                 style={'width': '30vw', 'display': 'table-cell',
-                                                                        'verticalalign': 'middle'}
-                                                                 ),
-                                                        html.Div(
-                                                            children=[
-                                                                html.Button(id='covColorConfirm', n_clicks_timestamp=0,
-                                                                            children='confirm')
-                                                            ],
-                                                            style={'width': '10vw', 'display': 'table-cell',
-                                                                   'verticalalign': 'middle'}
-                                                        )
-                                                    ],
-                                                    style={'width': '10vw', 'display': 'table-cell'}
-                                                )
-                                            ]
-                                        )]),
-                                        html.Div(className = 'table-cell', 
-                                        children = [
-                                        html.Fieldset(title = 'event settings', 
-                                            className = 'field-set',
-                                            children = [ 
-                                                html.Legend('Splice event plot settings'),
-                                                html.Div(
-                                                    style={'display': 'none'},
-                                                    id='eventColorDiv',
-                                                    children=json.dumps(eventColors)
-                                                ),
-                                                html.Div(
-                                                    style={'display': 'none'},
-                                                    id='eventColorFinal',
-                                                    children=json.dumps(eventColors)
-                                                ),
-                                                dcc.Dropdown(
-                                                    id='eventColorDrop',
-                                                    options=[{'label': i, 'value': i} for i in eventTypes],
-                                                    value=initialColorEvents
-                                                ),
-                                                html.Div(
-                                                    id='eventRDisp',
-                                                    children=html.P(html.B('R: ')),
-                                                    style={'width': '10vw', 'display': 'table-cell'}
-                                                ),
-                                                dcc.Slider(
-                                                    id='eventRInput',
-                                                    min=0,
-                                                    max=255,
-                                                    step=1,
-                                                    updatemode='drag'
-                                                ),
-                                                html.Div(
-                                                    id='eventGDisp',
-                                                    children=html.P(html.B('G: ')),
-                                                    style={'width': '10vw', 'display': 'table-cell'}
-                                                ),
-                                                dcc.Slider(
-                                                    id='eventGInput',
-                                                    min=0,
-                                                    max=255,
-                                                    step=1,
-                                                    updatemode='drag'
-                                                ),
-                                                html.Div(
-                                                    id='eventBDisp',
-                                                    children=html.P(html.B('B: ')),
-                                                    style={'width': '10vw', 'display': 'table-cell'}
-                                                ),
-                                                dcc.Slider(
-                                                    id='eventBInput',
-                                                    min=0,
-                                                    max=255,
-                                                    step=1,
-                                                    updatemode='drag'
-                                                ),
-                                                html.Div(
-                                                    children=[
-                                                        html.Div(id='eventPreview',
-                                                                 children=html.P(html.B('Preview')),
-                                                                 style={'width': '30vw', 'display': 'table-cell',
-                                                                        'verticalalign': 'middle'}
-                                                                 ),
-                                                        html.Div(
-                                                            children=[
-                                                                html.Button(id='eventColorConfirm', n_clicks_timestamp=0,
-                                                                            children='confirm')
-                                                            ],
-                                                            style={'width': '10vw', 'display': 'table-cell',
-                                                                   'verticalalign': 'middle'}
-                                                        )
-                                                    ],
-                                                    style={'width': '10vw', 'display': 'table-cell'}
-                                                )
-                                            ]
-                                        )]),
-                                        html.Div(className = 'table-cell', 
-                                            children = [
-                                                html.Fieldset(title = 'Legend Settings', 
-                                                    className = 'field-set',
-                                                    children = [
-                                                        html.Legend('Legend Colorbar Margin'),
-                                                        html.Div(
-                                                            id = 'legendSpacingDiv',
-                                                            style = {'display': 'none'},
-                                                            children = json.dumps(legendColumnOffset)
-                                                            ),
-                                                        dcc.Slider(
-                                                            id = 'legendSpacingSlider',
-                                                            min = 1.02,
-                                                            max = 1.08,
-                                                            step = 0.005,
-                                                            value = legendColumnOffset,
-                                                            marks = {
-                                                                1.02: '.02',
-                                                                1.03: '',
-                                                                1.04: '',
-                                                                1.05: '.05',
-                                                                1.06: '',
-                                                                1.07: '',
-                                                                1.08: '.08',
-                                                                }
-                                                        ),
-                                                        html.Div(
-                                                            style = {'height' : '15px'})
-                                                    ]
-                                                )
-                                            ]
-                                        ),
-                                        html.Div(className = 'table-cell', 
-                                            children = [
-                                                html.Fieldset(title = 'Image Export', 
-                                                    className = 'field-set',
-                                                    children = [
-                                                        html.Legend('Image export format'),
-                                                        dcc.Dropdown(
-                                                            id = 'imgFormatDrop',
-                                                            options = [{'label': i, 'value': i} for i in ['png', 'svg']],
-                                                            value = imgFormat
-                                                        ),
-                                                        html.Div(
-                                                            style = {'height' : '15px'})
-                                                    ]
-                                                )
-                                            ]
-                                        )
-                                    ],
-                                ),
-                            ])
                             ]
                         )
                     ]
                 )
+            )
+    )
+    
+    # Default tab style
+    tabStyle = {'padding' : '0', 'line-height' : '5vh'}
+    # Colors for the alternating coloring in Details
+    tableColors = ['rgb(255, 255 ,255)', 'rgb(125, 244, 66)']
+    # For plots with multiple columns in the legend, basically anything using a color scale or heatmap,
+    # this value determines the margin between colorbar and legend items. For very wide or very narrow
+    # screens this value might need to be adjusted a bit, this can unfortunately not be done
+    # automatically right now.
+    legendColumnOffset = 1.05
+    
+    
+app = dash.Dash(__name__)
+app.config['suppress_callback_exceptions']=True
+if __name__ == '__main__':
+    if authentication != '': # Enable authentication if a password was provided
+        auth = dash_auth.BasicAuth(
+                app,
+                {'u' : authentication})
 
-            ]
-        ),
-        help_popup()
-    ],
-    style = {'backgroundColor' : 'rgb(240,240,240)'}
-)
+    
+    app.layout = html.Div(
+        children=[
+            html.Div(
+                children = [
+                    html.H1(id='headline', children='Report')
+                ],
+                style={'width': '90vw', 'display': 'table-cell', 'verticalalign': 'middle'}
+            ),
+            html.Div(
+                children=[
+                    html.Div(
+                        children=[
+                            html.Div(
+                                children=[
+                                    dcc.Dropdown(
+                                        id='geneDrop',
+                                        options=[{'label': i[0], 'value': i[1]} for i in dropList],
+                                        value=dropList[0][1]
+                                    )
+                                ],
+                                style={'width': '70vw', 'display': 'table-cell', 'verticalalign': 'middle'}
+                            ),
+                            html.Div(
+                                style={'width': '1vw', 'display': 'table-cell', 'verticalalign': 'middle'}
+                            ),
+                            html.Div(
+                                children=[
+                                    html.Button(id='submit', n_clicks=0, n_clicks_timestamp=0, children='Submit', 
+                                                style = {'backgroundColor' : 'rgb(255,255,255)'})
+                                ],
+                                style={'width': '8vw', 'display': 'table-cell', 'verticalalign': 'middle'}
+                            ),
+                            html.Div(
+                                style={'width': '3vw', 'display': 'table-cell', 'verticalalign': 'middle'}
+                            ),
+                            html.Div(
+                                children = [
+                                    html.Button(id='helpButton', n_clicks=0, n_clicks_timestamp=0, children='help',
+                                            style = {'backgroundColor' : 'rgb(255,255,255)'}
+                                    )
+                                ],
+                                style={'width': '8vw', 'display': 'table-cell', 'verticalalign': 'middle'}
+                            )
+                        ]
+                    ),
+                    dcc.Tabs(
+                        id='tabs',
+                        style={
+                            'width': '50%',
+                            'height': '5vh'
+                        },
+                        children=[
+                            dcc.Tab(
+                                label='iCLIP-seq',
+                                style=tabStyle,
+                                selected_style=tabStyle,
+                                id='clipTab',
+                                children=[
+                                    html.Div(children = [
+                                        html.Div(className = 'table-cont',
+                                            children=[
+                                                    html.Div(className = 'table-row',
+                                                        children = [
+                                                        html.Details(open = 'open', children = [
+                                                        html.Summary("Controls"),
+                                                        html.Div(
+                                                            className = 'table-cell column-1',
+                                                            children = [
+                                                                html.Fieldset(
+                                                                    className = 'field-set',
+                                                                    children = [ 
+                                                                        html.Legend('Gene Description'),
+                                                                        html.Div(id='descDiv',
+                                                                            children = html.P(html.B(''))
+                                                                        )
+                                                                    ],
+                                                                )
+                                                            ]
+                                                        ),
+                                                        html.Div(style = dataSetStyle,
+                                                            className = 'table-cell column-2',
+                                                            children = [
+                                                                html.Fieldset(
+                                                                    className = 'field-set',
+                                                                    children = [
+                                                                        html.Legend('Datasets'),                                                     
+                                                                        dcc.Checklist(
+                                                                            id='paramList',
+                                                                            options=[{'label': i, 'value': i} for i in dataSetNames],
+                                                                            values=[i for i in dataSetNames]
+                                                                        )
+                                                                    ]
+                                                                
+                                                                )
+                                                            ]
+                                                        ),
+                                                        html.Div(style = seqDispStyle,
+                                                            className = 'table-cell column-3',
+                                                            children = [
+                                                                html.Fieldset(
+                                                                    className = 'field-set',
+                                                                    children = [
+                                                                        html.Legend('DNA sequence options'),
+                                                                        dcc.RadioItems(
+                                                                            id='sequenceRadio',
+                                                                            options=[
+                                                                                {'label': 'Do not show dna sequence', 'value': 'noSeq'},
+                                                                                {'label': 'Show dna sequence as letters', 'value': 'letterSeq'},
+                                                                                {'label': 'Show dna sequence as heatmap', 'value': 'heatSeq'}
+                                                                            ],
+                                                                            value='heatSeq'
+                                                                        )
+                                                                    ]
+                                                                )
+                                                            ]
+                                                        )
+                                                    ]
+                                                ),
+                                                ])
+                                            ],
+                                        ),
+                                        html.Div(style = {'height' : '25px'}),
+                                        html.Div(
+                                            children = [
+                                                        dcc.Graph(id='bsGraph',
+                                                            style = {'padding' : '3px'},
+                                                            config = {'toImageButtonOptions' : 
+                                                                {'filename' : 'iCLIP', 'width' : None,
+                                                                'scale' : 1.0, 'height' : None, 'format' : 'svg'} }
+                                                        ),
+                                                        html.Div(
+                                                            children = [
+                                                                html.Div(id = 'advMem',
+                                                                    style = {'display' : 'none'}
+                                                                )
+                                                            ]
+                                                        )    
+                                               
+                                               
+                                            ]         
+                                        )
+                                    ]
+                                )
+                                ]
+                            ),
+                            dcc.Tab(
+                                label='RNA-seq',
+                                style=tabStyle,
+                                selected_style=tabStyle,
+                                id='rnaTab',
+                                children=[
+                                    html.Div(children=[
+                                        html.Div(className='table-cont',
+                                                 children=[
+                                                     html.Div(className='table-row',
+                                                              children=[
+                                                              html.Details(open = 'open', children = [
+                                                              html.Summary("Controls"),
+                                                                  html.Div(
+                                                                      className='table-cell column-1',
+                                                                      children=[
+                                                                          html.Fieldset(
+                                                                              className='field-set',
+                                                                              children=[
+                                                                                  html.Legend('Gene Description'),
+                                                                                  html.Div(id='rnaDescDiv',
+                                                                                           children=html.P(html.B(''))
+                                                                                           )
+                                                                              ],
+                                                                          )
+                                                                      ]
+                                                                  ),
+                                                                  html.Div(style=rnaDataStyle,
+                                                                           className='table-cell column-2',
+                                                                           children=[
+                                                                               html.Fieldset(
+                                                                                   className='field-set',
+                                                                                   children=[
+                                                                                       html.Legend('Datasets'),
+                                                                                       dcc.Checklist(
+                                                                                           id='rnaParamList',
+                                                                                           options=[{'label':
+                                                                                                         spliceSetNames[1][
+                                                                                                             i], 'value':
+                                                                                                         spliceSetNames[1][
+                                                                                                             i]} for
+                                                                                                    i in range(
+                                                                                                   len(spliceSetNames[1]))],
+                                                                                           values=[spliceSetNames[1][i] for
+                                                                                                   i in range(
+                                                                                                   len(spliceSetNames[1]))],
+                                                                                       ),
+                                                                                   ]
+    
+                                                                               )
+                                                                           ]
+                                                                           ),
+                                                                  html.Div(style={'height': '100%', 'width': '20vw'},
+                                                                           className='table-cell column-3',
+                                                                           children=[
+                                                                               html.Fieldset(
+                                                                                   className='field-set',
+                                                                                   children=[
+                                                                                       html.Legend('Options'),
+                                                                                       dcc.RadioItems(
+                                                                                           id='rnaRadio',
+                                                                                           options=[
+                                                                                               {'label': 'Default display',
+                                                                                                'value': 'one'},
+                                                                                               {'label': 'Color event types',
+                                                                                                'value': 'two'},
+                                                                                               {'label': 'Color event scores',
+                                                                                                'value': 'three'}
+                                                                                           ],
+                                                                                           value='one'
+                                                                                       )
+                                                                                   ]
+                                                                               )
+                                                                           ]
+                                                                           )
+                                                              ]
+                                                              ),
+                                                              ])
+                                                            
+                                                        ],
+    
+                                    ),
+                                    html.Div(style = {'height' : '25px'}),
+                                    dcc.Graph(id='spliceGraph',
+                                        style = {'padding' : '3px'},
+                                        config = {'toImageButtonOptions' : 
+                                            {'filename' : 'iCLIP', 'width' : None, 'scale' : 1.0, 'height' : None, 'format' : 'svg'} }
+                                    )
+                                ])
+                            ]
+                            ),
+                            dcc.Tab(
+                                label = 'Details',
+                                id = 'deTab',
+                                disabled = advDisabled,
+                                style = tabStyle,
+                                selected_style = tabStyle,
+                                disabled_style = tabStyle,
+                                children = [
+                                    html.Div(
+                                        id='detailMainDiv',
+                                        children=[]
+                                    )
+                                ]
+                            ),
+                            dcc.Tab(
+                                label='Settings',
+                                id='settings',
+                                style=tabStyle,
+                                selected_style=tabStyle,
+                                disabled=disableSettings,
+                                disabled_style=tabStyle,
+                                children=[
+                                    html.Div(style = {'display' : 'table'},
+                                    children =[
+                                    html.Div(style={'width': '100vw', 'display': 'table-row', 'verticalalign': 'middle'},
+                                        children=[
+                                            html.Div(className = 'table-cell', 
+                                            children = [
+                                            html.Fieldset(title = 'iCLIP Settings', 
+                                                className = 'field-set',
+                                                children = [ 
+                                                    html.Legend('iCLIP Settings'),
+                                                    html.Div(
+                                                        style={'display': 'none'},
+                                                        id='colorDiv',
+                                                        children=json.dumps(colorMap)
+                                                    ),
+                                                    html.Div(
+                                                        style={'display': 'none'},
+                                                        id='colorFinal',
+                                                        children=json.dumps(colorMap)
+                                                    ),
+                                                    dcc.Dropdown(
+                                                        id='colorDrop',
+                                                        options=[{'label': i, 'value': i} for i in dataSetNames],
+                                                        value=initialColor
+                                                    ),
+                                                    html.Div(
+                                                        id='rDisp',
+                                                        children=html.P(html.B('R: ')),
+                                                        style={'width': '10vw', 'display': 'table-cell'}
+                                                    ),
+                                                    dcc.Slider(
+                                                        id='rInput',
+                                                        min=0,
+                                                        max=255,
+                                                        step=1,
+                                                        updatemode='drag'
+                                                    ),
+                                                    html.Div(
+                                                        id='gDisp',
+                                                        children=html.P(html.B('G: ')),
+                                                        style={'width': '10vw', 'display': 'table-cell'}
+                                                    ),
+                                                    dcc.Slider(
+                                                        id='gInput',
+                                                        min=0,
+                                                        max=255,
+                                                        step=1,
+                                                        updatemode='drag'
+                                                    ),
+                                                    html.Div(
+                                                        id='bDisp',
+                                                        children=html.P(html.B('B: ')),
+                                                        style={'width': '10vw', 'display': 'table-cell'}
+                                                    ),
+                                                    dcc.Slider(
+                                                        id='bInput',
+                                                        min=0,
+                                                        max=255,
+                                                        step=1,
+                                                        updatemode='drag'
+                                                    ),
+                                                    html.Div(
+                                                        children=[
+                                                            html.Div(id='preview',
+                                                                     children=html.P(html.B('Preview')),
+                                                                     style={'width': '30vw', 'display': 'table-cell',
+                                                                            'verticalalign': 'middle'}
+                                                                     ),
+                                                            html.Div(
+                                                                children=[
+                                                                    html.Button(id='colorConfirm', n_clicks_timestamp=0,
+                                                                                children='confirm')
+                                                                ],
+                                                                style={'width': '10vw', 'display': 'table-cell',
+                                                                       'verticalalign': 'middle'}
+                                                            )
+                                                        ],
+                                                        style={'width': '10vw', 'display': 'table-cell'}
+                                                    )
+                                                ]
+                                            )]),
+                                            html.Div(className = 'table-cell', 
+                                            children = [
+                                            html.Fieldset(title = 'coverage settings', 
+                                                className = 'field-set',
+                                                children = [ 
+                                                    html.Legend('Coverage plot settings'),
+                                                    html.Div(
+                                                        style={'display': 'none'},
+                                                        id='covColorDiv',
+                                                        children=json.dumps(coverageColors)
+                                                    ),
+                                                    html.Div(
+                                                        style={'display': 'none'},
+                                                        id='covColorFinal',
+                                                        children=json.dumps(coverageColors)
+                                                    ),
+                                                    dcc.Dropdown(
+                                                        id='covColorDrop',
+                                                        options=[{'label': i, 'value': i} for i in spliceSetNames[1]],
+                                                        value=initialColorCoverage
+                                                    ),
+                                                    html.Div(
+                                                        id='covRDisp',
+                                                        children=html.P(html.B('R: ')),
+                                                        style={'width': '10vw', 'display': 'table-cell'}
+                                                    ),
+                                                    dcc.Slider(
+                                                        id='covRInput',
+                                                        min=0,
+                                                        max=255,
+                                                        step=1,
+                                                        updatemode='drag'
+                                                    ),
+                                                    html.Div(
+                                                        id='covGDisp',
+                                                        children=html.P(html.B('G: ')),
+                                                        style={'width': '10vw', 'display': 'table-cell'}
+                                                    ),
+                                                    dcc.Slider(
+                                                        id='covGInput',
+                                                        min=0,
+                                                        max=255,
+                                                        step=1,
+                                                        updatemode='drag'
+                                                    ),
+                                                    html.Div(
+                                                        id='covBDisp',
+                                                        children=html.P(html.B('B: ')),
+                                                        style={'width': '10vw', 'display': 'table-cell'}
+                                                    ),
+                                                    dcc.Slider(
+                                                        id='covBInput',
+                                                        min=0,
+                                                        max=255,
+                                                        step=1,
+                                                        updatemode='drag'
+                                                    ),
+                                                    html.Div(
+                                                        children=[
+                                                            html.Div(id='covPreview',
+                                                                     children=html.P(html.B('Preview')),
+                                                                     style={'width': '30vw', 'display': 'table-cell',
+                                                                            'verticalalign': 'middle'}
+                                                                     ),
+                                                            html.Div(
+                                                                children=[
+                                                                    html.Button(id='covColorConfirm', n_clicks_timestamp=0,
+                                                                                children='confirm')
+                                                                ],
+                                                                style={'width': '10vw', 'display': 'table-cell',
+                                                                       'verticalalign': 'middle'}
+                                                            )
+                                                        ],
+                                                        style={'width': '10vw', 'display': 'table-cell'}
+                                                    )
+                                                ]
+                                            )]),
+                                            html.Div(className = 'table-cell', 
+                                            children = [
+                                            html.Fieldset(title = 'event settings', 
+                                                className = 'field-set',
+                                                children = [ 
+                                                    html.Legend('Splice event plot settings'),
+                                                    html.Div(
+                                                        style={'display': 'none'},
+                                                        id='eventColorDiv',
+                                                        children=json.dumps(eventColors)
+                                                    ),
+                                                    html.Div(
+                                                        style={'display': 'none'},
+                                                        id='eventColorFinal',
+                                                        children=json.dumps(eventColors)
+                                                    ),
+                                                    dcc.Dropdown(
+                                                        id='eventColorDrop',
+                                                        options=[{'label': i, 'value': i} for i in eventTypes],
+                                                        value=initialColorEvents
+                                                    ),
+                                                    html.Div(
+                                                        id='eventRDisp',
+                                                        children=html.P(html.B('R: ')),
+                                                        style={'width': '10vw', 'display': 'table-cell'}
+                                                    ),
+                                                    dcc.Slider(
+                                                        id='eventRInput',
+                                                        min=0,
+                                                        max=255,
+                                                        step=1,
+                                                        updatemode='drag'
+                                                    ),
+                                                    html.Div(
+                                                        id='eventGDisp',
+                                                        children=html.P(html.B('G: ')),
+                                                        style={'width': '10vw', 'display': 'table-cell'}
+                                                    ),
+                                                    dcc.Slider(
+                                                        id='eventGInput',
+                                                        min=0,
+                                                        max=255,
+                                                        step=1,
+                                                        updatemode='drag'
+                                                    ),
+                                                    html.Div(
+                                                        id='eventBDisp',
+                                                        children=html.P(html.B('B: ')),
+                                                        style={'width': '10vw', 'display': 'table-cell'}
+                                                    ),
+                                                    dcc.Slider(
+                                                        id='eventBInput',
+                                                        min=0,
+                                                        max=255,
+                                                        step=1,
+                                                        updatemode='drag'
+                                                    ),
+                                                    html.Div(
+                                                        children=[
+                                                            html.Div(id='eventPreview',
+                                                                     children=html.P(html.B('Preview')),
+                                                                     style={'width': '30vw', 'display': 'table-cell',
+                                                                            'verticalalign': 'middle'}
+                                                                     ),
+                                                            html.Div(
+                                                                children=[
+                                                                    html.Button(id='eventColorConfirm', n_clicks_timestamp=0,
+                                                                                children='confirm')
+                                                                ],
+                                                                style={'width': '10vw', 'display': 'table-cell',
+                                                                       'verticalalign': 'middle'}
+                                                            )
+                                                        ],
+                                                        style={'width': '10vw', 'display': 'table-cell'}
+                                                    )
+                                                ]
+                                            )]),
+                                            html.Div(className = 'table-cell', 
+                                                children = [
+                                                    html.Fieldset(title = 'Legend Settings', 
+                                                        className = 'field-set',
+                                                        children = [
+                                                            html.Legend('Legend Colorbar Margin'),
+                                                            html.Div(
+                                                                id = 'legendSpacingDiv',
+                                                                style = {'display': 'none'},
+                                                                children = json.dumps(legendColumnOffset)
+                                                                ),
+                                                            dcc.Slider(
+                                                                id = 'legendSpacingSlider',
+                                                                min = 1.02,
+                                                                max = 1.08,
+                                                                step = 0.005,
+                                                                value = legendColumnOffset,
+                                                                marks = {
+                                                                    1.02: '.02',
+                                                                    1.03: '',
+                                                                    1.04: '',
+                                                                    1.05: '.05',
+                                                                    1.06: '',
+                                                                    1.07: '',
+                                                                    1.08: '.08',
+                                                                    }
+                                                            ),
+                                                            html.Div(
+                                                                style = {'height' : '15px'})
+                                                        ]
+                                                    )
+                                                ]
+                                            ),
+                                            html.Div(className = 'table-cell', 
+                                                children = [
+                                                    html.Fieldset(title = 'Image Export', 
+                                                        className = 'field-set',
+                                                        children = [
+                                                            html.Legend('Image export format'),
+                                                            dcc.Dropdown(
+                                                                id = 'imgFormatDrop',
+                                                                options = [{'label': i, 'value': i} for i in ['png', 'svg']],
+                                                                value = imgFormat
+                                                            ),
+                                                            html.Div(
+                                                                style = {'height' : '15px'})
+                                                        ]
+                                                    )
+                                                ]
+                                            )
+                                        ],
+                                    ),
+                                ])
+                                ]
+                            )
+                        ]
+                    )
+    
+                ]
+            ),
+            help_popup()
+        ],
+        style = {'backgroundColor' : 'rgb(240,240,240)'}
+    )
 
 @app.callback(
     dash.dependencies.Output('bsGraph', 'config'),
@@ -763,7 +769,9 @@ def changeLegendSpacing(value):
      dash.dependencies.Input("help_close", "n_clicks")]
 )
 def showHelpPopup(open_click, close_click):
-    """ Display and hide the help popup depending on the clicked button
+    """ Display and hide the help popup depending on the clicked button. Code is
+    based on https://community.plot.ly/t/any-way-to-create-an-instructions-popout/18828/3
+    by mbkupfer
     
     Positional arguments:
     open_click -- Open the popup
@@ -1482,7 +1490,7 @@ def rnaDesc(clicks, name):
      dash.dependencies.State('legendSpacingDiv', 'children')]
 )
 def rnaPlot(submit, confirm, eventConfirm, geneName, displayMode,rnaParamList, colors, colorsFinal, eventColors, eventColorsFinal, legendSpacing):
-    """Main callback that handles the dynamic visualisation of the RNA-seq data
+    """Main callback that handles the dynamic visualisation of the RNA-seq data.
 
         Positional arguments:
         submit -- Needed to trigger callback with submit button
@@ -1609,7 +1617,7 @@ def overlap(a, b):
 def createAreaChart(xVals, yVals, maxYVal, eventData, displayed, colorDict, 
                     geneName, displayMode, eventConfirm, submit, eventColors, eventColorsFinal, colorScale,
                     legendColumnSpacing):
-    """Create the plots for both coverage and splice events
+    """Create the plots for both coverage and splice events.
 
     Positional arguments:
     xVals -- x-axis values for coverage plot
@@ -1865,13 +1873,16 @@ def createAreaChart(xVals, yVals, maxYVal, eventData, displayed, colorDict,
     # Setup row heights based on available data
     rowHeights = []
     eventHeights = []
+    vSpace = .1/numRows
     for i in eventMaxHeights:
-        if i <= 5:
+        if i == 0:
+            eventHeights.append(0)           
+        if i > 0 and i <= 5:
             eventHeights.append(1)
-        if i >= 6 and i < 8:
+        if i >= 6 and i < 10:
             eventHeights.append(2)
-        if i >= 8:
-            eventHeights.append(3)
+        if i >= 10:
+            eventHeights.append(i % 5 +1)
     if spliceEventAvail:
         for i in range(numRows):
             if i > len(data)-1: rowHeights.append(1/numRows) # Gene model row
@@ -1887,7 +1898,7 @@ def createAreaChart(xVals, yVals, maxYVal, eventData, displayed, colorDict,
             if i > len(data)-1: rowHeights.append(1/numRows) # Gene model row
             else:
                 rowHeights.append(3/numRows) # Coverage row
-    fig = tools.make_subplots(rows=numRows, cols=1, subplot_titles=subplotTitles,
+    fig = tools.make_subplots(rows=numRows, cols=1,
                               shared_xaxes=True, row_width=rowHeights[::-1])
 
     eventIndices = [] # Save indices of all elements that contain event traces
@@ -1902,28 +1913,29 @@ def createAreaChart(xVals, yVals, maxYVal, eventData, displayed, colorDict,
 
     blockHeight = 0.4 # Height of coding blocks in gene models
     rnaSequencePlot(fig, geneName, numRows, len(data), isoformList, xAxisMax, xAxisMin, strand, blockHeight)
-    fig['layout']['yaxis'].update(showticklabels=True, showgrid=True, zeroline=True)
+    fig['layout']['yaxis'].update(showticklabels=True, showgrid=True, zeroline=True, title=subplotTitles[0])
+    subplotTitles.extend([""]*numIsoforms)
     for i in range(1, numRows+1):
             if spliceEventAvail:
                 if i % 2 != 0 and i <= len(data): # Coverage row
-                    fig['layout']['yaxis' + str(i)].update(range=[0, maxYVal])
+                    fig['layout']['yaxis' + str(i)].update(range=[0, maxYVal],title={'text': subplotTitles[i-1]})
                     fig['layout']['yaxis' + str(i)].update(showticklabels=True, showgrid=True, zeroline=True)
                 else: # Event row
                     if i > len(data):
-                        fig['layout']['yaxis' + str(i)].update(showticklabels=False, showgrid=False, zeroline=False)
+                        fig['layout']['yaxis' + str(i)].update(showticklabels=False, showgrid=False, zeroline=False, title={'text': subplotTitles[i-1]})
                         fig['layout']['yaxis' + str(i)].update(range=[-blockHeight, blockHeight])
                     else:
-                        fig['layout']['yaxis' + str(i)].update(showticklabels=False, showgrid=False, zeroline=False)
+                        fig['layout']['yaxis' + str(i)].update(showticklabels=False, showgrid=False, zeroline=False, title={'text': subplotTitles[i-1]})
             else:
                 if i <= len(data): # Coverage row
-                    fig['layout']['yaxis' + str(i)].update(range=[0, maxYVal])
+                    fig['layout']['yaxis' + str(i)].update(range=[0, maxYVal], title={'text': subplotTitles[i-1]})
                     fig['layout']['yaxis' + str(i)].update(showticklabels=True, showgrid=True, zeroline=True)
                 else: # Gene model row
                     fig['layout']['yaxis' + str(i)].update(showticklabels=False, showgrid=False, zeroline=False)
-                    fig['layout']['yaxis' + str(i)].update(range=[-blockHeight, blockHeight])
+                    fig['layout']['yaxis' + str(i)].update(range=[-blockHeight, blockHeight], title={'text': subplotTitles[i-1]})
     # Setup plot height, add 85 to account for margins
     fig['layout'].update(
-        margin=go.layout.Margin(l=30, r=40, t=25, b=60),
+        margin=go.layout.Margin(l=60, r=40, t=25, b=60),
     )
     fig['layout']['height'] = (80 * len(data) + 50 * numIsoforms + 85)
     fig['layout']['legend'].update(x = legendColumnSpacing)
@@ -1931,7 +1943,7 @@ def createAreaChart(xVals, yVals, maxYVal, eventData, displayed, colorDict,
 
 
 def rnaSequencePlot(fig, geneName, numRows, lenData, isoformList, xAxisMax, xAxisMin, strand, blockHeight):
-    """ Adds gene model plots to coverage and splice event plots
+    """ Adds gene model plots to coverage and splice event plots.
     
     Positional arguments:
     fig -- Current figure, needed to add additional rows
