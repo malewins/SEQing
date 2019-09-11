@@ -1,1 +1,1 @@
-python ../validator.py AT2G34510.bed -bsraw Protein1_unique.xlsite.bedgraph -bsdata Protein1_bsites.bed -desc ath_gene_descriptions.csv -seqs AT2G34510.fa -port 8066 -adv_desc advanced_details.tsv
+python ../validator.py AT2G34510.bed -bsraw Protein1_unique.xlsite.bedgraph -bsdata Protein1_bsites.bed -desc ath_gene_descriptions.csv -seqs AT2G34510.fa -port 8066 -adv_desc advanced_details.tsv -splice_data Control_1.bedgraph Control_2.bedgraph Sample_1.bedgraph Sample_2.bedgraph -splice_events Sample_1.dpsi.bed Sample_2.dpsi.bed
