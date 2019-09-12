@@ -59,13 +59,13 @@ On successful initiation the dashboard is accessible via your browser. Genes can
 
 ### Adding iCLIP and binding site data
 
-One of the key features of this tool is the interactive visualization of raw iCLIP data. This data should be passed in the form of 4 column bedgraph files. Example:
+One of the key features of this tool is the interactive visualization of raw iCLIP data. This data should be passed in the form of 4 column bedgraph files. An example for a file called WT_iCLIP.bedgrpah:
 ```
-python validator.py gene_annotation_file -bsraw iCLIP_data_file_prefix
+python validator.py gene_annotation_file -bsraw WT_iCLIP.bedgraph
 ```
 The program will automatically treat everything before the first underscore in the filename as a prefix. This prefix will be used to match a raw iCLIP file to a corresponding binding site file, if provided:
 ```
-python validator.py some_gene_annotation_file -bsraw prefix_your_iCLIP_data_file -bsdata prefix_your_binding_site_data_file
+python validator.py some_gene_annotation_file -bsraw WT_iCLIP.bedgraph -bsdata WT_bsites.bed
 ```
 These files must be 6 column BED files. The two files with the same prefix will be treated as one dataset the tool and their graphs will be grouped together. Please note that an iCLIP data set consists of maximal two files, it must have a raw iCLIP file and may have a binding site file. You can have multiple datasets, just pass multiple files to the command line options, separated by spaces.
 
