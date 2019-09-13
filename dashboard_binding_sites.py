@@ -1021,7 +1021,7 @@ def bCallback(dataset, colors):
      dash.dependencies.State('colorDrop', 'value'),
      dash.dependencies.State('colorFinal', 'children')]
 )
-def conFirmColor(nclicks, r, g, b, dataset, backup):
+def confirmColor(nclicks, r, g, b, dataset, backup):
     """ Callback to confirm a color. This will overwrite the previous one.
 
     Positional arguments:
@@ -1766,7 +1766,6 @@ def createAreaChart(xVals, yVals, maxYVal, eventData, displayed, colorDict,
                         )
                     )
                     traces.append(trace)
-                    print(trace)
                 subplotTitles.append("")
                 data.append(traces)
             else: # Displaymode: Score heatmap
@@ -2328,97 +2327,20 @@ def generateGeneModel(isoforms, xAxisMin, xAxisMax, blockHeight, strand):
             color = 'rgb(128,128,128)'
         else:
             color = 'rgb(0,0,0)'
-        if i.chromStart >= xAxisMin:
-            if i.chromEnd <= xAxisMax: # Gene contained entirely in region, no cutting necessary
-                blockStarts = [int(x)+i.chromStart for x in i.blockStarts.rstrip(',').split(',')]
-                blockSizes = [int(x) for x in i.blockSizes.rstrip(',').split(',')]
-
-            else: # Gene overlaps region on right, cut end
-                blockStarts = [int(x)+i.chromStart for x in i.blockStarts.rstrip(',').split(',')]
-                blockSizes = [int(x) for x in i.blockSizes.rstrip(',').split(',')]
-                for index, elem in enumerate(blockStarts):
-                    if elem >= xAxisMax: # The current block starts right of the relevant region, disregard
-                        blockStarts[index] = -1
-                    else:
-                        blockEnd = elem + blockSizes[index]
-                        if  blockEnd > xAxisMax:
-                            blockSizes[index] = blockSizes[index] - (blockEnd-xAxisMax)
-        else: 
-            if i.chromEnd <= xAxisMax: # Gene overlaps on the left, cut start
-                blockStarts = [int(x)+i.chromStart for x in i.blockStarts.rstrip(',').split(',')]
-                blockSizes = [int(x) for x in i.blockSizes.rstrip(',').split(',')]
-                for index, elem in enumerate(blockStarts):
-                    if elem + blockSizes[index] < xAxisMin: # Block ends left of relevant regeion, disregard
-                        blockStarts[index] = -1
-                    else: 
-                        if  elem < xAxisMin: 
-                            startOffset = xAxisMin - elem
-                            blockStarts[index] = xAxisMin
-                            blockSizes[index] = blockSizes[index] - startOffset
-            else: # Gene extends to the left and right of the region, cut on both ends
-                blockStarts = [int(x)+i.chromStart for x in i.blockStarts.rstrip(',').split(',')]
-                blockSizes = [int(x) for x in i.blockSizes.rstrip(',').split(',')]
-                for index, elem in enumerate(blockStarts):
-                    blockEnd = elem + blockSizes[index]
-                    if  blockEnd < xAxisMin or elem >= xAxisMax: # Block lies left or right of relevant region, disregard
-                        blockStarts[index] = -1
-                    else:
-                        if  elem < xAxisMin: # Block overlaps on the left
-                            startOffset = xAxisMin - elem
-                            blockStarts[index] = xAxisMin
-                            blockSizes[index] = blockSizes[index] - startOffset
-                        if blockEnd > xAxisMax: # Block overlaps on the right
-                            blockSizes[index] = blockSizes[index] - (blockEnd-xAxisMax)
+        # Calculate proper blockStarts and blockSizes
+        blockConstraints = setUpBlockConstraints(i, xAxisMin, xAxisMax)
+        blockStarts = blockConstraints[0]
+        blockSizes= blockConstraints[1]
+        
         blockVals = []
         blockWidths = []
         blockYs = []
         name = i.name
 
-    # Calculate blocks from block start and end positions, as well as thickness
+        # Calculate blocks from block start and end positions, as well as thickness
         for j in range(len(blockStarts)):
             blockStart = blockStarts[j]
-            if blockStart != -1:
-                blockEnd = blockStart + blockSizes[j] - 1  # Same as codingRegionEnd
-                codingRegionStart = int(i.thickStart)
-                codingRegionEnd = int(i.thickEnd) - 1
-                if (blockStart >= codingRegionStart) & (blockEnd <= codingRegionEnd):
-                    blockVals.append(blockStart + (blockEnd - blockStart) / 2)
-                    blockWidths.append(blockEnd - blockStart + 1)
-                    blockYs.append(blockHeight)
-                if (blockStart >= codingRegionStart) & (blockEnd > codingRegionEnd):
-                    if (blockStart >= codingRegionEnd):
-                        blockVals.append(blockStart + (blockEnd - blockStart) / 2)
-                        blockWidths.append(blockEnd - blockStart + 1)
-                        blockYs.append(blockHeight / 2)
-                    else:
-                        blockVals.append(blockStart + (codingRegionEnd - blockStart) / 2)
-                        blockWidths.append(codingRegionEnd - blockStart + 1)
-                        blockYs.append(blockHeight)
-                        blockVals.append(codingRegionEnd + (blockEnd - codingRegionEnd) / 2)
-                        blockWidths.append(blockEnd - codingRegionEnd + 1)
-                        blockYs.append(blockHeight / 2)
-                if (blockStart < codingRegionStart) & (blockEnd <= codingRegionEnd):
-                    if blockEnd <= codingRegionStart:
-                        blockVals.append(blockStart + (blockEnd - blockStart) / 2)
-                        blockWidths.append(blockEnd - blockStart + 1)
-                        blockYs.append(blockHeight / 2)
-                    else:
-                        blockVals.append(blockStart + (codingRegionStart - blockStart) / 2)
-                        blockWidths.append(codingRegionStart - blockStart + 1)
-                        blockYs.append(blockHeight / 2)
-                        blockVals.append(codingRegionStart + (blockEnd - codingRegionStart) / 2)
-                        blockWidths.append(blockEnd - codingRegionStart + 1)
-                        blockYs.append(blockHeight)
-                if (blockStart < codingRegionStart) & (blockEnd > codingRegionEnd):
-                    blockVals.append(blockStart + (codingRegionStart - blockStart) / 2)
-                    blockWidths.append(codingRegionStart - blockStart + 1)
-                    blockYs.append(blockHeight / 2)
-                    blockVals.append(codingRegionStart + (codingRegionEnd - codingRegionStart) / 2)
-                    blockWidths.append(codingRegionEnd - codingRegionStart + 1)
-                    blockYs.append(blockHeight)
-                    blockVals.append(codingRegionEnd + (blockEnd - codingRegionEnd) / 2)
-                    blockWidths.append(blockEnd - codingRegionEnd + 1)
-                    blockYs.append(blockHeight / 2)
+            calculateBlocks(i, blockStart + blockSizes[j] - 1, blockStart, blockSizes, blockVals, blockWidths, blockYs, blockHeight)
         # Find first and last block to draw line properly
         f = lambda i: blockVals[i]
         lineCoords = []
@@ -2480,6 +2402,118 @@ def generateGeneModel(isoforms, xAxisMin, xAxisMax, blockHeight, strand):
     # Return traces for gene model
     return traces
 
+def setUpBlockConstraints(isoform, xAxisMin, xAxisMax):
+    """ This function will calculate the correct block start and block size values.
+        It takes partial overlapping of blocks with the target area into account.
+        Any block that is outside (xAxisMin, xAxisMax) will have a blockStart of -1,
+        indicating that it i to be ignored when drawing the gene model
+        
+        Positional arguments:
+        isoform -- The current isoform row from the dataframe containing all necessary data
+        xAxisMin -- Start of the relevant genomic region
+        xAxisMax -- End of the relevant genomic region
+    """
+    if isoform.chromStart >= xAxisMin:
+        if isoform.chromEnd <= xAxisMax: # Gene contained entirely in region, no cutting necessary
+            blockStarts = [int(x)+isoform.chromStart for x in isoform.blockStarts.rstrip(',').split(',')]
+            blockSizes = [int(x) for x in isoform.blockSizes.rstrip(',').split(',')]
+
+        else: # Gene overlaps region on right, cut end
+            blockStarts = [int(x)+isoform.chromStart for x in isoform.blockStarts.rstrip(',').split(',')]
+            blockSizes = [int(x) for x in isoform.blockSizes.rstrip(',').split(',')]
+            for index, elem in enumerate(blockStarts):
+                if elem >= xAxisMax: # The current block starts right of the relevant region, disregard
+                    blockStarts[index] = -1
+                else:
+                    blockEnd = elem + blockSizes[index]
+                    if  blockEnd > xAxisMax:
+                        blockSizes[index] = blockSizes[index] - (blockEnd-xAxisMax)
+    else: 
+        if isoform.chromEnd <= xAxisMax: # Gene overlaps on the left, cut start
+            blockStarts = [int(x)+isoform.chromStart for x in isoform.blockStarts.rstrip(',').split(',')]
+            blockSizes = [int(x) for x in isoform.blockSizes.rstrip(',').split(',')]
+            for index, elem in enumerate(blockStarts):
+                if elem + blockSizes[index] < xAxisMin: # Block ends left of relevant regeion, disregard
+                    blockStarts[index] = -1
+                else: 
+                    if  elem < xAxisMin: 
+                        startOffset = xAxisMin - elem
+                        blockStarts[index] = xAxisMin
+                        blockSizes[index] = blockSizes[index] - startOffset
+        else: # Gene extends to the left and right of the region, cut on both ends
+            blockStarts = [int(x)+isoform.chromStart for x in isoform.blockStarts.rstrip(',').split(',')]
+            blockSizes = [int(x) for x in isoform.blockSizes.rstrip(',').split(',')]
+            for index, elem in enumerate(blockStarts):
+                blockEnd = elem + blockSizes[index]
+                if  blockEnd < xAxisMin or elem >= xAxisMax: # Block lies left or right of relevant region, disregard
+                    blockStarts[index] = -1
+                else:
+                    if  elem < xAxisMin: # Block overlaps on the left
+                        startOffset = xAxisMin - elem
+                        blockStarts[index] = xAxisMin
+                        blockSizes[index] = blockSizes[index] - startOffset
+                    if blockEnd > xAxisMax: # Block overlaps on the right
+                        blockSizes[index] = blockSizes[index] - (blockEnd-xAxisMax)
+    return (blockStarts, blockSizes)
+                
+def calculateBlocks(isoform, blockEnd, blockStart, blockSizes, blockVals, blockWidths, blockYs, blockHeight):
+    """ This function determines the actual shape of each block, based on wether it's
+        located in coding or noncoding region, or on the boundary. The function directly appends to the input lists
+        
+        Positional Arguments:
+        isoform -- The current isoform row of the dataframe
+        blockEnd -- The end point of the block
+        blockStart -- Startin point of the block. A value of -1 means this block is not in the relevant area
+                      and will be ignored
+        blockSizes -- List containing the sizes of all blocks
+        blockVals -- This lists holds the x-coordinate for each block center
+        blockWidths -- This list holds the width of each block
+        blockYa -- Holds the y value of the block, this determines wether it's a coding or noncoding block
+        blockHeight -- The height value to use for coding blocks. Non coding blocks are half height
+    """
+    blockStart = blockStart
+    if blockStart != -1:
+        blockEnd = blockEnd  # Same as codingRegionEnd
+        codingRegionStart = int(isoform.thickStart)
+        codingRegionEnd = int(isoform.thickEnd) - 1
+        if (blockStart >= codingRegionStart) & (blockEnd <= codingRegionEnd):
+            blockVals.append(blockStart + (blockEnd - blockStart) / 2)
+            blockWidths.append(blockEnd - blockStart + 1)
+            blockYs.append(blockHeight)
+        if (blockStart >= codingRegionStart) & (blockEnd > codingRegionEnd):
+            if (blockStart >= codingRegionEnd):
+                blockVals.append(blockStart + (blockEnd - blockStart) / 2)
+                blockWidths.append(blockEnd - blockStart + 1)
+                blockYs.append(blockHeight / 2)
+            else:
+                blockVals.append(blockStart + (codingRegionEnd - blockStart) / 2)
+                blockWidths.append(codingRegionEnd - blockStart + 1)
+                blockYs.append(blockHeight)
+                blockVals.append(codingRegionEnd + (blockEnd - codingRegionEnd) / 2)
+                blockWidths.append(blockEnd - codingRegionEnd + 1)
+                blockYs.append(blockHeight / 2)
+        if (blockStart < codingRegionStart) & (blockEnd <= codingRegionEnd):
+            if blockEnd <= codingRegionStart:
+                blockVals.append(blockStart + (blockEnd - blockStart) / 2)
+                blockWidths.append(blockEnd - blockStart + 1)
+                blockYs.append(blockHeight / 2)
+            else:
+                blockVals.append(blockStart + (codingRegionStart - blockStart) / 2)
+                blockWidths.append(codingRegionStart - blockStart + 1)
+                blockYs.append(blockHeight / 2)
+                blockVals.append(codingRegionStart + (blockEnd - codingRegionStart) / 2)
+                blockWidths.append(blockEnd - codingRegionStart + 1)
+                blockYs.append(blockHeight)
+        if (blockStart < codingRegionStart) & (blockEnd > codingRegionEnd):
+            blockVals.append(blockStart + (codingRegionStart - blockStart) / 2)
+            blockWidths.append(codingRegionStart - blockStart + 1)
+            blockYs.append(blockHeight / 2)
+            blockVals.append(codingRegionStart + (codingRegionEnd - codingRegionStart) / 2)
+            blockWidths.append(codingRegionEnd - codingRegionStart + 1)
+            blockYs.append(blockHeight)
+            blockVals.append(codingRegionEnd + (blockEnd - codingRegionEnd) / 2)
+            blockWidths.append(blockEnd - codingRegionEnd + 1)
+            blockYs.append(blockHeight / 2)
 
 def generateSequenceTrace(seqDisp, strand, combinedSeq, xAxisMin, xAxisMax):
     """ Function to generate sequence display trace, either heatmap or scatter
@@ -2650,7 +2684,8 @@ def createDetailRow(content, name, rowNumber):
         headers = str(headerLine.iloc[0]['columns']).split(';')
     except (TypeError, AttributeError):
         headers = None
-        
+    if content == None or name == None:
+        return None
     subRows = [] # Holds elements for multivalue attributes
     subTable = [] # Holds elements for subtables
     if headers != None: # We have subtable information, so try and create one
