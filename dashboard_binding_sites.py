@@ -2328,7 +2328,7 @@ def generateGeneModel(isoforms, xAxisMin, xAxisMax, blockHeight, strand):
         else:
             color = 'rgb(0,0,0)'
         # Calculate proper blockStarts and blockSizes
-        blockConstraints = setUpBlockConstraints(i, xAxisMin, xAxisMax)
+        blockConstraints = setUpBlockConstraints(i.chromStart, i.chromEnd, i.blockStarts, i.blockSizes, xAxisMin, xAxisMax)
         blockStarts = blockConstraints[0]
         blockSizes= blockConstraints[1]
         
@@ -2340,7 +2340,7 @@ def generateGeneModel(isoforms, xAxisMin, xAxisMax, blockHeight, strand):
         # Calculate blocks from block start and end positions, as well as thickness
         for j in range(len(blockStarts)):
             blockStart = blockStarts[j]
-            calculateBlocks(i, blockStart + blockSizes[j] - 1, blockStart, blockSizes, blockVals, blockWidths, blockYs, blockHeight)
+            calculateBlocks(i.thickStart, i.thickEnd, blockStart + blockSizes[j] - 1, blockStart, blockSizes, blockVals, blockWidths, blockYs, blockHeight)
         # Find first and last block to draw line properly
         f = lambda i: blockVals[i]
         lineCoords = []
@@ -2402,66 +2402,70 @@ def generateGeneModel(isoforms, xAxisMin, xAxisMax, blockHeight, strand):
     # Return traces for gene model
     return traces
 
-def setUpBlockConstraints(isoform, xAxisMin, xAxisMax):
+def setUpBlockConstraints(chromStart, chromEnd, blockStarts, blockSizes, xAxisMin, xAxisMax):
     """ This function will calculate the correct block start and block size values.
         It takes partial overlapping of blocks with the target area into account.
         Any block that is outside (xAxisMin, xAxisMax) will have a blockStart of -1,
         indicating that it i to be ignored when drawing the gene model
         
         Positional arguments:
-        isoform -- The current isoform row from the dataframe containing all necessary data
+        chromStart -- Isoform start point
+        chromEnd -- Isoform end point
+        blockStarts -- Block startpoints
+        blockSizes -- Sizes for the blocks
         xAxisMin -- Start of the relevant genomic region
         xAxisMax -- End of the relevant genomic region
     """
-    if isoform.chromStart >= xAxisMin:
-        if isoform.chromEnd <= xAxisMax: # Gene contained entirely in region, no cutting necessary
-            blockStarts = [int(x)+isoform.chromStart for x in isoform.blockStarts.rstrip(',').split(',')]
-            blockSizes = [int(x) for x in isoform.blockSizes.rstrip(',').split(',')]
+    if chromStart >= xAxisMin:
+        if chromEnd <= xAxisMax: # Gene contained entirely in region, no cutting necessary
+            blockStartsF = [int(x) + chromStart for x in blockStarts.rstrip(',').split(',')]
+            blockSizesF = [int(x) for x in blockSizes.rstrip(',').split(',')]
 
         else: # Gene overlaps region on right, cut end
-            blockStarts = [int(x)+isoform.chromStart for x in isoform.blockStarts.rstrip(',').split(',')]
-            blockSizes = [int(x) for x in isoform.blockSizes.rstrip(',').split(',')]
-            for index, elem in enumerate(blockStarts):
+            blockStartsF = [int(x) + chromStart for x in blockStarts.rstrip(',').split(',')]
+            blockSizesF = [int(x) for x in blockSizes.rstrip(',').split(',')]
+            for index, elem in enumerate(blockStartsF):
                 if elem >= xAxisMax: # The current block starts right of the relevant region, disregard
-                    blockStarts[index] = -1
+                    blockStartsF[index] = -1
                 else:
-                    blockEnd = elem + blockSizes[index]
+                    blockEnd = elem + blockSizesF[index]
                     if  blockEnd > xAxisMax:
-                        blockSizes[index] = blockSizes[index] - (blockEnd-xAxisMax)
+                        blockSizesF[index] = blockSizesF[index] - (blockEnd-xAxisMax)
     else: 
-        if isoform.chromEnd <= xAxisMax: # Gene overlaps on the left, cut start
-            blockStarts = [int(x)+isoform.chromStart for x in isoform.blockStarts.rstrip(',').split(',')]
-            blockSizes = [int(x) for x in isoform.blockSizes.rstrip(',').split(',')]
-            for index, elem in enumerate(blockStarts):
-                if elem + blockSizes[index] < xAxisMin: # Block ends left of relevant regeion, disregard
-                    blockStarts[index] = -1
+        if chromEnd <= xAxisMax: # Gene overlaps on the left, cut start
+            blockStartsF = [int(x) + chromStart for x in blockStarts.rstrip(',').split(',')]
+            blockSizesF = [int(x) for x in blockSizes.rstrip(',').split(',')]
+            for index, elem in enumerate(blockStartsF):
+                if elem + blockSizesF[index] < xAxisMin: # Block ends left of relevant regeion, disregard
+                    blockStartsF[index] = -1
                 else: 
                     if  elem < xAxisMin: 
                         startOffset = xAxisMin - elem
-                        blockStarts[index] = xAxisMin
-                        blockSizes[index] = blockSizes[index] - startOffset
+                        blockStartsF[index] = xAxisMin
+                        blockSizesF[index] = blockSizesF[index] - startOffset
         else: # Gene extends to the left and right of the region, cut on both ends
-            blockStarts = [int(x)+isoform.chromStart for x in isoform.blockStarts.rstrip(',').split(',')]
-            blockSizes = [int(x) for x in isoform.blockSizes.rstrip(',').split(',')]
-            for index, elem in enumerate(blockStarts):
-                blockEnd = elem + blockSizes[index]
+            blockStartsF = [int(x) + chromStart for x in blockStarts.rstrip(',').split(',')]
+            blockSizesF = [int(x) for x in blockSizes.rstrip(',').split(',')]
+            for index, elem in enumerate(blockStartsF):
+                blockEnd = elem + blockSizesF[index]
                 if  blockEnd < xAxisMin or elem >= xAxisMax: # Block lies left or right of relevant region, disregard
-                    blockStarts[index] = -1
+                    blockStartsF[index] = -1
                 else:
                     if  elem < xAxisMin: # Block overlaps on the left
                         startOffset = xAxisMin - elem
-                        blockStarts[index] = xAxisMin
-                        blockSizes[index] = blockSizes[index] - startOffset
+                        blockStartsF[index] = xAxisMin
+                        blockSizesF[index] = blockSizesF[index] - startOffset
                     if blockEnd > xAxisMax: # Block overlaps on the right
-                        blockSizes[index] = blockSizes[index] - (blockEnd-xAxisMax)
-    return (blockStarts, blockSizes)
+                        blockSizesF[index] = blockSizesF[index] - (blockEnd-xAxisMax)
+    return (blockStartsF, blockSizesF)
                 
-def calculateBlocks(isoform, blockEnd, blockStart, blockSizes, blockVals, blockWidths, blockYs, blockHeight):
+def calculateBlocks(thickStart, thickEnd, blockEnd, blockStart, blockSizes, blockVals, blockWidths, blockYs, blockHeight):
     """ This function determines the actual shape of each block, based on wether it's
         located in coding or noncoding region, or on the boundary. The function directly appends to the input lists
         
         Positional Arguments:
-        isoform -- The current isoform row of the dataframe
+        thickStart -- The start point of the coding region
+        thickEnd -- Endpoint of the coding region
         blockEnd -- The end point of the block
         blockStart -- Startin point of the block. A value of -1 means this block is not in the relevant area
                       and will be ignored
@@ -2474,8 +2478,8 @@ def calculateBlocks(isoform, blockEnd, blockStart, blockSizes, blockVals, blockW
     blockStart = blockStart
     if blockStart != -1:
         blockEnd = blockEnd  # Same as codingRegionEnd
-        codingRegionStart = int(isoform.thickStart)
-        codingRegionEnd = int(isoform.thickEnd) - 1
+        codingRegionStart = int(thickStart)
+        codingRegionEnd = int(thickEnd) - 1
         if (blockStart >= codingRegionStart) & (blockEnd <= codingRegionEnd):
             blockVals.append(blockStart + (blockEnd - blockStart) / 2)
             blockWidths.append(blockEnd - blockStart + 1)
