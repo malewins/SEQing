@@ -15,10 +15,70 @@ from Bio import SeqIO
 from Bio.Alphabet import generic_dna
 import converter
 
-
-
-
 __author__ = "Yannik Bramkamp"
+
+# Setup directories to store pickles
+binFilePath = os.path.join(os.path.dirname(__file__),'bin_data/')
+if not os.path.exists(binFilePath):
+    os.mkdir(binFilePath)
+coveragePath = os.path.join(binFilePath, 'coverage/')
+if not os.path.exists(coveragePath):
+    os.mkdir(coveragePath)
+# Dict containing checksums for gene annotation files, files loaded once will
+# be serialized to speed up future loading
+try:
+    sums = pickle.load(open(binFilePath+'checksums', 'rb'))
+except IOError:
+    sums = []
+checksums = dict(sums)
+
+plotColors = []
+geneAnnotations = []
+sequences = []
+ensembl = False
+geneDescriptions = None
+descAvail = True
+dropList = []
+advancedDescriptions = None
+subTables = None
+dsElements = 0 # number of traces per dataset, i.e Rawdata+ bindingsites = 2
+bsRawDFs = {}
+rawAvail = False # Raw data available
+bsProcDFs = {}
+procAvail = False # proc data available
+spliceSetNames = [[],[]]
+spliceElements = 0
+fileDict = {} # This dictionary will holde the file indexes for each dataset
+spliceAvail = False # splice data available
+spliceEventsAvail = False  # splice events available
+spliceEventsDFs = {}
+spliceEventsElements = 0
+spliceEventNames = [[],[]]
+spliceEventTypes = []
+dataSetNames = []
+# Colors for dna sequence display
+colorA = 'rgb(0, 150, 0)'
+colorC = 'rgb(15,15,255)'
+colorG = 'rgb(209, 113, 5)'
+colorT = 'rgb(255, 9, 9)'
+# Map for data track colors
+colorMap = {}
+# Create dictionary for coverage track colors
+coverageColors = ['rgb(255,0,0)', 'rgb(255,165,0)','rgb(255,255,0)','rgb(0,0,255)', 'rgb(128,0,128)']
+coverageColorDict = {}
+eventColors = ['rgb(0,0,255)', 'rgb(255,0,0)', 'rgb(0,255,0)', 'rgb(128,0,128)', 'rgb(255,165,0)']
+spliceEventColors = {} # dictionary for slice event colors
+# Headers for the data files, files obviously need to conform to these headers for the visualization to work
+bedHeader = ['chrom','chromStart','chromEnd','name','score','strand','thickStart',
+             'thickEnd','itemRGB','blockCount','blockSizes','blockStarts']
+bsHeader = ['chrom', 'chromStart','chromEnd','type', 'score', 'strand']
+rawHeader = ['chrom','chromStart','chromEnd','count']
+gtfheader = ['seqname', 'source', 'feature', 'start', 'end', 'score',
+               'strand', 'frame', 'attribute']
+
+
+print('Loading gene annotation files.')
+
 
 def validateGTF(df):
     """Validates gtf files. Returns True and an empty String if dataframe is valid,
@@ -149,6 +209,413 @@ def isRGB(color):
             return False
     return True
 
+def loadAnnotations():
+    
+    for idx, i in enumerate(geneAnnotationPaths):
+        print('Loading file ' + str(idx+1) )
+        try:
+            if i.suffix.lower() =='.bed':
+                checksum = hashlib.md5(open(str(i)).read().encode('utf-8'))
+                if checksums.get(str(i.stem), None) != checksum.hexdigest():
+                    checksums[str(i.stem)] = checksum.hexdigest()
+                    dtypes = {'chrom' : 'category', 'chromStart' : 'uint32','chromEnd': 'uint32','name' : 'object','score' : 'int16','strand' : 'category','thickStart' : 'uint64',
+                 'thickEnd' : 'uint64', 'blockCount' : 'uint32','blockSizes' : 'object','blockStarts' : 'object'}
+                    df = pandas.read_csv(i, sep = '\t', comment = '#', names = bedHeader, dtype = dtypes)
+                    validation = validateBed12(df)
+                    if validation[0] == True:
+                        geneAnnotations.append(df)
+                        out = open(binFilePath + str(i.stem)+'.bin', 'wb')
+                        pickle.dump(df, out)
+                        out.close()
+                    else:
+                        print('Error in file ' + str(i) + ':')
+                        print(validation[1])
+                else:
+                    try:
+                        df = pickle.load(open(binFilePath + str(i.stem)+'.bin', 'rb'))
+                        geneAnnotations.append(df)
+                        print('Loaded from pickle')
+                    except IOError:
+                        print('pickle not  found, loading from raw file')
+                        df = pandas.read_csv(i, sep = '\t', comment = '#', names = bedHeader)                    
+                        validation = validateBed12(df)
+                        if validation[0] == True:
+                            geneAnnotations.append(df)
+                            out = open(binFilePath + str(i.stem)+'.bin', 'wb')
+                            pickle.dump(df, out)
+                            out.close()
+                        else:
+                            print('Error in file ' + str(i) + ':')
+                            print(validation[1])
+                    except UnicodeDecodeError:
+                        print('Error decoding pickle binary file, will load from raw file instead')
+                        dtypes = {'chrom' : 'category', 'chromStart' : 'uint32','chromEnd': 'uint32','name' : 'object','score' : 'int16','strand' : 'category','thickStart' : 'uint64',
+                                  'thickEnd' : 'uint64', 'blockCount' : 'uint32','blockSizes' : 'object','blockStarts' : 'object'}
+                        df = pandas.read_csv(i, sep = '\t', comment = '#', names = bedHeader, dtype = dtypes)                    
+                        validation = validateBed12(df)
+                        if validation[0] == True:
+                            geneAnnotations.append(df)
+                            out = open(binFilePath + str(i.stem)+'.bin', 'wb')
+                            pickle.dump(df, out)
+                            out.close()
+                        else:
+                            print('Error in file ' + str(i) + ':')
+                            print(validation[1])
+                    except ModuleNotFoundError:
+                        print('Pickle was created using different package versions, will load from raw file instead')
+                        dtypes = {'chrom' : 'category', 'chromStart' : 'uint32','chromEnd': 'uint32','name' : 'object','score' : 'int16',
+                                   'strand' : 'category','thickStart' : 'uint64',
+                                   'thickEnd' : 'uint64', 'blockCount' : 'uint32','blockSizes' : 'object','blockStarts' : 'object'}
+                        df = pandas.read_csv(i, sep = '\t', comment = '#', names = bedHeader, dtype = dtypes)                    
+                        validation = validateBed12(df)
+                        if validation[0] == True:
+                            geneAnnotations.append(df)
+                            out = open(binFilePath + str(i.stem)+'.bin', 'wb')
+                            pickle.dump(df, out)
+                            out.close()
+                        else:
+                            print('Error in file ' + str(i) + ':')
+                            print(validation[1])
+            if i.suffix.lower() == '.gtf':
+                checksum = hashlib.md5(open(str(i)).read().encode('utf-8'))
+                if checksums.get(str(i.stem), None) != checksum.hexdigest():
+                    checksums[str(i.stem)] = checksum.hexdigest()
+                    df = pandas.read_csv(i, sep = '\t', comment = '#', names = gtfheader)
+                    validation = validateGTF(df)
+                    if validation[0] == True:
+                        df = converter.convertGTFToBed(df)
+                        out = open(binFilePath + str(i.stem)+'.bin', 'wb')
+                        pickle.dump(df, out)
+                        out.close()
+                        geneAnnotations.append(df)
+                    else:
+                        print('Error in file ' + str(i) + ':')
+                        print(validation[1])
+                else:
+                    try:
+                        df = pickle.load(open(binFilePath + str(i.stem)+'.bin', 'rb'))
+                        geneAnnotations.append(df)
+                        print('Loaded from pickle')
+                    except IOError:
+                        print('pickle not  found, loading from raw file')
+                        df = pandas.read_csv(i, sep = '\t', comment = '#', names = gtfheader)
+                        validation = validateGTF(df)
+                        if validation[0] == True:
+                            df = converter.convertGTFToBed(df)
+                            out = open(binFilePath + str(i.stem)+'.bin', 'wb')
+                            pickle.dump(df, out)
+                            out.close()
+                            geneAnnotations.append(df)
+                        else:
+                            print('Error in file ' + str(i) + ':')
+                            print(validation[1])
+                    except UnicodeDecodeError:
+                        print('Error decoding pickle binary file, will load from raw file instead')
+                        df = pandas.read_csv(i, sep = '\t', comment = '#', names = gtfheader)
+                        validation = validateGTF(df)
+                        if validation[0] == True:
+                            df = converter.convertGTFToBed(df)
+                            out = open(binFilePath + str(i.stem)+'.bin', 'wb')
+                            pickle.dump(df, out)
+                            out.close()
+                            geneAnnotations.append(df)
+                        else:
+                            print('Error in file ' + str(i) + ':')
+                            print(validation[1])
+                    except ModuleNotFoundError:
+                        print('Pickle was created using different package versions, will load from raw file instead')
+                        df = pandas.read_csv(i, sep = '\t', comment = '#', names = gtfheader)
+                        validation = validateGTF(df)
+                        if validation[0] == True:
+                            df = converter.convertGTFToBed(df)
+                            out = open(binFilePath + str(i.stem)+'.bin', 'wb')
+                            pickle.dump(df, out)
+                            out.close()
+                            geneAnnotations.append(df)
+                        else:
+                            print('Error in file ' + str(i) + ':')
+                            print(validation[1])
+            if i.suffix.lower() != '.gtf' and i.suffix.lower() != '.bed':
+                print('Invalid file format, please use only .bed or .gtf files')              
+        except FileNotFoundError:
+            print('File ' + str(i.stem) + ' not found, skipping')
+    if len(geneAnnotations) == 0:
+        print('No valid gene annotation files found, terminating.')
+        exit()
+    
+    # Write new checksums file
+    try:
+        out = open(binFilePath + 'checksums', 'wb')
+        pickle.dump(checksums, out)
+        out.close()
+    except FileNotFoundError:
+        pass
+
+def loadSequences():
+    try:
+        for i in fastaPaths:
+            try:
+    
+                seq = SeqIO.parse(str(i), 'fasta', alphabet = generic_dna)
+                for record in seq:
+                    if record.description == record.name:
+                        ensembl = False
+                    else:
+                        ensembl = True
+                    seq = itertools.chain([record], seq)
+                    break
+                if ensembl != True:
+                    sequences.append(SeqIO.to_dict(seq, 
+                        key_function = lambda rec : rec.description.split(':')[0]
+                        )
+                    )
+                else:
+                    sequences.append(SeqIO.to_dict(seq, 
+                        key_function = lambda rec : rec.name
+                        )
+                    )
+            except FileNotFoundError:
+                print('Sequence annotations for coding genes not found, proceeding without')
+    except TypeError:
+        pass
+    
+def loadBasicDescriptions():
+    global descAvail, geneDescriptions
+    try:
+        geneDescriptions = pandas.read_csv(descriptionPath, sep = '\t')
+        if list(geneDescriptions.columns.values)	 == ['ensembl_gene_id', 'description', 'external_gene_name', 'gene_biotype']:
+            geneDescriptions = geneDescriptions[geneDescriptions['ensembl_gene_id'].isin(geneNames)]
+            geneDescriptions.fillna(':',inplace = True)
+        else:
+            print('Header for descriptions does not match specifications, ignoring description file')
+            descAvail = False
+    except FileNotFoundError:
+        print('Description file not found, proceeding without')
+        descAvail = False
+    except ValueError:
+        descAvail = False
+
+def loadAdvancedDescriptions():
+    global advancedDescriptions
+    try:
+        advancedDescriptions = pandas.read_csv(advancedDescPath, sep = '\t')
+        if 'gene_ids' not in list(advancedDescriptions.columns.values):
+            print('Advanced description file does not contain "gene_ids" column, ignoring file.')
+            advancedDescriptions = None
+    except FileNotFoundError:
+        print('Adanced description file could not be found, ignoring.')
+        advancedDescriptions = None
+    except ValueError:
+        advancedDescriptions = None
+
+def loadSubTables():
+    global subTables
+    try:
+        subTables = pandas.read_csv(subTablePath, sep = '\t', names = ['column_id', 'columns'])
+    except FileNotFoundError:
+        print('Sub table file could not be found, ignoring.')
+        subTables = None
+    except ValueError:
+        subTables = None
+        
+def loadICLIPData():
+    global rawAvail, dsElements
+    if len(bindingSiteRawPaths) > 0:
+        print('Loading iCLIP data.')
+        for i in bindingSiteRawPaths:
+            try:
+                dtypes = {'chrom' : 'category' ,'chromStart' : 'uint64','chromEnd' : 'uint64', 'count' : 'uint32'}
+                df = pandas.read_csv(i, sep = '\t', names = rawHeader, dtype = dtypes)
+                validation = validateBedGraph(df)
+                if validation[0] == True:
+                    if i.stem.split('_')[0] not in dataSetNames:
+                        dataSetNames.append(i.stem.split('_')[0])
+                        bsRawDFs.update({str(dataSetNames[-1]) : df})
+                    else:
+                        print('Warning, you are using the same prefix for multiple iCLIP files, file ' + str(i) + ' will be ignored')
+                else:
+                    print('Error in file ' + str(i) + ':')
+                    print(validation[1])
+            except FileNotFoundError:
+                print('File '+str(i) + ' was not found')
+        print('Done.')
+    if len(bsRawDFs) > 0:
+        rawAvail = True
+        dsElements += 1
+        
+def loadBSData():
+    global dsElements, procAvail
+    if len(bindingSitePaths) > 0:
+        print('Loading bindings site data.')
+    for i in bindingSitePaths:
+        if i.stem.split('_')[0] in dataSetNames:
+            try:
+                dtypes = {'chrom' : 'category', 'chromStart' : 'uint64','chromEnd' : 'uint64','type' : 'category', 'score' : 'float32', 'strand' : 'category'}
+                df = pandas.read_csv(i, sep = '\t', names = bsHeader, dtype = dtypes)
+                validation = validateBed(df)
+                if validation[0] == True:
+                    if i.stem.split('_')[0] in bsProcDFs:
+                        print('Warning, you are using the same prefix for multiple binding site files, file ' + str(i) + ' will be ignored')
+                    else:
+                        bsProcDFs.update({i.stem.split('_')[0] : df})
+                else:
+                    print('Error in file ' + str(i) + ':')
+                    print(validation[1])                   
+            except FileNotFoundError:
+                print('File '+str(i) + ' was not found')  
+        else:
+            print('No corresponding raw data found for data set ' + i.stem.split('_')[0])
+    if len(bindingSitePaths) > 0:
+        print('Done.')
+    if len(bsProcDFs) > 0:
+        dsElements +=1
+        procAvail = True
+
+def loadCoverageData():
+    global spliceElements, spliceAvail
+    if len(spliceSitePaths) > 0:
+        print('Loading RNA-seq data')
+    for path in spliceSitePaths:
+        try:
+            checksum = hashlib.md5(open(str(path)).read().encode('utf-8'))
+        except FileNotFoundError:
+            print('Error loading file ' + str(path) + ', skipping.')
+            continue
+        try:
+            file_name = path.stem.split('_')[0]+'_'+path.stem.split('_')[1]
+        except IndexError:
+            file_name = path.stem.split('_')[0] 
+        print(file_name)
+        if coverageChecksums.get(str(path.stem), None) != checksum.hexdigest():
+            try: 
+                dtypes = {'chrom' : 'category', 'chromStart' : 'uint64','chromEnd' : 'uint64','type' : 'category', 'score' : 'float32', 'strand' : 'category'}
+                df = pandas.read_csv(path, sep= '\t', names= rawHeader, dtype = dtypes)
+                coverageChecksums[str(path.stem)] = checksum.hexdigest()
+                validation = validateBedGraph(df)
+            except FileNotFoundError:
+                validation = [False]
+            if validation[0]:
+                df.sort_values(by=['chromStart'])
+                # Split dataframe into small parts, these will be pickled and loaded on demand.
+                # Store covered region as minimum starting point and maximum ending point in the file name.
+                dfList = [df.iloc[i:i+10000,] for i in range(0, len(df),10000)]
+                # This index will be used to filter out relevant files during runtime
+                fileIndex = pandas.DataFrame(columns = ['start', 'end', 'fileName'])
+                for i in dfList: 
+                    end = i['chromEnd'].max()
+                    start = i['chromStart'].min()
+                    fileName = binFilePath + 'coverage/' + str(file_name) + "_" + str(start) + "_" + str(end) + '.bin'
+                    fileIndex.loc[len(fileIndex)] = [start, end, fileName]
+                    out = open(fileName, 'wb')
+                    pickle.dump(i, out)
+                    out.close()
+                indexOut = open(binFilePath + 'coverage/' + str(file_name) + '_' + 'index.bin', 'wb')
+                pickle.dump(fileIndex, indexOut)
+                indexOut.close()
+                fileDict.update({file_name : fileIndex})
+                dfList = []
+                # Add the dataset to the list of datasets, check  for number of underscores
+                if path.stem.split('_')[0] not in spliceSetNames[1]:
+                    try:
+                        spliceSetNames[0].append(path.stem.split('_')[1])
+                        spliceSetNames[1].append(path.stem.split('_')[0])
+                    except IndexError:
+                        spliceSetNames[1].append(path.stem.split('_')[0])
+                        spliceSetNames[0].append(path.stem.split('_')[0])
+                out = open(binFilePath + str(path.stem)+'.bin', 'wb')
+                pickle.dump(df, out)
+                out.close()
+        else: # Checksum matches, try to load old index from pickle
+            try:
+                fileIndex = pickle.load(open(binFilePath + 'coverage/' + str(file_name) + '_' + 'index.bin', 'rb'))
+                fileDict.update({file_name : fileIndex})
+                if path.stem.split('_')[0] not in spliceSetNames[1]:
+                    try:
+                        spliceSetNames[0].append(path.stem.split('_')[1])
+                        spliceSetNames[1].append(path.stem.split('_')[0])
+                    except IndexError:
+                        spliceSetNames[1].append(path.stem.split('_')[0])
+                        spliceSetNames[0].append(path.stem.split('_')[0])
+            except (FileNotFoundError, UnicodeDecodeError, IOError, ImportError):
+                try:
+                    df = pandas.read_csv(path, sep= '\t', names= rawHeader, dtype = dtypes)
+                    validation = validateBedGraph(df)
+                except FileNotFoundError:
+                    validation = [False]
+                if validation[0]:
+                    df.sort_values(by=['chromStart'])
+                    dfList = [df.iloc[i:i+10000,] for i in range(0, len(df),10000)]
+                    fileIndex = pandas.DataFrame(columns = ['start', 'end', 'fileName'])
+                    for i in dfList:
+                        end = i['chromEnd'].max()    
+                        start = i['chromStart'].min()
+                        fileName = binFilePath + 'coverage/' + str(file_name) + "_" + str(start) + "_" + str(end) + '.bin'
+                        fileIndex.loc[len(fileIndex)] = [start, end, fileName]
+                        out = open(fileName, 'wb')
+                        pickle.dump(i, out)
+                        out.close()
+                    indexOut = open(binFilePath + 'coverage/' + str(file_name) + '_' + 'index.bin', 'wb')
+                    print(binFilePath + 'coverage/' + str(file_name) + '_' + 'index.bin')
+                    pickle.dump(fileIndex, indexOut)
+                    indexOut.close()
+                    fileDict.update({file_name : fileIndex})
+                    dfList = []
+                    if path.stem.split('_')[0] not in spliceSetNames[1]:
+                        try:
+                            spliceSetNames[0].append(path.stem.split('_')[1])
+                            spliceSetNames[1].append(path.stem.split('_')[0])
+                        except IndexError:
+                            spliceSetNames[1].append(path.stem.split('_')[0])
+                            spliceSetNames[0].append(path.stem.split('_')[0])
+                else:
+                    print('Error loading file ' + str(path))
+                        
+    if len(fileDict.keys()) > 0:
+        spliceElements += 1
+        spliceAvail = True
+    print('Done.')   
+
+def loadSpliceEvents():
+    global spliceEventsAvail, spliceEventsElements
+    if len(spliceEventsPaths) > 0:
+        print('Loading splice event data')
+    for i in spliceEventsPaths:
+        try:
+            dtypes = {'chrom' : 'category', 'chromStart' : 'uint64','chromEnd' : 'uint64','type' : 'category', 'score' : 'float32', 'strand' : 'category'}
+            df = pandas.read_csv(i, sep= '\t', names= bsHeader, dtype = dtypes)
+            validation = validateBed(df)
+            try:
+                file_name = i.stem.split('_')[0]+'_'+i.stem.split('_')[1]
+            except IndexError:
+                file_name = i.stem.split('_')[0]       
+            if validation[0]:
+                if file_name in spliceEventsDFs:
+                    print('Warning, you are using the same prefix for multiple bed files, file ' + str(
+                        i) + ' will be ignored')
+                else:
+                    spliceEventsDFs.update({file_name: df})
+                if i.stem.split('_')[0] not in spliceEventNames[1]:
+                    try:
+                        spliceEventNames[0].append(i.stem.split('_')[1])
+                        spliceEventNames[1].append(i.stem.split('_')[0])
+                    except:
+                        spliceEventNames[1].append(i.stem.split('_')[0])
+                        spliceEventNames[0].append(i.stem.split('_')[0])
+                for i in df['type'].cat.categories.tolist():
+                    if i not in spliceEventTypes:
+                        spliceEventTypes.append(i)
+            else:
+                print('Error in file ' + str(i) + ':')
+                print(validation[1])
+            validation = None
+        except FileNotFoundError:
+            print('File ' + str(i) + ' was not found')
+    if len(spliceEventsPaths) > 0:
+        print('Done.')
+    if len(spliceEventsDFs) > 0:
+        spliceEventsElements += 1
+        spliceEventsAvail = True
+
 parser = ArgumentParser(description = '''Interactive, web based visualization for iCLIP and rna-seq data.
                         Atleast one gene annotaiton file in bed12 or gtf format is required for execution.
                         These files need to be unzipped and have the proper file extension.
@@ -253,26 +720,7 @@ if args.cfg != None:
     except FileNotFoundError:
         print('Could not open config file, aborting.')
         exit()
-
-# Setup directories to store pickles
-binFilePath = os.path.join(os.path.dirname(__file__),'bin_data/')
-if not os.path.exists(binFilePath):
-    os.mkdir(binFilePath)
-coveragePath = os.path.join(binFilePath, 'coverage/')
-if not os.path.exists(coveragePath):
-    os.mkdir(coveragePath)
-# Dict containing checksums for gene annotation files, files loaded once will
-# be serialized to speed up future loading
-try:
-    sums = pickle.load(open(binFilePath+'checksums', 'rb'))
-except IOError:
-    sums = []
-checksums = dict(sums)
-
-plotColors = []
-
-
-     
+    
 if useCfg == False: # Use command line arguments for setup  
     port = args.port
     geneAnnotationPaths = args.geneAnno
@@ -367,239 +815,31 @@ else: # Use xml document for setup
         password = configFile.getElementsByTagName('password')[0].firstChild.data
     except (AttributeError, IndexError):
         password = ''
-
-
+        
 if len(plotColors) == 0:
     print('No valid color strings provided, using defaults')
-    plotColors = ['rgb( 88, 24, 69 )', 'rgb( 199, 0, 57 )', 'rgb(46, 214, 26)', 'rgb(255, 87, 51)']
-
-
-# Headers for the data files, files obviously need to conform to these headers for the visualization to work
-bedHeader = ['chrom','chromStart','chromEnd','name','score','strand','thickStart',
-             'thickEnd','itemRGB','blockCount','blockSizes','blockStarts']
-bsHeader = ['chrom', 'chromStart','chromEnd','type', 'score', 'strand']
-rawHeader = ['chrom','chromStart','chromEnd','count']
-gtfheader = ['seqname', 'source', 'feature', 'start', 'end', 'score',
-               'strand', 'frame', 'attribute']
-
-descAvail = True
-print('Loading gene annotation files.')
-geneAnnotations = []
+    plotColors = ['rgb( 88, 24, 69 )', 'rgb( 199, 0, 57 )', 'rgb(46, 214, 26)', 'rgb(255, 87, 51)']        
 
 # Load gene annotations from either bed or gtf files. also handle pickling
-for idx, i in enumerate(geneAnnotationPaths):
-    print('Loading file ' + str(idx+1) )
-    try:
-        if i.suffix.lower() =='.bed':
-            checksum = hashlib.md5(open(str(i)).read().encode('utf-8'))
-            if checksums.get(str(i.stem), None) != checksum.hexdigest():
-                checksums[str(i.stem)] = checksum.hexdigest()
-                dtypes = {'chrom' : 'category', 'chromStart' : 'uint32','chromEnd': 'uint32','name' : 'object','score' : 'int16','strand' : 'category','thickStart' : 'uint64',
-             'thickEnd' : 'uint64', 'blockCount' : 'uint32','blockSizes' : 'object','blockStarts' : 'object'}
-                df = pandas.read_csv(i, sep = '\t', comment = '#', names = bedHeader, dtype = dtypes)
-                validation = validateBed12(df)
-                if validation[0] == True:
-                    geneAnnotations.append(df)
-                    out = open(binFilePath + str(i.stem)+'.bin', 'wb')
-                    pickle.dump(df, out)
-                    out.close()
-                else:
-                    print('Error in file ' + str(i) + ':')
-                    print(validation[1])
-            else:
-                try:
-                    df = pickle.load(open(binFilePath + str(i.stem)+'.bin', 'rb'))
-                    geneAnnotations.append(df)
-                    print('Loaded from pickle')
-                except IOError:
-                    print('pickle not  found, loading from raw file')
-                    df = pandas.read_csv(i, sep = '\t', comment = '#', names = bedHeader)                    
-                    validation = validateBed12(df)
-                    if validation[0] == True:
-                        geneAnnotations.append(df)
-                        out = open(binFilePath + str(i.stem)+'.bin', 'wb')
-                        pickle.dump(df, out)
-                        out.close()
-                    else:
-                        print('Error in file ' + str(i) + ':')
-                        print(validation[1])
-                except UnicodeDecodeError:
-                    print('Error decoding pickle binary file, will load from raw file instead')
-                    dtypes = {'chrom' : 'category', 'chromStart' : 'uint32','chromEnd': 'uint32','name' : 'object','score' : 'int16','strand' : 'category','thickStart' : 'uint64',
-                              'thickEnd' : 'uint64', 'blockCount' : 'uint32','blockSizes' : 'object','blockStarts' : 'object'}
-                    df = pandas.read_csv(i, sep = '\t', comment = '#', names = bedHeader, dtype = dtypes)                    
-                    validation = validateBed12(df)
-                    if validation[0] == True:
-                        geneAnnotations.append(df)
-                        out = open(binFilePath + str(i.stem)+'.bin', 'wb')
-                        pickle.dump(df, out)
-                        out.close()
-                    else:
-                        print('Error in file ' + str(i) + ':')
-                        print(validation[1])
-                except ModuleNotFoundError:
-                    print('Pickle was created using different package versions, will load from raw file instead')
-                    dtypes = {'chrom' : 'category', 'chromStart' : 'uint32','chromEnd': 'uint32','name' : 'object','score' : 'int16',
-                               'strand' : 'category','thickStart' : 'uint64',
-                               'thickEnd' : 'uint64', 'blockCount' : 'uint32','blockSizes' : 'object','blockStarts' : 'object'}
-                    df = pandas.read_csv(i, sep = '\t', comment = '#', names = bedHeader, dtype = dtypes)                    
-                    validation = validateBed12(df)
-                    if validation[0] == True:
-                        geneAnnotations.append(df)
-                        out = open(binFilePath + str(i.stem)+'.bin', 'wb')
-                        pickle.dump(df, out)
-                        out.close()
-                    else:
-                        print('Error in file ' + str(i) + ':')
-                        print(validation[1])
-        if i.suffix.lower() == '.gtf':
-            checksum = hashlib.md5(open(str(i)).read().encode('utf-8'))
-            if checksums.get(str(i.stem), None) != checksum.hexdigest():
-                checksums[str(i.stem)] = checksum.hexdigest()
-                df = pandas.read_csv(i, sep = '\t', comment = '#', names = gtfheader)
-                validation = validateGTF(df)
-                if validation[0] == True:
-                    df = converter.convertGTFToBed(df)
-                    out = open(binFilePath + str(i.stem)+'.bin', 'wb')
-                    pickle.dump(df, out)
-                    out.close()
-                    geneAnnotations.append(df)
-                else:
-                    print('Error in file ' + str(i) + ':')
-                    print(validation[1])
-            else:
-                try:
-                    df = pickle.load(open(binFilePath + str(i.stem)+'.bin', 'rb'))
-                    geneAnnotations.append(df)
-                    print('Loaded from pickle')
-                except IOError:
-                    print('pickle not  found, loading from raw file')
-                    df = pandas.read_csv(i, sep = '\t', comment = '#', names = gtfheader)
-                    validation = validateGTF(df)
-                    if validation[0] == True:
-                        df = converter.convertGTFToBed(df)
-                        out = open(binFilePath + str(i.stem)+'.bin', 'wb')
-                        pickle.dump(df, out)
-                        out.close()
-                        geneAnnotations.append(df)
-                    else:
-                        print('Error in file ' + str(i) + ':')
-                        print(validation[1])
-                except UnicodeDecodeError:
-                    print('Error decoding pickle binary file, will load from raw file instead')
-                    df = pandas.read_csv(i, sep = '\t', comment = '#', names = gtfheader)
-                    validation = validateGTF(df)
-                    if validation[0] == True:
-                        df = converter.convertGTFToBed(df)
-                        out = open(binFilePath + str(i.stem)+'.bin', 'wb')
-                        pickle.dump(df, out)
-                        out.close()
-                        geneAnnotations.append(df)
-                    else:
-                        print('Error in file ' + str(i) + ':')
-                        print(validation[1])
-                except ModuleNotFoundError:
-                    print('Pickle was created using different package versions, will load from raw file instead')
-                    df = pandas.read_csv(i, sep = '\t', comment = '#', names = gtfheader)
-                    validation = validateGTF(df)
-                    if validation[0] == True:
-                        df = converter.convertGTFToBed(df)
-                        out = open(binFilePath + str(i.stem)+'.bin', 'wb')
-                        pickle.dump(df, out)
-                        out.close()
-                        geneAnnotations.append(df)
-                    else:
-                        print('Error in file ' + str(i) + ':')
-                        print(validation[1])
-        if i.suffix.lower() != '.gtf' and i.suffix.lower() != '.bed':
-            print('Invalid file format, please use only .bed or .gtf files')              
-    except FileNotFoundError:
-        print('File ' + str(i.stem) + ' not found, skipping')
-if len(geneAnnotations) == 0:
-    print('No valid gene annotation files found, terminating.')
-    exit()
-
-# Write new checksums file
-try:
-    out = open(binFilePath + 'checksums', 'wb')
-    pickle.dump(checksums, out)
-    out.close()
-except FileNotFoundError:
-    pass
-
+loadAnnotations()
 # Read dna sequences from fasta
 geneNames = list(set().union([x[0] for y in [i['name'].str.split('.') for i in geneAnnotations] for x in y]))
 print('Done.')
 print('Loading description and sequence data if provided.')
-sequences = []
-ensembl = False
-try:
-    for i in fastaPaths:
-        try:
-
-            seq = SeqIO.parse(str(i), 'fasta', alphabet = generic_dna)
-            for record in seq:
-                if record.description == record.name:
-                    ensembl = False
-                else:
-                    ensembl = True
-                seq = itertools.chain([record], seq)
-                break
-            if ensembl != True:
-                sequences.append(SeqIO.to_dict(seq, 
-                    key_function = lambda rec : rec.description.split(':')[0]
-                    )
-                )
-            else:
-                sequences.append(SeqIO.to_dict(seq, 
-                    key_function = lambda rec : rec.name
-                    )
-                )
-        except FileNotFoundError:
-            print('Sequence annotations for coding genes not found, proceeding without')
-except TypeError:
-    pass
+# Read dna sequences from fasta
+loadSequences()
 
 # Read gene descriptions from csv
-geneDescriptions = pandas.DataFrame()
-try:
-    geneDescriptions = pandas.read_csv(descriptionPath, sep = '\t')
-    if list(geneDescriptions.columns.values)	 == ['ensembl_gene_id', 'description', 'external_gene_name', 'gene_biotype']:
-        geneDescriptions = geneDescriptions[geneDescriptions['ensembl_gene_id'].isin(geneNames)]
-        geneDescriptions.fillna(':',inplace = True)
-    else:
-        print('Header for descriptions does not match specifications, ignoring description file')
-        descAvail = False
-except FileNotFoundError:
-    print('Description file not found, proceeding without')
-    descAvail = False
-except ValueError:
-    descAvail = False
+loadBasicDescriptions()
     
 # Advanced descriptions for the Details tab
-advancedDescriptions = pandas.DataFrame()
-try:
-    advancedDescriptions = pandas.read_csv(advancedDescPath, sep = '\t')
-    if 'gene_ids' not in list(advancedDescriptions.columns.values):
-        print('Advanced description file does not contain "gene_ids" column, ignoring file.')
-        advancedDescriptions = None
-except FileNotFoundError:
-    print('Adanced description file could not be found, ignoring.')
-    advancedDescriptions = None
-except ValueError:
-    advancedDescriptions = None
-
+loadAdvancedDescriptions()
+print(advancedDescriptions)
 # Subtatbles for the Details tab
-subTables = pandas.DataFrame()
-try:
-    subTables = pandas.read_csv(subTablePath, sep = '\t', names = ['column_id', 'columns'])
-except FileNotFoundError:
-    print('Sub table file could not be found, ignoring.')
-except ValueError:
-    subTables = None
+
+loadSubTables
 
 # Setup dropdown with gene descriptions if available
-dropList = []
 if descAvail == True:
     geneDict = geneDescriptions.to_dict(orient = 'records')
     # Builds list of gene names and descriptions.
@@ -611,72 +851,13 @@ if descAvail == True:
         )
 if descAvail == False or len(dropList) == 0:
     dropList = [[i,i] for i in geneNames]
-
 dropList.sort(key = lambda x : x[1])
 
-# Setup all needed data frames
 print('Done.')
-dsElements = 0 # number of traces per dataset, i.e Rawdata+ bindingsites = 2
-rawAvail = False # Raw data available
-procAvail = False # proc data available
-spliceAvail = False # splice data available
-spliceEventsAvail = False  # splice events available
-
 # Setup iCLIP data
-bsRawDFs = {}
-dataSetNames = []
-if len(bindingSiteRawPaths) > 0:
-    print('Loading iCLIP data.')
-    for i in bindingSiteRawPaths:
-        try:
-            dtypes = {'chrom' : 'category' ,'chromStart' : 'uint64','chromEnd' : 'uint64', 'count' : 'uint32'}
-            df = pandas.read_csv(i, sep = '\t', names = rawHeader, dtype = dtypes)
-            validation = validateBedGraph(df)
-            if validation[0] == True:
-                if i.stem.split('_')[0] not in dataSetNames:
-                    dataSetNames.append(i.stem.split('_')[0])
-                    bsRawDFs.update({str(dataSetNames[-1]) : df})
-                else:
-                    print('Warning, you are using the same prefix for multiple iCLIP files, file ' + str(i) + ' will be ignored')
-            else:
-                print('Error in file ' + str(i) + ':')
-                print(validation[1])
-        except FileNotFoundError:
-            print('File '+str(i) + ' was not found')
-    print('Done.')
-if len(bsRawDFs) > 0:
-    rawAvail = True
-    dsElements += 1
-
-
+loadICLIPData()
 # Setup data for binding sites
-bsProcDFs = {}
-if len(bindingSitePaths) > 0:
-    print('Loading bindings site data.')
-for i in bindingSitePaths:
-    if i.stem.split('_')[0] in dataSetNames:
-        try:
-            dtypes = {'chrom' : 'category', 'chromStart' : 'uint64','chromEnd' : 'uint64','type' : 'category', 'score' : 'float32', 'strand' : 'category'}
-            df = pandas.read_csv(i, sep = '\t', names = bsHeader, dtype = dtypes)
-            validation = validateBed(df)
-            if validation[0] == True:
-                if i.stem.split('_')[0] in bsProcDFs:
-                    print('Warning, you are using the same prefix for multiple binding site files, file ' + str(i) + ' will be ignored')
-                else:
-                    bsProcDFs.update({i.stem.split('_')[0] : df})
-            else:
-                print('Error in file ' + str(i) + ':')
-                print(validation[1])                   
-        except FileNotFoundError:
-            print('File '+str(i) + ' was not found')  
-    else:
-        print('No corresponding raw data found for data set ' + i.stem.split('_')[0])
-if len(bindingSitePaths) > 0:
-    print('Done.')
-if len(bsProcDFs) > 0:
-    dsElements +=1
-    procAvail = True
-
+loadBSData()
 
 try:
     coverageSums = pickle.load(open(binFilePath + 'coverage_checksums', 'rb'))
@@ -685,167 +866,14 @@ except IOError:
 coverageChecksums = dict(coverageSums)
 
 # Setup data for splice sites
-spliceSetNames = [[],[]]
-spliceElements = 0
-if len(spliceSitePaths) > 0:
-    print('Loading RNA-seq data')
-fileDict = {} # This dictionary will holde the file indexes for each dataset
-for path in spliceSitePaths:
-    try:
-        checksum = hashlib.md5(open(str(path)).read().encode('utf-8'))
-    except FileNotFoundError:
-        print('Error loading file ' + str(path) + ', skipping.')
-        continue
-    try:
-        file_name = path.stem.split('_')[0]+'_'+path.stem.split('_')[1]
-    except IndexError:
-        file_name = path.stem.split('_')[0] 
-    print(file_name)
-    if coverageChecksums.get(str(path.stem), None) != checksum.hexdigest():
-        try: 
-            df = pandas.read_csv(path, sep= '\t', names= rawHeader, dtype = dtypes)
-            coverageChecksums[str(path.stem)] = checksum.hexdigest()
-            validation = validateBedGraph(df)
-        except FileNotFoundError:
-            validation = [False]
-        if validation[0]:
-            df.sort_values(by=['chromStart'])
-            # Split dataframe into small parts, these will be pickled and loaded on demand.
-            # Store covered region as minimum starting point and maximum ending point in the file name.
-            dfList = [df.iloc[i:i+10000,] for i in range(0, len(df),10000)]
-            # This index will be used to filter out relevant files during runtime
-            fileIndex = pandas.DataFrame(columns = ['start', 'end', 'fileName'])
-            for i in dfList: 
-                end = i['chromEnd'].max()
-                start = i['chromStart'].min()
-                fileName = binFilePath + 'coverage/' + str(file_name) + "_" + str(start) + "_" + str(end) + '.bin'
-                fileIndex.loc[len(fileIndex)] = [start, end, fileName]
-                out = open(fileName, 'wb')
-                pickle.dump(i, out)
-                out.close()
-            indexOut = open(binFilePath + 'coverage/' + str(file_name) + '_' + 'index.bin', 'wb')
-            pickle.dump(fileIndex, indexOut)
-            indexOut.close()
-            fileDict.update({file_name : fileIndex})
-            dfList = []
-            # Add the dataset to the list of datasets, check  for number of underscores
-            if path.stem.split('_')[0] not in spliceSetNames[1]:
-                try:
-                    spliceSetNames[0].append(path.stem.split('_')[1])
-                    spliceSetNames[1].append(path.stem.split('_')[0])
-                except IndexError:
-                    spliceSetNames[1].append(path.stem.split('_')[0])
-                    spliceSetNames[0].append(path.stem.split('_')[0])
-            out = open(binFilePath + str(path.stem)+'.bin', 'wb')
-            pickle.dump(df, out)
-            out.close()
-    else: # Checksum matches, try to load old index from pickle
-        try:
-            fileIndex = pickle.load(open(binFilePath + 'coverage/' + str(file_name) + '_' + 'index.bin', 'rb'))
-            fileDict.update({file_name : fileIndex})
-            if path.stem.split('_')[0] not in spliceSetNames[1]:
-                try:
-                    spliceSetNames[0].append(path.stem.split('_')[1])
-                    spliceSetNames[1].append(path.stem.split('_')[0])
-                except IndexError:
-                    spliceSetNames[1].append(path.stem.split('_')[0])
-                    spliceSetNames[0].append(path.stem.split('_')[0])
-        except (FileNotFoundError, UnicodeDecodeError, IOError, ImportError):
-            try:
-                df = pandas.read_csv(path, sep= '\t', names= rawHeader, dtype = dtypes)
-                validation = validateBedGraph(df)
-            except FileNotFoundError:
-                validation = [False]
-            if validation[0]:
-                df.sort_values(by=['chromStart'])
-                dfList = [df.iloc[i:i+10000,] for i in range(0, len(df),10000)]
-                fileIndex = pandas.DataFrame(columns = ['start', 'end', 'fileName'])
-                for i in dfList:
-                    end = i['chromEnd'].max()    
-                    start = i['chromStart'].min()
-                    fileName = binFilePath + 'coverage/' + str(file_name) + "_" + str(start) + "_" + str(end) + '.bin'
-                    fileIndex.loc[len(fileIndex)] = [start, end, fileName]
-                    out = open(fileName, 'wb')
-                    pickle.dump(i, out)
-                    out.close()
-                indexOut = open(binFilePath + 'coverage/' + str(file_name) + '_' + 'index.bin', 'wb')
-                print(binFilePath + 'coverage/' + str(file_name) + '_' + 'index.bin')
-                pickle.dump(fileIndex, indexOut)
-                indexOut.close()
-                fileDict.update({file_name : fileIndex})
-                dfList = []
-                if path.stem.split('_')[0] not in spliceSetNames[1]:
-                    try:
-                        spliceSetNames[0].append(path.stem.split('_')[1])
-                        spliceSetNames[1].append(path.stem.split('_')[0])
-                    except IndexError:
-                        spliceSetNames[1].append(path.stem.split('_')[0])
-                        spliceSetNames[0].append(path.stem.split('_')[0])
-            else:
-                print('Error loading file ' + str(path))
-                    
-if len(fileDict.keys()) > 0:
-    spliceElements += 1
-    spliceAvail = True
-print('Done.')   
-
-                
-
+loadCoverageData()           
 # Write new checksums file
 out = open(binFilePath + 'coverage_checksums', 'wb')
 pickle.dump(coverageChecksums, out)
 out.close()
 
-spliceEventsDFs = {}
-spliceEventsElements = 0
-spliceEventNames = [[],[]]
-spliceEventTypes = []
-if len(spliceEventsPaths) > 0:
-    print('Loading splice event data')
-for i in spliceEventsPaths:
-    try:
-        dtypes = {'chrom' : 'category', 'chromStart' : 'uint64','chromEnd' : 'uint64','type' : 'category', 'score' : 'float32', 'strand' : 'category'}
-        df = pandas.read_csv(i, sep= '\t', names= bsHeader, dtype = dtypes)
-        validation = validateBed(df)
-        try:
-            file_name = i.stem.split('_')[0]+'_'+i.stem.split('_')[1]
-        except IndexError:
-            file_name = i.stem.split('_')[0]       
-        if validation[0]:
-            if file_name in spliceEventsDFs:
-                print('Warning, you are using the same prefix for multiple bed files, file ' + str(
-                    i) + ' will be ignored')
-            else:
-                spliceEventsDFs.update({file_name: df})
-            if i.stem.split('_')[0] not in spliceEventNames[1]:
-                try:
-                    spliceEventNames[0].append(i.stem.split('_')[1])
-                    spliceEventNames[1].append(i.stem.split('_')[0])
-                except:
-                    spliceEventNames[1].append(i.stem.split('_')[0])
-                    spliceEventNames[0].append(i.stem.split('_')[0])
-            for i in df['type'].cat.categories.tolist():
-                if i not in spliceEventTypes:
-                    spliceEventTypes.append(i)
-        else:
-            print('Error in file ' + str(i) + ':')
-            print(validation[1])
-        validation = None
-    except FileNotFoundError:
-        print('File ' + str(i) + ' was not found')
-if len(spliceEventsPaths) > 0:
-    print('Done.')
-if len(spliceEventsDFs) > 0:
-    spliceEventsElements += 1
-    spliceEventsAvail = True
+loadSpliceEvents()
 print('post_splice')
-
-
-# Colors for dna sequence display
-colorA = 'rgb(0, 150, 0)'
-colorC = 'rgb(15,15,255)'
-colorG = 'rgb(209, 113, 5)'
-colorT = 'rgb(255, 9, 9)'
 
 # Keys for sorting of dataset names in iCLIP tab
 if sortKeys == None:
@@ -854,21 +882,12 @@ else:
     if len(sortKeys) == 0:
         sortKeys.append(['lambda x : x[:1]', 'False'])
 
-# Map for data track colors
-colorMap = {}
 for i in range(len(dataSetNames)):
     colorMap.update({dataSetNames[i] : plotColors[i%len(plotColors)]})
 
-# Create dictionary for coverage track colors
-coverageColors = ['rgb(255,0,0)', 'rgb(255,165,0)','rgb(255,255,0)','rgb(0,0,255)', 'rgb(128,0,128)']
-coverageColorDict = {}
 for index, ds in enumerate(sorted(spliceSetNames[1])):
-
     coverageColorDict.update({ds : coverageColors[index%len(coverageColors)]})
 
-# create dictionary for slice event colors
-eventColors = ['rgb(0,0,255)', 'rgb(255,0,0)', 'rgb(0,255,0)', 'rgb(128,0,128)', 'rgb(255,165,0)']
-spliceEventColors = {}
 for index, elem in enumerate(sorted(spliceEventTypes)):
     spliceEventColors.update({elem : eventColors[index%len(eventColors)]})
 
