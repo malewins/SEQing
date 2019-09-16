@@ -2395,7 +2395,7 @@ def generateGeneModel(isoforms, xAxisMin, xAxisMax, blockHeight, strand):
                         blockWidths.append(codingRegionEnd - blockStart + 1)
                         blockYs.append(blockHeight)
                         blockVals.append(codingRegionEnd + (blockEnd - codingRegionEnd) / 2)
-                        blockWidths.append(blockEnd - codingRegionEnd + 1)
+                        blockWidths.append(blockEnd - (codingRegionEnd + 1))
                         blockYs.append(blockHeight / 2)
                 if (blockStart < codingRegionStart) & (blockEnd <= codingRegionEnd):
                     if blockEnd <= codingRegionStart:
@@ -2403,22 +2403,23 @@ def generateGeneModel(isoforms, xAxisMin, xAxisMax, blockHeight, strand):
                         blockWidths.append(blockEnd - blockStart + 1)
                         blockYs.append(blockHeight / 2)
                     else:
-                        blockVals.append(blockStart + (codingRegionStart - blockStart) / 2)
-                        blockWidths.append(codingRegionStart - blockStart + 1)
+                        blockVals.append(blockStart + ((codingRegionStart-1) - blockStart) / 2)
+                        blockWidths.append((codingRegionStart-1) - blockStart + 1)
                         blockYs.append(blockHeight / 2)
-                        blockVals.append(codingRegionStart + (blockEnd - codingRegionStart) / 2)
-                        blockWidths.append(blockEnd - codingRegionStart + 1)
+                        blockVals.append(codingRegionStart + (blockEnd - (codingRegionStart+1)) / 2)
+                        blockWidths.append(blockEnd - codingRegionStart)
                         blockYs.append(blockHeight)
                 if (blockStart < codingRegionStart) & (blockEnd > codingRegionEnd):
-                    blockVals.append(blockStart + (codingRegionStart - blockStart) / 2)
-                    blockWidths.append(codingRegionStart - blockStart + 1)
+                    blockVals.append(blockStart + ((codingRegionStart-1) - blockStart) / 2)
+                    blockWidths.append((codingRegionStart-1) - blockStart + 1)
                     blockYs.append(blockHeight / 2)
                     blockVals.append(codingRegionStart + (codingRegionEnd - codingRegionStart) / 2)
                     blockWidths.append(codingRegionEnd - codingRegionStart + 1)
                     blockYs.append(blockHeight)
                     blockVals.append(codingRegionEnd + (blockEnd - codingRegionEnd) / 2)
-                    blockWidths.append(blockEnd - codingRegionEnd + 1)
+                    blockWidths.append(blockEnd - (codingRegionEnd + 1))
                     blockYs.append(blockHeight / 2)
+
         # Find first and last block to draw line properly
         f = lambda i: blockVals[i]
         lineCoords = []
