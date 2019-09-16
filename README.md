@@ -144,6 +144,10 @@ gene_ids	ext_link
 AT1G01010	?http://araport.org
 ```
 This will also work for semicolon separated values as well as in subtables, but not in comma separated Strings.
+
+### Restricting access to the dashboard
+If you hvae data that you don't want to be openly accessable een over a local network you can use the -pswd option to specify a password. Users will then have to enter this password before they can connect to the dashboard. The application will use a hardcoded username, which is "u", in conjunction with the password you provided.
+
 ### Screenshot
 ![SEQing example](SEQing_iCLIP_sample.PNG)
 
