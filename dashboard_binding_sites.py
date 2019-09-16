@@ -2407,7 +2407,7 @@ def createGeneModelPlot(isoforms, xAxisMin, xAxisMax, blockHeight, strand):
         # Calculate blocks from block start and end positions, as well as thickness
         for j in range(len(blockStarts)):
             blockStart = blockStarts[j]
-            calculateBlocks(i.thickStart, i.thickEnd, blockStart + blockSizes[j] - 1, blockStart, blockSizes, blockVals, blockWidths, blockYs, blockHeight)
+            calculateBlocks(i.thickStart, i.thickEnd, blockStart, blockStart + blockSizes[j] - 1, blockVals, blockWidths, blockYs, blockHeight)
         # Find first and last block to draw line properly
         f = lambda i: blockVals[i]
         lineCoords = []
@@ -2521,17 +2521,16 @@ def setUpBlockConstraints(chromStart, chromEnd, blockStarts, blockSizes, xAxisMi
                         blockSizesF[index] = blockSizesF[index] - (blockEnd-xAxisMax)
     return (blockStartsF, blockSizesF)
                 
-def calculateBlocks(thickStart, thickEnd, blockEnd, blockStart, blockSizes, blockVals, blockWidths, blockYs, blockHeight):
+def calculateBlocks(thickStart, thickEnd, blockStart, blockEnd, blockVals, blockWidths, blockYs, blockHeight):
     """ This function determines the actual shape of each block, based on wether it's
         located in coding or noncoding region, or on the boundary. The function directly appends to the input lists
         
         Positional Arguments:
         thickStart -- The start point of the coding region
         thickEnd -- Endpoint of the coding region
+        blockStart -- Startin point of the block. A value of -1 means this block is not in the relevant area 
+        and will be ignored
         blockEnd -- The end point of the block
-        blockStart -- Startin point of the block. A value of -1 means this block is not in the relevant area
-                      and will be ignored
-        blockSizes -- List containing the sizes of all blocks
         blockVals -- This lists holds the x-coordinate for each block center
         blockWidths -- This list holds the width of each block
         blockYa -- Holds the y value of the block, this determines wether it's a coding or noncoding block
@@ -2541,7 +2540,7 @@ def calculateBlocks(thickStart, thickEnd, blockEnd, blockStart, blockSizes, bloc
     if blockStart != -1:
         blockEnd = blockEnd  # Same as codingRegionEnd
         codingRegionStart = int(thickStart)
-        codingRegionEnd = int(thickEnd) - 1
+        codingRegionEnd = int(thickEnd) -1
         if (blockStart >= codingRegionStart) & (blockEnd <= codingRegionEnd):
             blockVals.append(blockStart + (blockEnd - blockStart) / 2)
             blockWidths.append(blockEnd - blockStart + 1)
@@ -2556,7 +2555,9 @@ def calculateBlocks(thickStart, thickEnd, blockEnd, blockStart, blockSizes, bloc
                 blockWidths.append(codingRegionEnd - blockStart + 1)
                 blockYs.append(blockHeight)
                 blockVals.append(codingRegionEnd + (blockEnd - codingRegionEnd) / 2)
-                blockWidths.append(blockEnd - codingRegionEnd + 1)
+                print(blockEnd)
+                print(codingRegionEnd)
+                blockWidths.append(blockEnd - (codingRegionEnd + 1))
                 blockYs.append(blockHeight / 2)
         if (blockStart < codingRegionStart) & (blockEnd <= codingRegionEnd):
             if blockEnd <= codingRegionStart:
@@ -2564,11 +2565,11 @@ def calculateBlocks(thickStart, thickEnd, blockEnd, blockStart, blockSizes, bloc
                 blockWidths.append(blockEnd - blockStart + 1)
                 blockYs.append(blockHeight / 2)
             else:
-                blockVals.append(blockStart + (codingRegionStart - blockStart) / 2)
-                blockWidths.append(codingRegionStart - blockStart + 1)
+                blockVals.append(blockStart + ((codingRegionStart-1) - blockStart) / 2)
+                blockWidths.append((codingRegionStart-1) - blockStart + 1)
                 blockYs.append(blockHeight / 2)
-                blockVals.append(codingRegionStart + (blockEnd - codingRegionStart) / 2)
-                blockWidths.append(blockEnd - codingRegionStart + 1)
+                blockVals.append(codingRegionStart + (blockEnd - (codingRegionStart+1)) / 2)
+                blockWidths.append(blockEnd - codingRegionStart)
                 blockYs.append(blockHeight)
         if (blockStart < codingRegionStart) & (blockEnd > codingRegionEnd):
             blockVals.append(blockStart + (codingRegionStart - blockStart) / 2)

@@ -141,5 +141,42 @@ class TestDashboard(unittest.TestCase):
             db.subTables = i[4]
             db.tableColors = tableColors
             self.assertIsNot(db.createDetailRow(i[0], i[1], i[2]), i[3])
+            
+    def testCalculateBlocks(self):
+        testCases = []
+        # thickStart, thickEnd, blockStart, blockEnd, blockHeight
+        caseInput = (0,100, 20, 40, 0.4)
+        # blockVals, blockYs, blockWidths
+        caseOutput = ([30],[0.4],[21])
+        testCases.append((caseInput,caseOutput))
+        # thickStart, thickEnd, blockStart, blockEnd, blockHeight
+        caseInput = (0,10, 20, 40, 0.4)
+        # blockVals, blockYs, blockWidths
+        caseOutput = ([30],[0.2],[21])
+        testCases.append((caseInput,caseOutput))
+        # thickStart, thickEnd, blockStart, blockEnd, blockHeight
+        caseInput = (0,10, 5, 15, 0.4)
+        # blockVals, blockYs, blockWidths
+        caseOutput = ([7,12],[0.4,0.2],[5,5])
+        testCases.append((caseInput,caseOutput))
+        # thickStart, thickEnd, blockStart, blockEnd, blockHeight
+        caseInput = (5,15, 0, 10, 0.4)
+        # blockVals, blockYs, blockWidths
+        caseOutput = ([2,7],[0.2,0.4],[5,5])
+        testCases.append((caseInput,caseOutput))
+        # thickStart, thickEnd, blockStart, blockEnd, blockHeight
+        caseInput = (5,15, 1, 11, 0.4)
+        # blockVals, blockYs, blockWidths
+        caseOutput = ([2.5,7.5],[0.2,0.4],[4,6])
+        testCases.append((caseInput,caseOutput))
+        for i in testCases:
+            inputBlockVals = []
+            inputBlockYs = []
+            inputBlockWidths = []
+            db.calculateBlocks(i[0][0],i[0][1],i[0][2],i[0][3], inputBlockVals, inputBlockWidths, inputBlockYs, i[0][4])
+            output = (inputBlockVals, inputBlockYs, inputBlockWidths)
+            print(output)
+            self.assertCountEqual(output, i[1])
+            
 if __name__ == '__main__':
     unittest.main()
