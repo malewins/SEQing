@@ -2555,8 +2555,6 @@ def calculateBlocks(thickStart, thickEnd, blockStart, blockEnd, blockVals, block
                 blockWidths.append(codingRegionEnd - blockStart + 1)
                 blockYs.append(blockHeight)
                 blockVals.append(codingRegionEnd + (blockEnd - codingRegionEnd) / 2)
-                print(blockEnd)
-                print(codingRegionEnd)
                 blockWidths.append(blockEnd - (codingRegionEnd + 1))
                 blockYs.append(blockHeight / 2)
         if (blockStart < codingRegionStart) & (blockEnd <= codingRegionEnd):
@@ -2572,14 +2570,14 @@ def calculateBlocks(thickStart, thickEnd, blockStart, blockEnd, blockVals, block
                 blockWidths.append(blockEnd - codingRegionStart)
                 blockYs.append(blockHeight)
         if (blockStart < codingRegionStart) & (blockEnd > codingRegionEnd):
-            blockVals.append(blockStart + (codingRegionStart - blockStart) / 2)
-            blockWidths.append(codingRegionStart - blockStart + 1)
+            blockVals.append(blockStart + ((codingRegionStart-1) - blockStart) / 2)
+            blockWidths.append((codingRegionStart-1) - blockStart + 1)
             blockYs.append(blockHeight / 2)
             blockVals.append(codingRegionStart + (codingRegionEnd - codingRegionStart) / 2)
             blockWidths.append(codingRegionEnd - codingRegionStart + 1)
             blockYs.append(blockHeight)
             blockVals.append(codingRegionEnd + (blockEnd - codingRegionEnd) / 2)
-            blockWidths.append(blockEnd - codingRegionEnd + 1)
+            blockWidths.append(blockEnd - (codingRegionEnd + 1))
             blockYs.append(blockHeight / 2)
 
 def createSequenceTrace(seqDisp, strand, combinedSeq, xAxisMin, xAxisMax):
