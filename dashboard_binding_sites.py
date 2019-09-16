@@ -155,7 +155,7 @@ if __name__ == '__main__':
     # Default tab style
     tabStyle = {'padding' : '0', 'line-height' : '5vh'}
     # Colors for the alternating coloring in Details
-    tableColors = ['rgb(255, 255 ,255)', 'rgb(125, 244, 66)']
+    tableColors = ['rgb(255, 255 ,255)', 'rgb(220, 220, 220)']
     # For plots with multiple columns in the legend, basically anything using a color scale or heatmap,
     # this value determines the margin between colorbar and legend items. For very wide or very narrow
     # screens this value might need to be adjusted a bit, this can unfortunately not be done
