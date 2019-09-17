@@ -2377,32 +2377,37 @@ def generateGeneModel(isoforms, xAxisMin, xAxisMax, blockHeight, strand):
     # Calculate blocks from block start and end positions, as well as thickness
         for j in range(len(blockStarts)):
             blockStart = blockStarts[j]
-            if blockStart != -1:
-                blockEnd = blockStart + blockSizes[j] - 1  # Same as codingRegionEnd
+            if blockStart != -1 and blockStart != blockEnd:
+                blockEnd = blockStart + blockSizes[j] - 1
                 codingRegionStart = int(i.thickStart)
-                codingRegionEnd = int(i.thickEnd) - 1
+                codingRegionEnd = int(i.thickEnd) 
                 if (blockStart >= codingRegionStart) & (blockEnd <= codingRegionEnd):
-                    blockVals.append(blockStart + (blockEnd - blockStart) / 2)
-                    blockWidths.append(blockEnd - blockStart + 1)
+                    # Block is inside coding region
+                    blockVals.append(blockStart + ((blockEnd-1) - blockStart) / 2)
+                    blockWidths.append(blockEnd - blockStart )
                     blockYs.append(blockHeight)
                 if (blockStart >= codingRegionStart) & (blockEnd > codingRegionEnd):
                     if (blockStart >= codingRegionEnd):
+                        # Block is right of coding region
                         blockVals.append(blockStart + (blockEnd - blockStart) / 2)
                         blockWidths.append(blockEnd - blockStart + 1)
                         blockYs.append(blockHeight / 2)
                     else:
-                        blockVals.append(blockStart + (codingRegionEnd - blockStart) / 2)
-                        blockWidths.append(codingRegionEnd - blockStart + 1)
+                        # Block overlaps coding region on the left
+                        blockVals.append(blockStart + ((codingRegionEnd -1)- blockStart) / 2)
+                        blockWidths.append(codingRegionEnd - blockStart )
                         blockYs.append(blockHeight)
-                        blockVals.append(codingRegionEnd + (blockEnd - codingRegionEnd) / 2)
-                        blockWidths.append(blockEnd - (codingRegionEnd + 1))
+                        blockVals.append((codingRegionEnd-1)+ (blockEnd - (codingRegionEnd-1)) / 2)
+                        blockWidths.append(blockEnd - (codingRegionEnd ))
                         blockYs.append(blockHeight / 2)
                 if (blockStart < codingRegionStart) & (blockEnd <= codingRegionEnd):
                     if blockEnd <= codingRegionStart:
-                        blockVals.append(blockStart + (blockEnd - blockStart) / 2)
-                        blockWidths.append(blockEnd - blockStart + 1)
+                        # Block is Left of coding region
+                        blockVals.append(blockStart + ((blockEnd-1) - blockStart) / 2)
+                        blockWidths.append(blockEnd - blockStart)
                         blockYs.append(blockHeight / 2)
                     else:
+                        # Block overlaps coding region on the right
                         blockVals.append(blockStart + ((codingRegionStart-1) - blockStart) / 2)
                         blockWidths.append((codingRegionStart-1) - blockStart + 1)
                         blockYs.append(blockHeight / 2)
@@ -2410,6 +2415,7 @@ def generateGeneModel(isoforms, xAxisMin, xAxisMax, blockHeight, strand):
                         blockWidths.append(blockEnd - codingRegionStart)
                         blockYs.append(blockHeight)
                 if (blockStart < codingRegionStart) & (blockEnd > codingRegionEnd):
+                    # Block completely contains coding region
                     blockVals.append(blockStart + ((codingRegionStart-1) - blockStart) / 2)
                     blockWidths.append((codingRegionStart-1) - blockStart + 1)
                     blockYs.append(blockHeight / 2)
@@ -2419,6 +2425,7 @@ def generateGeneModel(isoforms, xAxisMin, xAxisMax, blockHeight, strand):
                     blockVals.append(codingRegionEnd + (blockEnd - codingRegionEnd) / 2)
                     blockWidths.append(blockEnd - (codingRegionEnd + 1))
                     blockYs.append(blockHeight / 2)
+        
 
         # Find first and last block to draw line properly
         f = lambda i: blockVals[i]
