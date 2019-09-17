@@ -144,30 +144,108 @@ class TestDashboard(unittest.TestCase):
             
     def testCalculateBlocks(self):
         testCases = []
+        # BLock lies completely in coding region
         # thickStart, thickEnd, blockStart, blockEnd, blockHeight
         caseInput = (0,100, 20, 40, 0.4)
         # blockVals, blockYs, blockWidths
-        caseOutput = ([30],[0.4],[21])
+        caseOutput = ([29.5],[0.4],[20])
         testCases.append((caseInput,caseOutput))
+        # thickStart, thickEnd, blockStart, blockEnd, blockHeight
+        caseInput = (0,100, 21, 40, 0.4)
+        # blockVals, blockYs, blockWidths
+        caseOutput = ([30],[0.4],[19])
+        testCases.append((caseInput,caseOutput))
+        
+        # Block lies right of coding region
         # thickStart, thickEnd, blockStart, blockEnd, blockHeight
         caseInput = (0,10, 20, 40, 0.4)
         # blockVals, blockYs, blockWidths
         caseOutput = ([30],[0.2],[21])
         testCases.append((caseInput,caseOutput))
         # thickStart, thickEnd, blockStart, blockEnd, blockHeight
+        caseInput = (0,10, 21, 41, 0.4)
+        # blockVals, blockYs, blockWidths
+        caseOutput = ([31],[0.2],[21])
+        testCases.append((caseInput,caseOutput))
+        # thickStart, thickEnd, blockStart, blockEnd, blockHeight
+        caseInput = (0,10, 21, 40, 0.4)
+        # blockVals, blockYs, blockWidths
+        caseOutput = ([30.5],[0.2],[20])
+        testCases.append((caseInput,caseOutput))
+        
+        # Block lies left of coding region
+        # thickStart, thickEnd, blockStart, blockEnd, blockHeight
+        caseInput = (20,30, 0, 10, 0.4)
+        # blockVals, blockYs, blockWidths
+        caseOutput = ([4.5],[0.2],[10])
+        testCases.append((caseInput,caseOutput))
+        # thickStart, thickEnd, blockStart, blockEnd, blockHeight
+        caseInput = (20,30, 0, 11, 0.4)
+        # blockVals, blockYs, blockWidths
+        caseOutput = ([5],[0.2],[11])
+        testCases.append((caseInput,caseOutput))
+        # thickStart, thickEnd, blockStart, blockEnd, blockHeight
+        caseInput = (20,30, 1, 11, 0.4)
+        # blockVals, blockYs, blockWidths
+        caseOutput = ([5.5],[0.2],[10])
+        testCases.append((caseInput,caseOutput))
+        
+        # Block overlaps coding region on the left
+        # thickStart, thickEnd, blockStart, blockEnd, blockHeight
         caseInput = (0,10, 5, 15, 0.4)
         # blockVals, blockYs, blockWidths
         caseOutput = ([7,12],[0.4,0.2],[5,5])
         testCases.append((caseInput,caseOutput))
+        # thickStart, thickEnd, blockStart, blockEnd, blockHeight
+        caseInput = (0,10, 6, 15, 0.4)
+        # blockVals, blockYs, blockWidths
+        caseOutput = ([7.5,12],[0.4,0.2],[4,5])
+        testCases.append((caseInput,caseOutput))
+         # thickStart, thickEnd, blockStart, blockEnd, blockHeight
+        caseInput = (0,10, 6, 16, 0.4)
+        # blockVals, blockYs, blockWidths
+        caseOutput = ([7.5,12.5],[0.4,0.2],[4,6])
+        testCases.append((caseInput,caseOutput))
+        
+        # Block overlaps coding region on the right
         # thickStart, thickEnd, blockStart, blockEnd, blockHeight
         caseInput = (5,15, 0, 10, 0.4)
         # blockVals, blockYs, blockWidths
         caseOutput = ([2,7],[0.2,0.4],[5,5])
         testCases.append((caseInput,caseOutput))
         # thickStart, thickEnd, blockStart, blockEnd, blockHeight
+        caseInput = (5,15, 1, 10, 0.4)
+        # blockVals, blockYs, blockWidths
+        caseOutput = ([2.5,7],[0.2,0.4],[4,5])
+        testCases.append((caseInput,caseOutput))
+        # thickStart, thickEnd, blockStart, blockEnd, blockHeight
+        caseInput = (5,15, 1, 9, 0.4)
+        # blockVals, blockYs, blockWidths
+        caseOutput = ([2.5,6.5],[0.2,0.4],[4,4])
+        testCases.append((caseInput,caseOutput))
+        
+        # Block completely contains coding region
+        # thickStart, thickEnd, blockStart, blockEnd, blockHeight
         caseInput = (5,15, 1, 11, 0.4)
         # blockVals, blockYs, blockWidths
         caseOutput = ([2.5,7.5],[0.2,0.4],[4,6])
+        testCases.append((caseInput,caseOutput))
+        # thickStart, thickEnd, blockStart, blockEnd, blockHeight
+        caseInput = (5,15, 5, 15, 0.4)
+        # blockVals, blockYs, blockWidths
+        caseOutput = ([9.5],[0.4],[10])
+        testCases.append((caseInput,caseOutput))
+        # thickStart, thickEnd, blockStart, blockEnd, blockHeight
+        caseInput = (5,16, 5, 16, 0.4)
+        # blockVals, blockYs, blockWidths
+        caseOutput = ([10],[0.4],[11])
+        testCases.append((caseInput,caseOutput))
+        
+        # Block has 0 size
+        # thickStart, thickEnd, blockStart, blockEnd, blockHeight
+        caseInput = (5,15, 1, 1, 0.4)
+        # blockVals, blockYs, blockWidths
+        caseOutput = ([],[],[])
         testCases.append((caseInput,caseOutput))
         for i in testCases:
             inputBlockVals = []
@@ -175,7 +253,6 @@ class TestDashboard(unittest.TestCase):
             inputBlockWidths = []
             db.calculateBlocks(i[0][0],i[0][1],i[0][2],i[0][3], inputBlockVals, inputBlockWidths, inputBlockYs, i[0][4])
             output = (inputBlockVals, inputBlockYs, inputBlockWidths)
-            print(output)
             self.assertCountEqual(output, i[1])
             
 if __name__ == '__main__':
