@@ -18,6 +18,44 @@ import time
 __author__ = "Yannik Bramkamp"
 
 if __name__ == '__main__':
+    if 'dropList' not in globals():
+        print('Please start the program via validator.py')
+        exit()
+    # Properly define all global variables that are handed to this module by validator.py
+    colorMap = globals()['colorMap'] 
+    descAvail = globals()['descAvail']
+    colorA = globals()['colorA']
+    colorC = globals()['colorC']
+    colorG = globals()['colorG']
+    colorT = globals()['colorT']
+    port = globals()['port']
+    procAvail = globals()['procAvail']
+    dsElements = globals()['dsElements'] 
+    spliceElements = globals()['spliceElements']
+    bsProcDFs = globals()['bsProcDFs']
+    bsRawDFs = globals()['bsRawDFs'] 
+    dataSetNames = globals()['dataSetNames']
+    spliceSetNames = globals()['spliceSetNames'] 
+    rawAvail = globals()['rawAvail']
+    spliceAvail = globals()['spliceAvail']
+    dropList = globals()['dropList']
+    geneDescriptions = globals()['geneDescriptions']
+    sequences = globals()['sequences']
+    geneAnnotations = globals()['geneAnnotations']
+    ensembl = globals()['ensembl']
+    sortKeys = globals()['sortKeys']
+    advancedDesc = globals()['advancedDesc']
+    subTables = globals()['subTables']
+    spliceEventElements = globals()['spliceEventElements']
+    spliceEventDFs = globals()['spliceEventDFs']
+    spliceEventNames = globals()['spliceEventNames']
+    spliceEventAvail= globals()['spliceEventAvail']
+    eventColors = globals()['eventColors']
+    coverageColors = globals()['coverageColors']
+    eventTypes = globals()['eventTypes']
+    authentication = globals()['authentication']
+    coverageData = globals()['coverageData']
+    
     helpText = '''
                 ##### General
                 
@@ -59,10 +97,7 @@ if __name__ == '__main__':
     
     
     
-    if 'dropList' not in globals():
-        print('Please start the program via validator.py')
-        exit()
-    
+
     # Set defaults if no advanced descriptions are available
     if advancedDesc is None:
         print('Advanced description DF is None')
@@ -72,6 +107,7 @@ if __name__ == '__main__':
     else:
         advList = list(advancedDesc.columns.values)
         advList.remove('gene_ids')
+        advDisabled = False
 #        try:
 #            advStart = advList[0]
 #            advDisabled = False
@@ -669,6 +705,50 @@ if __name__ == '__main__':
                                             )]),
                                             html.Div(className = 'table-cell', 
                                                 children = [
+                                                    html.Fieldset(title = 'RNA-seq plot settings', 
+                                                        className = 'field-set',
+                                                        children = [
+                                                            html.Legend('RNA-seq plot settings'),
+                                                            html.Div(children = 'Coverage plot scale'),
+                                                            dcc.Slider(
+                                                                id = 'coverageScale',
+                                                                min = 0.25,
+                                                                max = 2.5,
+                                                                step = 0.05,
+                                                                value = 1.0,
+                                                                marks = {
+                                                                    0.25: '0.25',
+                                                                    1.0: '1.0',
+                                                                    1.5: '1.5',
+                                                                    2.0: '2.0',
+                                                                    2.5: '2.5',
+                                                                    }
+                                                            ),
+                                                            html.Div(
+                                                                style = {'height' : '25px'}),
+                                                            html.Div(children = 'Event plot scale'),
+                                                            dcc.Slider(
+                                                                id = 'eventScale',
+                                                                min = 0.25,
+                                                                max = 2.5,
+                                                                step = 0.05,
+                                                                value = 1.0,
+                                                                marks = {
+                                                                    0.25: '0.25',
+                                                                    1.0: '1.0',
+                                                                    1.5: '1.5',
+                                                                    2.0: '2.0',
+                                                                    2.5: '2.5',
+                                                                    }
+                                                            ),
+                                                            html.Div(
+                                                                style = {'height' : '15px'})
+                                                        ]
+                                                    )
+                                                ]
+                                            ),
+                                            html.Div(className = 'table-cell', 
+                                                children = [
                                                     html.Fieldset(title = 'Legend Settings', 
                                                         className = 'field-set',
                                                         children = [
@@ -1023,7 +1103,7 @@ def bCallback(dataset, colors):
      dash.dependencies.State('colorDrop', 'value'),
      dash.dependencies.State('colorFinal', 'children')]
 )
-def conFirmColor(nclicks, r, g, b, dataset, backup):
+def confirmColor(nclicks, r, g, b, dataset, backup):
     """ Callback to confirm a color. This will overwrite the previous one.
 
     Positional arguments:
@@ -1489,9 +1569,13 @@ def rnaDesc(clicks, name):
      dash.dependencies.State('covColorFinal', 'children'),
      dash.dependencies.State('eventColorDiv', 'children'),
      dash.dependencies.State('eventColorFinal', 'children'),
-     dash.dependencies.State('legendSpacingDiv', 'children')]
+     dash.dependencies.State('legendSpacingDiv', 'children'),
+     dash.dependencies.State('coverageScale', 'value'),
+     dash.dependencies.State('eventScale', 'value')]
 )
-def rnaPlot(submit, confirm, eventConfirm, geneName, displayMode,rnaParamList, colors, colorsFinal, eventColors, eventColorsFinal, legendSpacing):
+def rnaCallback(submit, confirm, eventConfirm, geneName, displayMode,rnaParamList,
+                colors, colorsFinal, eventColors, eventColorsFinal, legendSpacing,
+                coverageScale, eventScale):
     """Main callback that handles the dynamic visualisation of the RNA-seq data.
 
         Positional arguments:
@@ -1506,6 +1590,8 @@ def rnaPlot(submit, confirm, eventConfirm, geneName, displayMode,rnaParamList, c
         eventColors -- Colors for splice events being confirmed
         eventColorsFinal -- last confirmed colors for splice events
         legendSpacing -- Specifies margin between colorbar and other legend items
+        coverageScale -- Scaling factor for coverage plots
+        eventScale -- Scaling factor for event plots
         """
     if submit > confirm:
         colors = colorsFinal
@@ -1525,7 +1611,7 @@ def rnaPlot(submit, confirm, eventConfirm, geneName, displayMode,rnaParamList, c
     xAxisMax = currentGene['chromEnd'].max()
     xAxisMin = currentGene['chromStart'].min()
     chrom = currentGene['chrom'].iloc[0]
-
+    strand = currentGene['strand'].iloc[0]
     color_dict = json.loads(colors)  # Color per mutant
     # Filter out needed datasets
     rnaDataSets = sorted(list(coverageData.keys()))
@@ -1541,34 +1627,7 @@ def rnaPlot(submit, confirm, eventConfirm, geneName, displayMode,rnaParamList, c
     maxYVal = 0 # Used to scale y-axes later
     eventDict = {} # stores dataframes with relevant splice event data
     for ds in sorted(displayed_rnaDataSet): # Select relevant coverage files from Index
-        fileIndex = coverageData[ds]
-        dfBcrit11 = fileIndex['start'] <= xAxisMin
-        dfBcrit12 = fileIndex['end'] >= xAxisMin
-        dfBcrit21 = fileIndex['start'] <= xAxisMax
-        dfBcrit22 = fileIndex['end'] >= xAxisMax
-        dfBcrit31 = fileIndex['start'] >= xAxisMin
-        dfBcrit32 = fileIndex['end'] <= xAxisMax
-        relevantFiles = fileIndex.loc[(dfBcrit11 & dfBcrit12) | (dfBcrit21 & dfBcrit22) | (dfBcrit31 & dfBcrit32)]
-        finalDF = []
-        start = time.time()
-        for i in relevantFiles.itertuples(): # Build dataframe from parts
-            try:
-                df = pickle.load(open(i.fileName, 'rb'))
-                finalDF.append(df)
-            except FileNotFoundError:
-                print(i.fileName + ' was not found')
-        end = time.time()
-        print(end-start)
-        try: # Final selection of relevant values from the combined df
-            finalDF = pandas.concat(finalDF)
-            bcrit11 = finalDF['chrom'] == chrom
-            bcrit21 = finalDF['chromStart'] >= xAxisMin
-            bcrit22 = finalDF['chromStart'] <= xAxisMax
-            bcrit31 = finalDF['chromEnd'] >= xAxisMin
-            bcrit32 = finalDF['chromEnd'] <= xAxisMax
-            spliceSlice = finalDF.loc[bcrit11 & ((bcrit21 & bcrit22) | (bcrit31 & bcrit32))]
-        except ValueError:
-            spliceSlice = pandas.DataFrame()           
+        spliceSlice = coverageDataSelection(ds, xAxisMin, xAxisMax, chrom)
         # Pre-init y-value list
         yVal = [0] * (len(range(xAxisMin, xAxisMax)))
         organism = ds.split("_")[0] # Prefix of the curret data frame, first filter
@@ -1587,10 +1646,11 @@ def rnaPlot(submit, confirm, eventConfirm, geneName, displayMode,rnaParamList, c
         for row in spliceSlice.itertuples():
             # Increment all values covered by the current row, will overshoot when row crosses border of gene, thus try except
             for j in range(row.chromStart, row.chromEnd):
-                try:
-                    yVal[j - xAxisMin] += row.count
-                except IndexError:
-                    pass
+                if (j - xAxisMin) >=0: # Ensure we don't fall into negative list indices
+                    try:
+                        yVal[j - xAxisMin] += row.count
+                    except IndexError:
+                            pass
          # Store reference to value list in dict
         yVals[ds] = yVal
         # Safe event dataframe to be used in the next function
@@ -1600,270 +1660,13 @@ def rnaPlot(submit, confirm, eventConfirm, geneName, displayMode,rnaParamList, c
         xVals[ds] = xVal
         # Find maximum y-axis value for axis scaling
         if max(yVal) > maxYVal: maxYVal = max(yVal)
-    colorScale = (-1.0,1.0) # Scores range from -1 to 1, setup color scale for consistent coloring
-    fig = createAreaChart(xVals, yVals, maxYVal, eventDict, displayed_rnaDataSet, 
-                          color_dict, geneName, displayMode, eventConfirm, submit, eventColors, eventColorsFinal, colorScale,
-                          legendColumnSpacing)
-    return fig
 
-def overlap(a, b):
-    """check if two intervals overlap
-
-    Positional arguments:
-    a -- first interval
-    b -- second interval
-    """
-    return a[1] > b[0] and a[0] < b[1]
-
-
-def createAreaChart(xVals, yVals, maxYVal, eventData, displayed, colorDict, 
-                    geneName, displayMode, eventConfirm, submit, eventColors, eventColorsFinal, colorScale,
-                    legendColumnSpacing):
-    """Create the plots for both coverage and splice events.
-
-    Positional arguments:
-    xVals -- x-axis values for coverage plot
-    yVals -- y-axis values for coverage plot
-    maxYVal -- maximum y value across all coverage tracks, used to scale all y-axes
-    eventData -- Dict containing the dataframes with relevant splice events
-    displayed -- displayed datasets
-    colorDict -- colors for the coverage plots
-    geneName -- name of the selected gene, needed for gene models
-    displayMode -- determines how splice events are visualized
-    eventconfirm -- confirm button for event color selection
-    submit -- global submit button 
-    eventColors -- Colors for splice events being confirmed
-    eventColorsFinal -- last confirmed colors for splice events
-    colorScale -- unified colorscale used for score visualization
-    LegendColumnSpacing -- Specifies margin between colorbar and other legend items
-    """
-    if submit > eventConfirm:
-        evColors = json.loads(eventColorsFinal)
-    else:
-        evColors = json.loads(eventColors)
-        
-    data = []
-    subplotTitles = []
-    legendSet = {}
-    eventMaxHeights = []
-    colorbarSet = False
-    for val in eventTypes:
-                legendSet[val] = False
-    for ds in sorted(displayed):
-        xAxis = xVals[ds]
-        yAxis = yVals[ds]
-        organism = ds.split('_')[0]
-        orgColor = colorDict[organism]
-        if spliceAvail:
-            trace = go.Scatter(
-                x=xAxis,
-                y=yAxis,
-                name=ds,
-                fill='tozeroy',
-                fillcolor=orgColor,
-                hoveron='points+fills',
-                line=dict(color='black'),
-                text=ds,
-                hoverinfo='y',
-                cliponaxis=True
-            )
-            subplotTitles.append(ds)
-            data.append(trace)
-        if spliceEventAvail:      
-            if displayMode in ['one', 'two']:
-                intervals = [] # Used to calculate overlaps, stores used intervals as well as row that interval was put on
-                eventXValues = {} # Stores x-axis values per event type
-                eventWidths = {} # Stores widths per event type
-                eventBases = {} # Stores y offset per event type
-                eventScores = {}
-                # Iterate through dataframe rows and calculate stacking aswell as bar parameters
-                maxStack = 0 # keeps track of the maximum number of stacked bars, to avoid empty rows
-                for row in eventData[ds].itertuples():
-                    #if row.chromStart > row.chromEnd: # Handle errornous input where chromStart > chromEnd and print warning
-                     #   print('Warning; Event in dataset ' + str(ds) +' on chromosome ' + str(row.chrom) + ' at startpoint ' + str(row.chromStart) +
-                      #        ' startpoint is greater than endpoint.')
-                    maxVal = max(row.chromStart, row.chromEnd) 
-                    minVal = min(row.chromStart, row.chromEnd)
-                    key = row.type # Type of the current event
-                    if len(intervals) == 0: # Row is the first row, no comparisons
-                        try: # If list already exist append
-                            eventXValues[key].append(minVal + (maxVal - minVal) / 2)
-                            eventWidths[key].append(maxVal - minVal)
-                            eventBases[key].append(0)
-                            eventScores[key].append(row.score)
-                            intervals.append(((minVal, maxVal),0))
-                        except KeyError: # Else create corresponding lists in dictionary
-                            eventXValues[key] = [minVal + (maxVal - minVal) / 2]
-                            eventWidths[key] = [maxVal - minVal]
-                            eventBases[key] = [0]
-                            eventScores[key] = [row.score]
-                            intervals.append(((minVal, maxVal),0))
-                        maxStack == 1
-                    else: # Row is not the first row, check through already processed intervals to calculate offset
-                        numOverlaps = 0
-                        heights = [] # Store all rows on which overlaps occur
-                        for i in intervals:
-                            if overlap(i[0], (minVal, maxVal)) == True:
-                                heights.append(i[1])
-                                numOverlaps += 1
-                        if len(heights) > 0:
-                            slot = 0 # First free row the new bar can be placed on
-                            for value in range(0, max(heights)+2): # Find first open slot
-                                if value not in heights:
-                                    slot = value
-                                    break
-                            numOverlaps = slot # Set numOverlaps accordingly
-                        try: # Try to append values to the list
-                            eventXValues[key].append(minVal + (maxVal - minVal) / 2)
-                            eventWidths[key].append(maxVal - minVal)
-                            if numOverlaps > maxStack:
-                                if numOverlaps > maxStack + 1:
-                                    maxStack += 1
-                                    numOverlaps = maxStack
-                                else:
-                                    maxStack = numOverlaps
-                            eventBases[key].append(numOverlaps + 0.5*numOverlaps)
-                            eventScores[key].append(row.score)
-                            intervals.append(((minVal, maxVal),numOverlaps))
-                        except KeyError: # Create the list corresponding to key
-                            eventXValues[key]  = [minVal + (maxVal - minVal) / 2]
-                            eventWidths[key] = [maxVal - minVal]
-                            if numOverlaps > maxStack:
-                                if numOverlaps > maxStack + 1:
-                                    maxStack += 1
-                                    numOverlaps = maxStack
-                                else:
-                                    maxStack = numOverlaps
-                            eventBases[key] = [numOverlaps + 0.5*numOverlaps]
-                            eventScores[key] = [row.score]
-                            intervals.append(((minVal, maxVal), numOverlaps))
-                if len(intervals) > 0:
-                    eventMaxHeights.append(maxStack+1)
-                else:
-                    eventMaxHeights.append(maxStack)         
-                traces = []
-                for k in sorted(eventXValues.keys()):
-                    legend = False # Show legend item 
-                    traceColor = 'darkblue'
-                    if displayMode == 'two':
-                        if legendSet[k] == False: # Legend item for this event type is not displayed, display it
-                            legendSet[k] = True
-                            legend = True
-                        traceColor = evColors[k]
-                    trace = go.Bar(
-                        x=eventXValues[k],
-                        y=[1]*len(eventXValues[k]),
-                        width = eventWidths[k],
-                        base = eventBases[k],
-                        name = k,
-                        showlegend = legend,
-                        legendgroup = k, # Group traces from different datasets so they all repsond to the one legend item
-                        insidetextfont=dict(
-                            family="Arial",
-                            color="black"
-                        ),
-                        textposition='auto',
-                        marker=dict(
-                            color= traceColor,
-                        )
-                    )
-                    traces.append(trace)
-                    print(trace)
-                subplotTitles.append("")
-                data.append(traces)
-            else: # Displaymode: Score heatmap
-                intervals = [] # Used to calculate overlaps, stores used intervals as well as row that interval was put on
-                eventXValues = [] # Stores x-axis values per event type
-                eventWidths = [] # Stores widths per event type
-                eventBases = [] # Stores y offset per event type
-                eventScores = [] # score for each event
-                # Iterate through dataframe rows and calculate stacking aswell as bar parameters
-                maxStack = 0 # keeps track of the maximum number of stacked bars, to avoid empty rows
-                for row in eventData[ds].itertuples():
-                    #if row.chromStart > row.chromEnd: # Handle errornous input where chromStart > chromEnd and print warning
-                     #   print('Warning; Event in dataset ' + str(ds) +' on chromosome ' + str(row.chrom) + ' at startpoint ' + str(row.chromStart) +
-                      #        ' startpoint is greater than endpoint.')
-                    maxVal = max(row.chromStart, row.chromEnd) 
-                    minVal = min(row.chromStart, row.chromEnd)
-                    if len(intervals) == 0: # Row is the first row, no comparisons
-                        eventXValues.append(minVal + (maxVal - minVal) / 2)
-                        eventWidths.append(maxVal - minVal)
-                        eventBases.append(0)
-                        eventScores.append(row.score)
-                        intervals.append(((minVal, maxVal),0))
-                        maxStack == 1
-                    else: # Row is not the first row, check through already processed intervals to calculate offset
-                        numOverlaps = 0
-                        heights = [] # Store all rows on which overlaps occur
-                        for i in intervals:
-                            if overlap(i[0], (minVal, maxVal)) == True:
-                                heights.append(i[1])
-                                numOverlaps += 1
-                        if len(heights) > 0:
-                            slot = 0 # First free row the new bar can be placed on
-                            for value in range(0, max(heights)+2): # Find first open slot
-                                if value not in heights:
-                                    slot = value
-                                    break
-                            numOverlaps = slot # Set numOverlaps accordingly
-                        eventXValues.append(minVal + (maxVal - minVal) / 2)
-                        eventWidths.append(maxVal - minVal)
-                        if numOverlaps > maxStack:
-                            if numOverlaps > maxStack + 1:
-                                maxStack += 1
-                                numOverlaps = maxStack
-                            else:
-                                maxStack = numOverlaps
-                        eventBases.append(numOverlaps + 0.5*numOverlaps)
-                        eventScores.append(row.score)
-                        intervals.append(((minVal, maxVal),numOverlaps))
-                if len(intervals) > 0:
-                    eventMaxHeights.append(maxStack+1)
-                else:
-                    eventMaxHeights.append(maxStack)    
-                trace = go.Bar(
-                    x=eventXValues,
-                    y=[1]*len(eventXValues),
-                    width = eventWidths,
-                    base = eventBases,
-                    showlegend = False,
-                    insidetextfont=dict(
-                        family="Arial",
-                        color="black"
-                    ),
-                    text = eventScores,
-                    hoverinfo = 'x+text',
-                    marker=dict(
-                        color= eventScores,
-                        colorscale = 'Viridis',
-                        showscale = True,
-                        cmin = colorScale[0],
-                        cmax = colorScale[1],
-                        colorbar =dict(
-                            len = 1.0,
-                            y = 0.0,
-                            x = 1.0,
-                            yanchor = 'bottom',
-                        )
-                    )
-                )
-                subplotTitles.append("")
-                if len(eventXValues) > 0:
-                    data.append(trace)
-                else:
-                    data.append([])
-
-                    
-    currentGene = pandas.DataFrame()
-    for index, elem in enumerate(geneAnnotations):
-        currentGene = elem[elem['name'].str.contains(geneName)]
-        if not currentGene.empty:
-            break
-        
-    xAxisMax = currentGene['chromEnd'].max()
-    xAxisMin = currentGene['chromStart'].min()
-    chrom = currentGene['chrom'].iloc[0]
-    strand = currentGene['strand'].iloc[0]
+    # Create
+    rnaSeqPlotData = createRNAPlots(xVals, yVals, eventDict, displayed_rnaDataSet, 
+                          color_dict, displayMode, eventConfirm, submit, eventColors, eventColorsFinal)
+    traces = rnaSeqPlotData[0]
+    eventMaxHeights = rnaSeqPlotData[1]
+    axisTitles = rnaSeqPlotData[2]
     overlappingGenes = []
     for i in geneAnnotations: # Select data for gene models from all annotation files
         bcrit11 = i['chrom'] == chrom
@@ -1881,9 +1684,17 @@ def createAreaChart(xVals, yVals, maxYVal, eventData, displayed, colorDict,
     isoformList = pandas.concat([currentGene, overlaps]) 
     
     numIsoforms = len(isoformList) # Number of isoforms in the gene model
-    numRows = len(data)+numIsoforms
+    numRows = len(traces)+numIsoforms
 
     # Setup row heights based on available data
+    
+    plotSpace = 0.9  # Space taken up by data tracks
+    spacingSpace = 1.0 - plotSpace  # Space left for spacer tracks
+    rowHeight = plotSpace / numRows
+    if numRows > 1:
+        vSpace = spacingSpace / (numRows - 1)
+    else:
+        vSpace = spacingSpace
     rowHeights = []
     eventHeights = []
     for i in eventMaxHeights:
@@ -1897,112 +1708,438 @@ def createAreaChart(xVals, yVals, maxYVal, eventData, displayed, colorDict,
             eventHeights.append(i % 5 +1)
     if spliceEventAvail:
         for i in range(numRows):
-            if i > len(data)-1: rowHeights.append(1/numRows) # Gene model row
+            if i > len(traces)-1: rowHeights.append(0.5 * rowHeight) # Gene model row
             elif (i % 2 != 0):
                 try:
-                    rowHeights.append(eventHeights[i//2]/numRows) # Splice event row
+                    rowHeights.append(eventHeights[i//2] * rowHeight * eventScale) # Splice event row
                 except IndexError:
-                     rowHeights.append(0/numRows)
+                     rowHeights.append(0)
             else:
-                rowHeights.append(3/numRows) # Coverage row
+                rowHeights.append(3 * rowHeight * coverageScale) # Coverage row
     else:
         for i in range(numRows):
-            if i > len(data)-1: rowHeights.append(1/numRows) # Gene model row
+            if i > len(traces)-1: rowHeights.append(0.5 * rowHeight) # Gene model row
             else:
-                rowHeights.append(3/numRows) # Coverage row
+                rowHeights.append(3 * rowHeight * coverageScale) # Coverage row
+
     fig = tools.make_subplots(rows=numRows, cols=1,
-                              shared_xaxes=True, row_width=rowHeights[::-1])
+                              shared_xaxes=True, row_width=rowHeights[::-1], vertical_spacing = vSpace)
 
     eventIndices = [] # Save indices of all elements that contain event traces
-    for index, t in enumerate(data):
+    for index, t in enumerate(traces):
         try:
             fig.append_trace(t, index + 1, 1)
         except ValueError:
             eventIndices.append(index)
     for i in eventIndices: # Add event traces after all coverage traces have been added for legend item positioning
-        for x in data[i]:
+        for x in traces[i]:
             fig.append_trace(x, i + 1, 1)
     blockHeight = 0.4 # Height of coding blocks in gene models
-    rnaSequencePlot(fig, geneName, numRows, len(data), isoformList, xAxisMax, xAxisMin, strand, blockHeight)
-    try:
-        fig['layout']['yaxis'].update(showticklabels=True, showgrid=True, zeroline=True, title={'text': subplotTitles[0]})
-    except IndexError:
-        fig['layout']['yaxis'].update(showticklabels=True, showgrid=True, zeroline=True)
-    subplotTitles.extend([""]*numIsoforms)
-    for i in range(1, numRows+1):
-            if spliceEventAvail:
-                if i % 2 != 0 and i <= len(data): # Coverage row
-                    fig['layout']['yaxis' + str(i)].update(range=[0, maxYVal],title={'text': subplotTitles[i-1]})
-                    fig['layout']['yaxis' + str(i)].update(showticklabels=True, showgrid=True, zeroline=True)
-                else: # Event row
-                    if i > len(data):
-                        fig['layout']['yaxis' + str(i)].update(showticklabels=False, showgrid=False, zeroline=False, title={'text': subplotTitles[i-1]})
-                        fig['layout']['yaxis' + str(i)].update(range=[-blockHeight, blockHeight])
-                    else:
-                        fig['layout']['yaxis' + str(i)].update(showticklabels=False, showgrid=False, zeroline=False, title={'text': subplotTitles[i-1]})
-            else:
-                if i <= len(data): # Coverage row
-                    fig['layout']['yaxis' + str(i)].update(range=[0, maxYVal], title={'text': subplotTitles[i-1]})
-                    fig['layout']['yaxis' + str(i)].update(showticklabels=True, showgrid=True, zeroline=True)
-                else: # Gene model row
-                    fig['layout']['yaxis' + str(i)].update(showticklabels=False, showgrid=False, zeroline=False)
-                    fig['layout']['yaxis' + str(i)].update(range=[-blockHeight, blockHeight], title={'text': subplotTitles[i-1]})
-    # Setup plot height, add 85 to account for margins
-    fig['layout'].update(
-        margin=go.layout.Margin(l=60, r=40, t=25, b=60),
-    )
-    fig['layout']['height'] = (80 * len(data) + 50 * numIsoforms + 85)
-    fig['layout']['legend'].update(x = legendColumnSpacing)
-    return fig
 
 
-def rnaSequencePlot(fig, geneName, numRows, lenData, isoformList, xAxisMax, xAxisMin, strand, blockHeight):
-    """ Adds gene model plots to coverage and splice event plots.
-    
-    Positional arguments:
-    fig -- Current figure, needed to add additional rows
-    geneName -- Name of the currently selected gene
-    numRows -- Number of rows, needed to prevent zoom on y-axes
-    lenData -- Number of RNA-seq rows, used as start point for gene model rows
-    isoformList -- List of all gene isoforms overlapping this genomic region, on either strand
-    xAxisMax -- End of region
-    xAxisMin -- Start of region
-    strand -- Strand of the currently selected gene
-    blockHeight -- Height of coding blocks in gene models
-    """
-
-
-    fig['layout']['xaxis'].update(nticks=6)
-    fig['layout']['xaxis'].update(tickmode='array')
-    fig['layout']['xaxis'].update(showgrid=True)
-    fig['layout']['xaxis'].update(ticks='outside')
-    fig['layout']['xaxis'].update(ticksuffix='b')
-    fig['layout'].update(hovermode='x')
-    fig['layout']['yaxis'].update(fixedrange=True)
-
-    counter = lenData+1
+    counter = len(traces)+1
 
     # Calculate gene models. We have to distinguish between coding region and non-coding region
-    geneModels = generateGeneModel(isoformList, xAxisMin, xAxisMax, blockHeight, strand)
+    geneModels = createGeneModelPlot(isoformList, xAxisMin, xAxisMax, blockHeight, strand)
     for model in geneModels:
         for part in model:
             fig.append_trace(part, counter, 1)
         counter += 1
 
-    # The trailing ',' actually matters for some reason, don't remove
-    fig['layout'].update(
-        barmode='relative',
-    )
+    # Layouting of the figure
+    fig['layout']['xaxis'].update(nticks=6)
+    fig['layout']['xaxis'].update(tickmode='array')
+    fig['layout']['xaxis'].update(showgrid=True)
+    fig['layout']['xaxis'].update(ticks='outside')
+    fig['layout']['xaxis'].update(ticksuffix='b')
+    fig['layout']['xaxis'].update(ticksuffix='b')
+    fig['layout'].update(hovermode='x')
+    fig['layout']['yaxis'].update(fixedrange=True)
+    fig['layout'].update(barmode='relative')
+    # Reverse x-axis if gene is on - strand to always show models in 3'->5'
     if strand == '-':
         fig['layout']['xaxis'].update(autorange='reversed')
-    for i in range(numRows):  # prevent zoom on y axis
-        if i == 0:
-            fig['layout']['yaxis'].update(fixedrange=True)
-        else:
-            fig['layout']['yaxis' + str(i)].update(fixedrange=True)
+    for i in range(1, numRows+1):  # prevent zoom on y axis
+        fig['layout']['yaxis' + str(i)].update(fixedrange=True)
+    # Set axis titles and grid for y1
+    #try:
+     #   fig['layout']['yaxis'].update(showticklabels=True, showgrid=True, zeroline=True, title={'text': axisTitles[0]})
+    #except IndexError:
+     #   fig['layout']['yaxis'].update(showticklabels=True, showgrid=True, zeroline=True)
+    # Set axis titles, grid and range for other y-axes where applicable
+    for i in range(1, numRows+1):
+            if spliceEventAvail:
+                if i % 2 != 0 and i <= len(traces): # Coverage row
+                    fig['layout']['yaxis' + str(i)].update(range=[0, maxYVal],title={'text': axisTitles[i-1]})
+                    fig['layout']['yaxis' + str(i)].update(showticklabels=True, showgrid=True, zeroline=True)
+                else: # Event or gene model row
+                    if i > len(traces): # Gene model row
+                        fig['layout']['yaxis' + str(i)].update(showticklabels=False, showgrid=False, zeroline=False)
+                        fig['layout']['yaxis' + str(i)].update(range=[-blockHeight, blockHeight])
+                    else: # Event row
+                        fig['layout']['yaxis' + str(i)].update(showticklabels=False, showgrid=False, zeroline=False, title={'text': axisTitles[i-1]})
+            else:
+                if i <= len(traces): # Coverage row
+                    fig['layout']['yaxis' + str(i)].update(range=[0, maxYVal], title={'text': axisTitles[i-1]})
+                    fig['layout']['yaxis' + str(i)].update(showticklabels=True, showgrid=True, zeroline=True)
+                else: # Gene model row
+                    fig['layout']['yaxis' + str(i)].update(showticklabels=False, showgrid=False, zeroline=False)
+                    fig['layout']['yaxis' + str(i)].update(range=[-blockHeight, blockHeight], )
+    # Setup plot height, add 85 to account for margins
+    fig['layout'].update(margin=go.layout.Margin(l=60, r=40, t=25, b=60),)
+    rowScales = [x/rowHeight for x in rowHeights]
+    size = 0 
+    for i in rowScales:
+        size += 50*i
+    fig['layout']['height'] = (size + 85)
     # set spacing for the second legend column
+    fig['layout']['legend'].update(x = legendColumnSpacing)
     return fig
 
+def coverageDataSelection(ds, xAxisMin, xAxisMax, chrom):
+    """ This function performs selection and loading of relevant coverage data. 
+        Due to size, coverage data is indexed, and only needed files will be laoded
+        on demand.
+        
+        Positional arguments:
+        ds -- Name of the dataset 
+        xAxisMin -- Left border of relevant area
+        xAxisMax -- Right border of relevant area
+        chrom -- Chromosome to search on
+    """
+    fileIndex = coverageData[ds]
+    dfBcrit11 = fileIndex['start'] <= xAxisMin
+    dfBcrit12 = fileIndex['end'] >= xAxisMin
+    dfBcrit21 = fileIndex['start'] <= xAxisMax
+    dfBcrit22 = fileIndex['end'] >= xAxisMax
+    dfBcrit31 = fileIndex['start'] >= xAxisMin
+    dfBcrit32 = fileIndex['end'] <= xAxisMax
+    relevantFiles = fileIndex.loc[(dfBcrit11 & dfBcrit12) | (dfBcrit21 & dfBcrit22) | (dfBcrit31 & dfBcrit32)]
+    finalDF = []
+    start = time.time()
+    for i in relevantFiles.itertuples(): # Build dataframe from parts
+        try:
+            df = pickle.load(open(i.fileName, 'rb'))
+            finalDF.append(df)
+        except FileNotFoundError:
+            print(i.fileName + ' was not found')
+    end = time.time()
+    print(end-start)
+    try: # Final selection of relevant values from the combined df
+        finalDF = pandas.concat(finalDF)
+        bcrit11 = finalDF['chrom'] == chrom
+        bcrit21 = finalDF['chromStart'] >= xAxisMin
+        bcrit22 = finalDF['chromStart'] <= xAxisMax
+        bcrit31 = finalDF['chromEnd'] >= xAxisMin
+        bcrit32 = finalDF['chromEnd'] <= xAxisMax
+        return finalDF.loc[bcrit11 & ((bcrit21 & bcrit22) | (bcrit31 & bcrit32))]
+    except ValueError:
+        return pandas.DataFrame()    
+
+def overlap(a, b):
+    """check if two intervals overlap
+
+    Positional arguments:
+    a -- first interval
+    b -- second interval
+    """
+    return a[1] > b[0] and a[0] < b[1]
+
+
+def createRNAPlots(xVals, yVals, eventData, displayed, colorDict,
+                    displayMode, eventConfirm, submit, eventColors, 
+                    eventColorsFinal):
+    """Create the plots for both coverage and splice events.
+
+    Positional arguments:
+    xVals -- x-axis values for coverage plot
+    yVals -- y-axis values for coverage plot
+    eventData -- Dict containing the dataframes with relevant splice events
+    displayed -- displayed datasets
+    colorDict -- colors for the coverage plots
+    displayMode -- determines how splice events are visualized
+    eventconfirm -- confirm button for event color selection
+    submit -- global submit button 
+    eventColors -- Colors for splice events being confirmed
+    eventColorsFinal -- last confirmed colors for splice events
+    """
+    # Select correct colorset depending on whih button was pressed last
+    if submit > eventConfirm:
+        evColors = json.loads(eventColorsFinal)
+    else:
+        evColors = json.loads(eventColors)
+        
+    data = [] # Will hold all generated traces
+    axisTitles = [] # Will hold axis titles to be added in the main callback
+    eventMaxHeights = [] # Will hold number of stacked event rows for layouting
+    legendSet = {} # Keeps track of legend items to avoid duplicates for event types
+    for val in eventTypes:
+        legendSet[val] = False
+    for ds in sorted(displayed):
+        if spliceAvail:
+            data.append(createAreaChart(xVals, yVals, ds, colorDict, axisTitles))
+        if spliceEventAvail:
+            data.append(createEventPlots(displayMode, eventData, ds, axisTitles, eventMaxHeights, evColors, legendSet))
+
+    return (data, eventMaxHeights, axisTitles)
+
+def createAreaChart(xVals, yVals, ds, colorDict, axisTitles):
+    """ Creates an area chart from provided values. axisTitles is modified by this function.
+    
+        Positional arguments:
+        xVals -- X-axis values for the area chart
+        yVals -- Y-axis values for the area chart
+        ds -- dataset this chart is for, used for color selection and naming
+        colorDict -- Dict holding colors by datasets
+        axisTitles -- List of y-axis titles
+    """
+    xAxis = xVals[ds]
+    yAxis = yVals[ds]
+    organism = ds.split('_')[0]
+    orgColor = colorDict[organism]
+    trace = go.Scatter(
+        x=xAxis,
+        y=yAxis,
+        name=ds,
+        fill='tozeroy',
+        fillcolor=orgColor,
+        hoveron='points+fills',
+        line=dict(color='black'),
+        text=ds,
+        hoverinfo='y',
+        cliponaxis=True
+    )
+    axisTitles.append(ds)
+    return trace
+
+def createEventPlots(displayMode, eventData, ds, axisTitles, eventMaxHeights, evColors, legendSet):
+    """ This function is a wrapper for splice event plot creation. It calls the correct 
+        subfunction depending on dosplayMode. The function modifies axisTitles,eventMaxHeights
+        and legendSet
+    
+        Positional arguments:
+        displayMode -- Specifies how events should be displayed. One = default, two = type, 3 = score based coloring
+        eventData -- The dataframe containing the splice event data
+        ds -- Name of the dataset plots should be created for
+        axistitles -- List that holds axistitles.
+        eventMaxHeights -- List that contains the number of stacked event rows for each event trace.
+        evColors -- Colors for the different splice event types
+        legendSet -- Keeps track of which legend items to show to avoid duplicates
+    """
+
+    if displayMode in ['one', 'two']:
+        intervals = [] # Used to calculate overlaps, stores used intervals as well as row that interval was put on
+        eventXValues = {} # Stores x-axis values per event type
+        eventWidths = {} # Stores widths per event type
+        eventBases = {} # Stores y offset per event type
+        eventScores = {}
+        # Iterate through dataframe rows and calculate stacking aswell as bar parameters
+        maxStack = 0 # keeps track of the maximum number of stacked bars, to avoid empty rows
+        for row in eventData[ds].itertuples():
+            maxStack = calculateEvents(row.type, row.chromStart, row.chromEnd, row.score, eventXValues, eventWidths, eventBases, eventScores, intervals, maxStack)
+        # eventMaxHeights will be used to scale the size of event traces based on the number
+        # of stacked event rows
+        eventMaxHeights.append(maxStack)         
+        traces = []
+        for k in sorted(eventXValues.keys()):
+            legend = False # Show legend item 
+            traceColor = 'darkblue'
+            if displayMode == 'two':
+                if legendSet[k] == False: # Legend item for this event type is not displayed, display it
+                    legendSet[k] = True
+                    legend = True
+                traceColor = evColors[k]
+            trace = go.Bar(
+                x=eventXValues[k],
+                y=[1]*len(eventXValues[k]),
+                width = eventWidths[k],
+                base = eventBases[k],
+                name = k,
+                showlegend = legend,
+                legendgroup = k, # Group traces from different datasets so they all repsond to the one legend item
+                insidetextfont=dict(
+                    family="Arial",
+                    color="black"
+                ),
+                textposition='auto',
+                marker=dict(
+                    color= traceColor,
+                )
+            )
+            traces.append(trace)
+        axisTitles.append("")
+        return traces
+    else: # Displaymode: Score heatmap
+        colorScale = (-1.0,1.0) # Scores range from -1 to 1, setup color scale for consistent coloring
+        intervals = [] # Used to calculate overlaps, stores used intervals as well as row that interval was put on
+        eventXValues = [] # Stores x-axis values per event type
+        eventWidths = [] # Stores widths per event type
+        eventBases = [] # Stores y offset per event type
+        eventScores = [] # score for each event
+        # Iterate through dataframe rows and calculate stacking aswell as bar parameters
+        maxStack = 0 # keeps track of the maximum number of stacked bars, to avoid empty rows
+        for row in eventData[ds].itertuples():
+            maxStack = calculateEventsScoreColored(row.chromStart, row.chromEnd, row.score, eventXValues, eventWidths, eventBases, eventScores, intervals, maxStack)
+        # eventMaxHeights will be used to scale the size of event traces based on the number
+        # of stacked event rows
+        eventMaxHeights.append(maxStack)    
+        trace = go.Bar(
+            x=eventXValues,
+            y=[1]*len(eventXValues),
+            width = eventWidths,
+            base = eventBases,
+            showlegend = False,
+            insidetextfont=dict(
+                family="Arial",
+                color="black"
+            ),
+            text = eventScores,
+            hoverinfo = 'x+text',
+            marker=dict(
+                color= eventScores,
+                colorscale = 'Viridis',
+                showscale = True,
+                cmin = colorScale[0],
+                cmax = colorScale[1],
+                colorbar =dict(
+                    len = 1.0,
+                    y = 0.0,
+                    x = 1.0,
+                    yanchor = 'bottom',
+                )
+            )
+        )
+        axisTitles.append("")
+        if len(eventXValues) > 0:
+            return trace
+        else:
+            return []
+
+def calculateEvents(key, chromStart, chromEnd, score, eventXValues, eventWidths, eventBases, eventScores, intervals, maxStack):
+    """ This function calculates a bar and its vertical position for displayMode one and two. 
+        It directly modifies eventXValues, eventWidths, eventBases, eventScores and intervals 
+        and returns a new value for maxstack. 
+        
+        Positional arguments:
+        key -- The type of splice event this event belongs to
+        chromstart -- Start of the event
+        chromEnd -- End of the event
+        score -- Score of the event
+        eventXValues -- Holds x-axis center coordinates of all events that have been processed already
+        eventWidths -- Holds widths of all processed events
+        eventBases -- Hold the vertical offset of all processed events
+        eventScores -- Holds the scores of all processed events
+        intervals -- Stores events as tuple containing start and end positions as well as vertical offset
+        maxStack -- Keeps track of the currently highest event row for layouting purposes
+    """
+    # Avoid problems with events that don't follow the convention of chromStart < chromEnd
+    maxVal = max(chromStart, chromEnd)
+    minVal = min(chromStart, chromEnd)
+    if len(intervals) == 0: # Row is the first row, no comparisons
+        try: # If list already exist append
+            eventXValues[key].append(minVal + ((maxVal-1) - minVal) / 2)
+            eventWidths[key].append(maxVal - minVal)
+            eventBases[key].append(0)
+            eventScores[key].append(score)
+            intervals.append(((minVal, maxVal),0))
+        except KeyError: # Else create corresponding lists in dictionary
+            eventXValues[key] = [minVal + ((maxVal-1) - minVal) / 2]
+            eventWidths[key] = [maxVal - minVal]
+            eventBases[key] = [0]
+            eventScores[key] = [score]
+            intervals.append(((minVal, maxVal),0))
+        maxStack = 1
+    else: # Row is not the first row, check through already processed intervals to calculate offset
+        numOverlaps = 0
+        heights = [] # Store all rows on which overlaps occur
+        for i in intervals:
+            if overlap(i[0], (minVal, maxVal)) == True:
+                heights.append(i[1])
+                numOverlaps += 1
+        if len(heights) > 0:
+            slot = 0 # First free row the new bar can be placed on
+            for value in range(0, max(heights)+2): # Find first open slot
+                if value not in heights:
+                    slot = value
+                    break
+            numOverlaps = slot # Set numOverlaps accordingly
+        try: # Try to append values to the list
+            eventXValues[key].append(minVal + ((maxVal-1) - minVal) / 2)
+            eventWidths[key].append(maxVal - minVal)
+            if numOverlaps >= maxStack: # Check if a new row needs to be created to place this event
+                if numOverlaps > maxStack + 1:
+                    maxStack += 1
+                    numOverlaps = maxStack
+                else:
+                    maxStack = numOverlaps + 1
+            eventBases[key].append(numOverlaps + 0.5*numOverlaps)
+            eventScores[key].append(score)
+            intervals.append(((minVal, maxVal),numOverlaps))
+        except KeyError: # Create the list corresponding to key
+            eventXValues[key]  = [minVal + ((maxVal-1) - minVal) / 2]
+            eventWidths[key] = [maxVal - minVal]
+            if numOverlaps >= maxStack: # Check if a new row needs to be created to place this event
+                if numOverlaps > maxStack + 1:
+                    maxStack += 1
+                    numOverlaps = maxStack
+                else:
+                    maxStack = numOverlaps + 1
+            eventBases[key] = [numOverlaps + 0.5*numOverlaps]
+            eventScores[key] = [score]
+            intervals.append(((minVal, maxVal), numOverlaps))
+    return maxStack
+
+def calculateEventsScoreColored(chromStart, chromEnd, score, eventXValues, eventWidths, eventBases, eventScores, intervals, maxStack):
+    """ This function calculates a bar and its vertical position for displayMode three. 
+        It directly modifies eventXValues, eventWidths, eventBases, eventScores and intervals 
+        and returns a new value for maxstack. 
+    
+        Positional arguments:
+        chromstart -- Start of the event
+        chromEnd -- End of the event
+        score -- Score of the event
+        eventXValues -- Holds x-axis center coordinates of all events that have been processed already
+        eventWidths -- Holds widths of all processed events
+        eventBases -- Hold the vertical offset of all processed events
+        eventScores -- Holds the scores of all processed events
+        intervals -- Stores events as tuple containing start and end positions as well as vertical offset
+        maxStack -- Keeps track of the currently highest event row for layouting purposes
+    """
+    maxVal = max(chromStart, chromEnd) 
+    minVal = min(chromStart, chromEnd)
+    if len(intervals) == 0: # Row is the first row, no comparisons
+        eventXValues.append(minVal + ((maxVal-1) - minVal) / 2)
+        eventWidths.append(maxVal - minVal)
+        eventBases.append(0)
+        eventScores.append(score)
+        intervals.append(((minVal, maxVal),0))
+        maxStack = 1
+    else: # Row is not the first row, check through already processed intervals to calculate offset
+        numOverlaps = 0
+        heights = [] # Store all rows on which overlaps occur
+        for i in intervals:
+            if overlap(i[0], (minVal, maxVal)) == True:
+                heights.append(i[1])
+                numOverlaps += 1
+        if len(heights) > 0:
+            slot = 0 # First free row the new bar can be placed on
+            for value in range(0, max(heights)+2): # Find first open slot
+                if value not in heights:
+                    slot = value
+                    break
+            numOverlaps = slot # Set numOverlaps accordingly
+        eventXValues.append(minVal + ((maxVal-1) - minVal) / 2)
+        eventWidths.append(maxVal - minVal)
+        if numOverlaps >= maxStack:
+            if numOverlaps > maxStack + 1: # Check if a new row needs to be created to place this event
+                maxStack += 1
+                numOverlaps = maxStack
+            else:
+                maxStack = numOverlaps + 1
+        eventBases.append(numOverlaps + 0.5*numOverlaps)
+        eventScores.append(score)
+        intervals.append(((minVal, maxVal),numOverlaps))
+    return maxStack
 
 @app.callback(
     dash.dependencies.Output('descDiv', component_property='children'),
@@ -2043,7 +2180,7 @@ def setDesc(clicks, name):
      dash.dependencies.State('colorFinal', 'children'),
      dash.dependencies.State('legendSpacingDiv', 'children')]
 )
-def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal, legendSpacing):
+def iCLIPCallback(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal, legendSpacing):
     """Main callback that handles the dynamic visualisation of selected data
 
     Positional arguments:
@@ -2082,11 +2219,11 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal, 
         if not currentGene.empty:
             break
     
-    xAxisMax = currentGene['chromEnd'].max()
-
-    xAxisMin = currentGene['chromStart'].min()
-    strand = currentGene['strand'].iloc[0]
-    chrom = currentGene['chrom'].iloc[0]
+    # Setup some variables for plot creation 
+    xAxisMin = currentGene['chromStart'].min() # Left border of the plot region
+    xAxisMax = currentGene['chromEnd'].max() # Rigt border of the plot region
+    strand = currentGene['strand'].iloc[0] # Strand the selected gene is on
+    chrom = currentGene['chrom'].iloc[0] # Chromosome the selected gene is on
    
     overlappingGenes = []
     for i in geneAnnotations: # Select data for gene model from all annotaion files
@@ -2130,21 +2267,11 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal, 
         dataSetHeights.append(rowHeight * rowOffset)
     rowHeights = [rowHeight] * len(isoformList) + dataSetHeights * numParams + [rowHeight]
     fig = tools.make_subplots(rows=numRows, cols=1, shared_xaxes=True, vertical_spacing=vSpace, row_width=rowHeights)
-    fig['layout']['xaxis'].update(nticks=6)
-    fig['layout']['xaxis'].update(tickmode='array')
-    fig['layout']['xaxis'].update(showgrid=True)
-    fig['layout']['xaxis'].update(ticks='outside')
-    fig['layout']['xaxis'].update(ticksuffix='b')
-    fig['layout'].update(hovermode='x')
-
-    if strand == '-':
-        fig['layout']['xaxis'].update(autorange='reversed')
     # Create list of 3-tupels containing start, end, name for each isoform.
-    # Format name properly
     isoformRanges = []
     for elem in currentGene.itertuples():
         name = elem.name
-        if len(elem.name.split('_')) > 1:
+        if len(elem.name.split('_')) > 1: # Format name properly
             name = elem.name.split('.')[1].replace('_', '.')
         isoformRanges.append((elem.chromStart, elem.chromEnd, name))
     # Create master sequence for sequence display
@@ -2154,7 +2281,7 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal, 
         combinedSeq = ''
 
     try:  # Create traces for sequence display, either scatter or heatmap
-        traces = generateSequenceTrace(seqDisp, strand, combinedSeq, xAxisMin, xAxisMax)
+        traces = createSequenceTrace(seqDisp, strand, combinedSeq, xAxisMin, xAxisMax)
         for i in traces:
             fig.append_trace(i, 1, 1)
     except IndexError:
@@ -2164,7 +2291,7 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal, 
 
     counter = 2
     for i in range(len(dataSets)):
-        bsTraces = plotICLIP(dataSets[i], xAxisMax, xAxisMin, chrom, strand, colors)  # Plot binding site data
+        bsTraces = createICLIPTrace(dataSets[i], xAxisMax, xAxisMin, chrom, strand, colors)  # Plot binding site data
         fig.append_trace(bsTraces[0], counter, 1)
         if len(bsTraces[1]) > 0:
             for j in range(len(bsTraces[1])):
@@ -2173,16 +2300,24 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal, 
 
     # Calculate gene models. We have to distinguish between coding region and non-coding region
     blockHeight = 0.4
-    geneModels = generateGeneModel(isoformList, xAxisMin, xAxisMax, blockHeight, strand)
+    geneModels = createGeneModelPlot(isoformList, xAxisMin, xAxisMax, blockHeight, strand)
     for model in geneModels:
         for part in model:
             fig.append_trace(part, counter, 1)
         counter += 1
 
+    fig['layout']['xaxis'].update(nticks=6)
+    fig['layout']['xaxis'].update(tickmode='array')
+    fig['layout']['xaxis'].update(showgrid=True)
+    fig['layout']['xaxis'].update(ticks='outside')
+    fig['layout']['xaxis'].update(ticksuffix='b')
+    fig['layout'].update(hovermode='x')
+    if strand == '-':
+        fig['layout']['xaxis'].update(autorange='reversed')
     # The trailing ',' actually matters for some reason, don't remove
     fig['layout'].update(
         barmode='relative',
-        margin=go.layout.Margin(l=30, r=40, t=25, b=60),
+        margin=go.layout.Margin(l=30, r=40, t=25, b=60)
     )
     fig['layout']['yaxis'].update(visible=False, showticklabels=False, showgrid=False, zeroline=False)
     if procAvail:
@@ -2191,11 +2326,8 @@ def concPlot(submit, confirm, geneName, dataSets, seqDisp, colors, colorsFinal, 
     for i in range(len(isoformList)):  # Edit all y axis in gene model plots
         fig['layout']['yaxis' + str(i + numParams * dsElements + 2)].update(showticklabels=False, showgrid=False,
                                                                             zeroline=False, range =[-blockHeight, blockHeight])
-    for i in range(numRows + 1):  # Prevent zoom on y axis
-        if i == 0:
-            fig['layout']['yaxis'].update(fixedrange=True)
-        else:
-            fig['layout']['yaxis' + str(i)].update(fixedrange=True)
+    for i in range(1,numRows + 1):  # Prevent zoom on y axis
+        fig['layout']['yaxis' + str(i)].update(fixedrange=True)
     # Set correct graph height based on row number and type
     fig['layout']['height'] = (baseHeight * rawDataRows
                                + baseHeight * procDataRows
@@ -2238,7 +2370,7 @@ def generateMasterSequence(sequences, isoforms, xAxisMax):
             break
     return combinedSeq
 
-def plotICLIP(name, xMax, xMin, chrom, strand, colors):
+def createICLIPTrace(name, xMax, xMin, chrom, strand, colors):
     """Helper function to plot the subplots containing iCLIP data
     
     Positional arguments:
@@ -2312,7 +2444,7 @@ def plotICLIP(name, xMax, xMin, chrom, strand, colors):
     return [rawTrace, procSitesList]
 
 
-def generateGeneModel(isoforms, xAxisMin, xAxisMax, blockHeight, strand):
+def createGeneModelPlot(isoforms, xAxisMin, xAxisMax, blockHeight, strand):
     """Generates gene model based on the given blocks and coding region
 
     Positional arguments:
@@ -2320,132 +2452,67 @@ def generateGeneModel(isoforms, xAxisMin, xAxisMax, blockHeight, strand):
     xAxisMin -- Start of the relevant region
     xAxisMax -- End of the relevant region
     blockHeight -- Hight for thick blocks
-    strand -- Strand that the selected gene is on,for coloring
+    strand -- Strand that the selected gene is on, for coloring
     """
     traces = []
-    for i in isoforms.itertuples(): # This loop will check and if necessary cut blockstarts and sizes
-
-        # depending on the form of overlap
-        if i.strand != strand:
+    # This loop will check and if necessary cut blockstarts and sizes
+    # depending on the form of overlap
+    for i in isoforms.itertuples():
+        # Set color depending on the strand the isoform is located on
+        if i.strand != strand: # Isoform is on reverse strand, color grey
             color = 'rgb(128,128,128)'
-        else:
+            sign = -1
+        else: # Isoform is on same strand as selected gene, color black
             color = 'rgb(0,0,0)'
-        if i.chromStart >= xAxisMin:
-            if i.chromEnd <= xAxisMax: # Gene contained entirely in region, no cutting necessary
-                blockStarts = [int(x)+i.chromStart for x in i.blockStarts.rstrip(',').split(',')]
-                blockSizes = [int(x) for x in i.blockSizes.rstrip(',').split(',')]
-
-            else: # Gene overlaps region on right, cut end
-                blockStarts = [int(x)+i.chromStart for x in i.blockStarts.rstrip(',').split(',')]
-                blockSizes = [int(x) for x in i.blockSizes.rstrip(',').split(',')]
-                for index, elem in enumerate(blockStarts):
-                    if elem >= xAxisMax: # The current block starts right of the relevant region, disregard
-                        blockStarts[index] = -1
-                    else:
-                        blockEnd = elem + blockSizes[index]
-                        if  blockEnd > xAxisMax:
-                            blockSizes[index] = blockSizes[index] - (blockEnd-xAxisMax)
-        else: 
-            if i.chromEnd <= xAxisMax: # Gene overlaps on the left, cut start
-                blockStarts = [int(x)+i.chromStart for x in i.blockStarts.rstrip(',').split(',')]
-                blockSizes = [int(x) for x in i.blockSizes.rstrip(',').split(',')]
-                for index, elem in enumerate(blockStarts):
-                    if elem + blockSizes[index] < xAxisMin: # Block ends left of relevant regeion, disregard
-                        blockStarts[index] = -1
-                    else: 
-                        if  elem < xAxisMin: 
-                            startOffset = xAxisMin - elem
-                            blockStarts[index] = xAxisMin
-                            blockSizes[index] = blockSizes[index] - startOffset
-            else: # Gene extends to the left and right of the region, cut on both ends
-                blockStarts = [int(x)+i.chromStart for x in i.blockStarts.rstrip(',').split(',')]
-                blockSizes = [int(x) for x in i.blockSizes.rstrip(',').split(',')]
-                for index, elem in enumerate(blockStarts):
-                    blockEnd = elem + blockSizes[index]
-                    if  blockEnd < xAxisMin or elem >= xAxisMax: # Block lies left or right of relevant region, disregard
-                        blockStarts[index] = -1
-                    else:
-                        if  elem < xAxisMin: # Block overlaps on the left
-                            startOffset = xAxisMin - elem
-                            blockStarts[index] = xAxisMin
-                            blockSizes[index] = blockSizes[index] - startOffset
-                        if blockEnd > xAxisMax: # Block overlaps on the right
-                            blockSizes[index] = blockSizes[index] - (blockEnd-xAxisMax)
+            sign = 1
+        # Calculate proper blockStarts and blockSizes
+        blockConstraints = setUpBlockConstraints(i.chromStart, i.chromEnd, i.blockStarts, i.blockSizes, xAxisMin, xAxisMax)
+        blockStarts = blockConstraints[0]
+        blockSizes= blockConstraints[1]
+        loc = blockConstraints[2] 
+        # Lists for the values needed to draw traces
         blockVals = []
         blockWidths = []
         blockYs = []
         name = i.name
-
-    # Calculate blocks from block start and end positions, as well as thickness
+        # Calculate blocks from block start and end positions, as well as thickness
         for j in range(len(blockStarts)):
             blockStart = blockStarts[j]
-            blockEnd = blockStart + blockSizes[j] - 1
-            if blockStart != -1 and blockStart != blockEnd:
-                codingRegionStart = int(i.thickStart)
-                codingRegionEnd = int(i.thickEnd) 
-                if (blockStart >= codingRegionStart) & (blockEnd <= codingRegionEnd):
-                    # Block is inside coding region
-                    blockVals.append(blockStart + ((blockEnd-1) - blockStart) / 2)
-                    blockWidths.append(blockEnd - blockStart )
-                    blockYs.append(blockHeight)
-                if (blockStart >= codingRegionStart) & (blockEnd > codingRegionEnd):
-                    if (blockStart >= codingRegionEnd):
-                        # Block is right of coding region
-                        blockVals.append(blockStart + (blockEnd - blockStart) / 2)
-                        blockWidths.append(blockEnd - blockStart + 1)
-                        blockYs.append(blockHeight / 2)
-                    else:
-                        # Block overlaps coding region on the left
-                        blockVals.append(blockStart + ((codingRegionEnd -1)- blockStart) / 2)
-                        blockWidths.append(codingRegionEnd - blockStart )
-                        blockYs.append(blockHeight)
-                        blockVals.append((codingRegionEnd-1)+ (blockEnd - (codingRegionEnd-1)) / 2)
-                        blockWidths.append(blockEnd - (codingRegionEnd ))
-                        blockYs.append(blockHeight / 2)
-                if (blockStart < codingRegionStart) & (blockEnd <= codingRegionEnd):
-                    if blockEnd <= codingRegionStart:
-                        # Block is Left of coding region
-                        blockVals.append(blockStart + ((blockEnd-1) - blockStart) / 2)
-                        blockWidths.append(blockEnd - blockStart)
-                        blockYs.append(blockHeight / 2)
-                    else:
-                        # Block overlaps coding region on the right
-                        blockVals.append(blockStart + ((codingRegionStart-1) - blockStart) / 2)
-                        blockWidths.append((codingRegionStart-1) - blockStart + 1)
-                        blockYs.append(blockHeight / 2)
-                        blockVals.append(codingRegionStart + (blockEnd - (codingRegionStart+1)) / 2)
-                        blockWidths.append(blockEnd - codingRegionStart)
-                        blockYs.append(blockHeight)
-                if (blockStart < codingRegionStart) & (blockEnd > codingRegionEnd):
-                    # Block completely contains coding region
-                    blockVals.append(blockStart + ((codingRegionStart-1) - blockStart) / 2)
-                    blockWidths.append((codingRegionStart-1) - blockStart + 1)
-                    blockYs.append(blockHeight / 2)
-                    blockVals.append(codingRegionStart + (codingRegionEnd - codingRegionStart) / 2)
-                    blockWidths.append(codingRegionEnd - codingRegionStart + 1)
-                    blockYs.append(blockHeight)
-                    blockVals.append(codingRegionEnd + (blockEnd - codingRegionEnd) / 2)
-                    blockWidths.append(blockEnd - (codingRegionEnd + 1))
-                    blockYs.append(blockHeight / 2)
-        
-
+            calculateBlocks(i.thickStart, i.thickEnd, blockStart, blockStart + blockSizes[j] , blockVals, blockWidths, blockYs, blockHeight)
         # Find first and last block to draw line properly
         f = lambda i: blockVals[i]
         lineCoords = []
         lineName = ''
         lineHover = 'none'
         lineLegend = False
-        try:
+        try: # Draw line from first to last Exon
             amaxBlockVals = max(range(len(blockVals)), key=f)
             aminBlockVals = min(range(len(blockVals)), key=f)
-            lineCoords.append(blockVals[amaxBlockVals] + blockWidths[amaxBlockVals] / 2)
-            lineCoords.append(blockVals[aminBlockVals] - blockWidths[aminBlockVals] / 2)
+            if loc == 'left':
+                lineCoords.append(blockVals[aminBlockVals] - blockWidths[aminBlockVals] / 2)
+                if sign > 0 :
+                    lineCoords.append(xAxisMin)
+                else:
+                    lineCoords.append(xAxisMax-1)                      
+            elif loc == 'right':
+                lineCoords.append(blockVals[amaxBlockVals] + blockWidths[amaxBlockVals] / 2)
+                if sign > 0 :
+                    lineCoords.append(xAxisMax-1)
+                else:
+                    lineCoords.append(xAxisMin)   
+            elif loc == 'both':
+                lineCoords.append(xAxisMax-1)
+                lineCoords.append(xAxisMin)  
+            else:
+                lineCoords.append(blockVals[amaxBlockVals] + blockWidths[amaxBlockVals] / 2)
+                lineCoords.append(blockVals[aminBlockVals] - blockWidths[aminBlockVals] / 2)
         except ValueError: # Case that no exons are present and only a line is drawn
             lineCoords.append(xAxisMin)
             lineCoords.append(xAxisMax)
             lineName = name
             lineHover = 'name'
             lineLegend = True
+        # The line of the gene model
         line = go.Scatter(
             x = lineCoords,
             y = [0, 0],
@@ -2460,38 +2527,163 @@ def generateGeneModel(isoforms, xAxisMin, xAxisMax, blockHeight, strand):
             showlegend = lineLegend,
             legendgroup = name
         )
-        upper = go.Bar(
+        # Trace for the blocks of the gene model
+        blocks = go.Bar(
             x = blockVals,
-            y = blockYs,
-            name = name,
-            hoverinfo = 'none',
-            width = blockWidths,
-            marker = go.bar.Marker(
-                color = color
-            ),
-            showlegend = False,
-            legendgroup = name
-        )
-        lower = go.Bar(
-            x = blockVals,
+            y = [i * 2 for i in blockYs],
+            base = [0 - (i / 2) * 2 for i in blockYs],
             name = name,
             hoverinfo = 'name',
             hoverlabel = {
                 'namelength' : -1, },
-            y = [-x for x in blockYs],
             width = blockWidths,
             marker = go.bar.Marker(
                 color = color
             ),
-            showlegend=True,
-            legendgroup=name
+            showlegend = True,
+            legendgroup = name
         )
-        traces.append([line, upper, lower])
+        traces.append([line, blocks])
     # Return traces for gene model
     return traces
 
+def setUpBlockConstraints(chromStart, chromEnd, blockStarts, blockSizes, xAxisMin, xAxisMax):
+    """ This function will calculate the correct block start and block size values.
+        It takes partial overlapping of blocks with the target area into account.
+        Any block that is outside (xAxisMin, xAxisMax) will have a blockStart of -1,
+        indicating that it i to be ignored when drawing the gene model
+        
+        Positional arguments:
+        chromStart -- Isoform start point
+        chromEnd -- Isoform end point
+        blockStarts -- Block startpoints
+        blockSizes -- Sizes for the blocks
+        xAxisMin -- Start of the relevant genomic region
+        xAxisMax -- End of the relevant genomic region
+        
+        Returns:
+        Tupel containing finished block starts and block sizes as lists:
+        (blockStartsF, blockSizesF)
+    """
+    if chromStart >= xAxisMin:
+        if chromEnd <= xAxisMax: # Gene contained entirely in region, no cutting necessary
+            loc = 'cont'
+            blockStartsF = [int(x) + chromStart for x in blockStarts.rstrip(',').split(',')]
+            blockSizesF = [int(x) for x in blockSizes.rstrip(',').split(',')]
+        else: # Gene overlaps region on right, cut end
+            loc = 'left'
+            blockStartsF = [int(x) + chromStart for x in blockStarts.rstrip(',').split(',')]
+            blockSizesF = [int(x) for x in blockSizes.rstrip(',').split(',')]
+            for index, elem in enumerate(blockStartsF):
+                if elem >= xAxisMax: # The current block starts right of the relevant region, disregard
+                    blockStartsF[index] = -1
+                else:
+                    blockEnd = elem + blockSizesF[index]
+                    if  blockEnd > xAxisMax:
+                        blockSizesF[index] = blockSizesF[index] - (blockEnd-xAxisMax)
+    else: 
+        if chromEnd <= xAxisMax: # Gene overlaps on the left, cut start
+            loc = 'right'
+            blockStartsF = [int(x) + chromStart for x in blockStarts.rstrip(',').split(',')]
+            blockSizesF = [int(x) for x in blockSizes.rstrip(',').split(',')]
+            for index, elem in enumerate(blockStartsF):
+                if elem + blockSizesF[index] < xAxisMin: # Block ends left of relevant regeion, disregard
+                    blockStartsF[index] = -1
+                else: 
+                    if  elem < xAxisMin: 
+                        startOffset = xAxisMin - elem
+                        blockStartsF[index] = xAxisMin
+                        blockSizesF[index] = blockSizesF[index] - startOffset
+        else: # Gene extends to the left and right of the region, cut on both ends
+            loc = 'both'
+            blockStartsF = [int(x) + chromStart for x in blockStarts.rstrip(',').split(',')]
+            blockSizesF = [int(x) for x in blockSizes.rstrip(',').split(',')]
+            for index, elem in enumerate(blockStartsF):
+                blockEnd = elem + blockSizesF[index]
+                if  blockEnd < xAxisMin or elem >= xAxisMax: # Block lies left or right of relevant region, disregard
+                    blockStartsF[index] = -1
+                else:
+                    if  elem < xAxisMin: # Block overlaps on the left
+                        startOffset = xAxisMin - elem
+                        blockStartsF[index] = xAxisMin
+                        blockSizesF[index] = blockSizesF[index] - startOffset
+                    if blockEnd > xAxisMax: # Block overlaps on the right
+                        blockSizesF[index] = blockSizesF[index] - (blockEnd-xAxisMax)
+    # Additional checks for bad inputs
+    for index, elem in enumerate(blockStartsF):
+        if elem > xAxisMax:
+            blockStartsF[index] = -1 
+        else:
+            if elem + blockSizesF[index] > xAxisMax:
+                blockSizesF[index] = xAxisMax - elem
+    return (blockStartsF, blockSizesF, loc)
+                
+def calculateBlocks(thickStart, thickEnd, blockStart, blockEnd, blockVals, blockWidths, blockYs, blockHeight):
+    """ This function determines the actual shape of each block, based on wether it's
+        located in coding or noncoding region, or on the boundary. The function directly appends to the input lists
+        
+        Positional Arguments:
+        thickStart -- The start point of the coding region
+        thickEnd -- Endpoint of the coding region
+        blockStart -- Startin point of the block. A value of -1 means this block is not in the relevant area 
+        and will be ignored
+        blockEnd -- The end point of the block
+        blockVals -- This lists holds the x-coordinate for each block center
+        blockWidths -- This list holds the width of each block
+        blockYa -- Holds the y value of the block, this determines wether it's a coding or noncoding block
+        blockHeight -- The height value to use for coding blocks. Non coding blocks are half height
+    """
+    blockStart = blockStart
+    if blockStart != -1 and blockStart != blockEnd:
+        blockEnd = blockEnd  # Same as codingRegionEnd
+        codingRegionStart = int(thickStart)
+        codingRegionEnd = int(thickEnd)
+        if (blockStart >= codingRegionStart) & (blockEnd <= codingRegionEnd):
+            # Block is inside coding region
+            blockVals.append(blockStart + ((blockEnd-1) - blockStart) / 2)
+            blockWidths.append(blockEnd - blockStart )
+            blockYs.append(blockHeight)
+        if (blockStart >= codingRegionStart) & (blockEnd > codingRegionEnd):
+            if (blockStart >= codingRegionEnd):
+                # Block is right of coding region
+                blockVals.append(blockStart + (blockEnd - blockStart) / 2)
+                blockWidths.append(blockEnd - blockStart + 1)
+                blockYs.append(blockHeight / 2)
+            else:
+                # Block overlaps coding region on the left
+                blockVals.append(blockStart + ((codingRegionEnd -1)- blockStart) / 2)
+                blockWidths.append(codingRegionEnd - blockStart )
+                blockYs.append(blockHeight)
+                blockVals.append((codingRegionEnd-1)+ (blockEnd - (codingRegionEnd-1)) / 2)
+                blockWidths.append(blockEnd - (codingRegionEnd ))
+                blockYs.append(blockHeight / 2)
+        if (blockStart < codingRegionStart) & (blockEnd <= codingRegionEnd):
+            if blockEnd <= codingRegionStart:
+                # Block is Left of coding region
+                blockVals.append(blockStart + ((blockEnd-1) - blockStart) / 2)
+                blockWidths.append(blockEnd - blockStart)
+                blockYs.append(blockHeight / 2)
+            else:
+                # Block overlaps coding region on the right
+                blockVals.append(blockStart + ((codingRegionStart-1) - blockStart) / 2)
+                blockWidths.append((codingRegionStart-1) - blockStart + 1)
+                blockYs.append(blockHeight / 2)
+                blockVals.append(codingRegionStart + (blockEnd - (codingRegionStart+1)) / 2)
+                blockWidths.append(blockEnd - codingRegionStart)
+                blockYs.append(blockHeight)
+        if (blockStart < codingRegionStart) & (blockEnd > codingRegionEnd):
+            # Block completely contains coding region
+            blockVals.append(blockStart + ((codingRegionStart-1) - blockStart) / 2)
+            blockWidths.append((codingRegionStart-1) - blockStart + 1)
+            blockYs.append(blockHeight / 2)
+            blockVals.append(codingRegionStart + (codingRegionEnd - codingRegionStart) / 2)
+            blockWidths.append(codingRegionEnd - codingRegionStart + 1)
+            blockYs.append(blockHeight)
+            blockVals.append(codingRegionEnd + (blockEnd - codingRegionEnd) / 2)
+            blockWidths.append(blockEnd - (codingRegionEnd + 1))
+            blockYs.append(blockHeight / 2)
 
-def generateSequenceTrace(seqDisp, strand, combinedSeq, xAxisMin, xAxisMax):
+def createSequenceTrace(seqDisp, strand, combinedSeq, xAxisMin, xAxisMax):
     """ Function to generate sequence display trace, either heatmap or scatter
 
     Positional arguments:
@@ -2654,13 +2846,14 @@ def createDetailRow(content, name, rowNumber):
     # Check subtable information
     try:
         headerLine = subTables[subTables['column_id'].str.contains(name)]
-    except (TypeError, AttributeError):
+    except (TypeError, AttributeError, KeyError):
         headerLine = None
     try:
         headers = str(headerLine.iloc[0]['columns']).split(';')
-    except (TypeError, AttributeError):
+    except (TypeError, AttributeError, KeyError):
         headers = None
-        
+    if content == None or name == None:
+        return None
     subRows = [] # Holds elements for multivalue attributes
     subTable = [] # Holds elements for subtables
     if headers != None: # We have subtable information, so try and create one
