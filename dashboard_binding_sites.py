@@ -65,18 +65,20 @@ if __name__ == '__main__':
     
     # Set defaults if no advanced descriptions are available
     if advancedDesc is None:
+        print('Advanced description DF is None')
         advList = []
         advStart = None
         advDisabled = True
     else:
         advList = list(advancedDesc.columns.values)
         advList.remove('gene_ids')
-        try:
-            advStart = advList[0]
-            advDisabled = False
-        except IndexError:
-            advStart = None
-            advDisabled = True
+#        try:
+#            advStart = advList[0]
+#            advDisabled = False
+#        except IndexError:
+#            print('Error while indexing advanced description file. Does it have atleast one column besides \'gene_ids\'?')
+#            advStart = None
+#            advDisabled = True
     
     imgFormat = 'svg' # Default format for image export
     

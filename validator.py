@@ -587,6 +587,7 @@ except FileNotFoundError:
     print('Adanced description file could not be found, ignoring.')
     advancedDescriptions = None
 except ValueError:
+    print("Error loading advanced description file")
     advancedDescriptions = None
 
 # Subtatbles for the Details tab
