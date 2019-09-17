@@ -2377,8 +2377,8 @@ def generateGeneModel(isoforms, xAxisMin, xAxisMax, blockHeight, strand):
     # Calculate blocks from block start and end positions, as well as thickness
         for j in range(len(blockStarts)):
             blockStart = blockStarts[j]
+            blockEnd = blockStart + blockSizes[j] - 1
             if blockStart != -1 and blockStart != blockEnd:
-                blockEnd = blockStart + blockSizes[j] - 1
                 codingRegionStart = int(i.thickStart)
                 codingRegionEnd = int(i.thickEnd) 
                 if (blockStart >= codingRegionStart) & (blockEnd <= codingRegionEnd):
