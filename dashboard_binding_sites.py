@@ -702,6 +702,50 @@ if __name__ == '__main__':
                                             )]),
                                             html.Div(className = 'table-cell', 
                                                 children = [
+                                                    html.Fieldset(title = 'RNA-seq plot settings', 
+                                                        className = 'field-set',
+                                                        children = [
+                                                            html.Legend('RNA-seq plot settings'),
+                                                            html.Div(children = 'Coverage plot scale'),
+                                                            dcc.Slider(
+                                                                id = 'coverageScale',
+                                                                min = 0.25,
+                                                                max = 2.5,
+                                                                step = 0.05,
+                                                                value = 1.0,
+                                                                marks = {
+                                                                    0.25: '0.25',
+                                                                    1.0: '1.0',
+                                                                    1.5: '1.5',
+                                                                    2.0: '2.0',
+                                                                    2.5: '2.5',
+                                                                    }
+                                                            ),
+                                                            html.Div(
+                                                                style = {'height' : '25px'}),
+                                                            html.Div(children = 'Event plot scale'),
+                                                            dcc.Slider(
+                                                                id = 'eventScale',
+                                                                min = 0.25,
+                                                                max = 2.5,
+                                                                step = 0.05,
+                                                                value = 1.0,
+                                                                marks = {
+                                                                    0.25: '0.25',
+                                                                    1.0: '1.0',
+                                                                    1.5: '1.5',
+                                                                    2.0: '2.0',
+                                                                    2.5: '2.5',
+                                                                    }
+                                                            ),
+                                                            html.Div(
+                                                                style = {'height' : '15px'})
+                                                        ]
+                                                    )
+                                                ]
+                                            ),
+                                            html.Div(className = 'table-cell', 
+                                                children = [
                                                     html.Fieldset(title = 'Legend Settings', 
                                                         className = 'field-set',
                                                         children = [
@@ -1522,9 +1566,13 @@ def rnaDesc(clicks, name):
      dash.dependencies.State('covColorFinal', 'children'),
      dash.dependencies.State('eventColorDiv', 'children'),
      dash.dependencies.State('eventColorFinal', 'children'),
-     dash.dependencies.State('legendSpacingDiv', 'children')]
+     dash.dependencies.State('legendSpacingDiv', 'children'),
+     dash.dependencies.State('coverageScale', 'value'),
+     dash.dependencies.State('eventScale', 'value')]
 )
-def rnaCallback(submit, confirm, eventConfirm, geneName, displayMode,rnaParamList, colors, colorsFinal, eventColors, eventColorsFinal, legendSpacing):
+def rnaCallback(submit, confirm, eventConfirm, geneName, displayMode,rnaParamList,
+                colors, colorsFinal, eventColors, eventColorsFinal, legendSpacing,
+                coverageScale, eventScale):
     """Main callback that handles the dynamic visualisation of the RNA-seq data.
 
         Positional arguments:
@@ -1539,6 +1587,8 @@ def rnaCallback(submit, confirm, eventConfirm, geneName, displayMode,rnaParamLis
         eventColors -- Colors for splice events being confirmed
         eventColorsFinal -- last confirmed colors for splice events
         legendSpacing -- Specifies margin between colorbar and other legend items
+        coverageScale -- Scaling factor for coverage plots
+        eventScale -- Scaling factor for event plots
         """
     if submit > confirm:
         colors = colorsFinal
@@ -1593,10 +1643,11 @@ def rnaCallback(submit, confirm, eventConfirm, geneName, displayMode,rnaParamLis
         for row in spliceSlice.itertuples():
             # Increment all values covered by the current row, will overshoot when row crosses border of gene, thus try except
             for j in range(row.chromStart, row.chromEnd):
-                try:
-                    yVal[j - xAxisMin] += row.count
-                except IndexError:
-                    pass
+                if (j - xAxisMin) >=0: # Ensure we don't fall into negative list indices
+                    try:
+                        yVal[j - xAxisMin] += row.count
+                    except IndexError:
+                            pass
          # Store reference to value list in dict
         yVals[ds] = yVal
         # Safe event dataframe to be used in the next function
@@ -1633,6 +1684,14 @@ def rnaCallback(submit, confirm, eventConfirm, geneName, displayMode,rnaParamLis
     numRows = len(traces)+numIsoforms
 
     # Setup row heights based on available data
+    
+    plotSpace = 0.9  # Space taken up by data tracks
+    spacingSpace = 1.0 - plotSpace  # Space left for spacer tracks
+    rowHeight = plotSpace / numRows
+    if numRows > 1:
+        vSpace = spacingSpace / (numRows - 1)
+    else:
+        vSpace = spacingSpace
     rowHeights = []
     eventHeights = []
     for i in eventMaxHeights:
@@ -1646,21 +1705,22 @@ def rnaCallback(submit, confirm, eventConfirm, geneName, displayMode,rnaParamLis
             eventHeights.append(i % 5 +1)
     if spliceEventAvail:
         for i in range(numRows):
-            if i > len(traces)-1: rowHeights.append(1/numRows) # Gene model row
+            if i > len(traces)-1: rowHeights.append(0.5 * rowHeight) # Gene model row
             elif (i % 2 != 0):
                 try:
-                    rowHeights.append(eventHeights[i//2]/numRows) # Splice event row
+                    rowHeights.append(eventHeights[i//2] * rowHeight * eventScale) # Splice event row
                 except IndexError:
-                     rowHeights.append(0/numRows)
+                     rowHeights.append(0)
             else:
-                rowHeights.append(3/numRows) # Coverage row
+                rowHeights.append(3 * rowHeight * coverageScale) # Coverage row
     else:
         for i in range(numRows):
-            if i > len(traces)-1: rowHeights.append(1/numRows) # Gene model row
+            if i > len(traces)-1: rowHeights.append(0.5 * rowHeight) # Gene model row
             else:
-                rowHeights.append(3/numRows) # Coverage row
+                rowHeights.append(3 * rowHeight * coverageScale) # Coverage row
+
     fig = tools.make_subplots(rows=numRows, cols=1,
-                              shared_xaxes=True, row_width=rowHeights[::-1])
+                              shared_xaxes=True, row_width=rowHeights[::-1], vertical_spacing = vSpace)
 
     eventIndices = [] # Save indices of all elements that contain event traces
     for index, t in enumerate(traces):
@@ -1688,6 +1748,7 @@ def rnaCallback(submit, confirm, eventConfirm, geneName, displayMode,rnaParamLis
     fig['layout']['xaxis'].update(tickmode='array')
     fig['layout']['xaxis'].update(showgrid=True)
     fig['layout']['xaxis'].update(ticks='outside')
+    fig['layout']['xaxis'].update(ticksuffix='b')
     fig['layout']['xaxis'].update(ticksuffix='b')
     fig['layout'].update(hovermode='x')
     fig['layout']['yaxis'].update(fixedrange=True)
@@ -1723,9 +1784,14 @@ def rnaCallback(submit, confirm, eventConfirm, geneName, displayMode,rnaParamLis
                     fig['layout']['yaxis' + str(i)].update(range=[-blockHeight, blockHeight], )
     # Setup plot height, add 85 to account for margins
     fig['layout'].update(margin=go.layout.Margin(l=60, r=40, t=25, b=60),)
-    fig['layout']['height'] = (80 * len(traces) + 50 * numIsoforms + 85)
+    rowScales = [x/rowHeight for x in rowHeights]
+    size = 0 
+    for i in rowScales:
+        size += 50*i
+    fig['layout']['height'] = (size + 85)
     # set spacing for the second legend column
     fig['layout']['legend'].update(x = legendColumnSpacing)
+    print(fig)
     return fig
 
 def coverageDataSelection(ds, xAxisMin, xAxisMax, chrom):
@@ -1827,6 +1893,8 @@ def createAreaChart(xVals, yVals, ds, colorDict, axisTitles):
     """
     xAxis = xVals[ds]
     yAxis = yVals[ds]
+    print(xAxis)
+    print(yAxis)
     organism = ds.split('_')[0]
     orgColor = colorDict[organism]
     trace = go.Scatter(
@@ -1969,13 +2037,13 @@ def calculateEvents(key, chromStart, chromEnd, score, eventXValues, eventWidths,
     minVal = min(chromStart, chromEnd)
     if len(intervals) == 0: # Row is the first row, no comparisons
         try: # If list already exist append
-            eventXValues[key].append(minVal + (maxVal - minVal) / 2)
+            eventXValues[key].append(minVal + ((maxVal-1) - minVal) / 2)
             eventWidths[key].append(maxVal - minVal)
             eventBases[key].append(0)
             eventScores[key].append(score)
             intervals.append(((minVal, maxVal),0))
         except KeyError: # Else create corresponding lists in dictionary
-            eventXValues[key] = [minVal + (maxVal - minVal) / 2]
+            eventXValues[key] = [minVal + ((maxVal-1) - minVal) / 2]
             eventWidths[key] = [maxVal - minVal]
             eventBases[key] = [0]
             eventScores[key] = [score]
@@ -1996,26 +2064,26 @@ def calculateEvents(key, chromStart, chromEnd, score, eventXValues, eventWidths,
                     break
             numOverlaps = slot # Set numOverlaps accordingly
         try: # Try to append values to the list
-            eventXValues[key].append(minVal + (maxVal - minVal) / 2)
+            eventXValues[key].append(minVal + ((maxVal-1) - minVal) / 2)
             eventWidths[key].append(maxVal - minVal)
-            if numOverlaps > maxStack: # Check if a new row needs to be created to place this event
+            if numOverlaps >= maxStack: # Check if a new row needs to be created to place this event
                 if numOverlaps > maxStack + 1:
                     maxStack += 1
                     numOverlaps = maxStack
                 else:
-                    maxStack = numOverlaps
+                    maxStack = numOverlaps + 1
             eventBases[key].append(numOverlaps + 0.5*numOverlaps)
             eventScores[key].append(score)
             intervals.append(((minVal, maxVal),numOverlaps))
         except KeyError: # Create the list corresponding to key
-            eventXValues[key]  = [minVal + (maxVal - minVal) / 2]
+            eventXValues[key]  = [minVal + ((maxVal-1) - minVal) / 2]
             eventWidths[key] = [maxVal - minVal]
-            if numOverlaps > maxStack: # Check if a new row needs to be created to place this event
+            if numOverlaps >= maxStack: # Check if a new row needs to be created to place this event
                 if numOverlaps > maxStack + 1:
                     maxStack += 1
                     numOverlaps = maxStack
                 else:
-                    maxStack = numOverlaps
+                    maxStack = numOverlaps + 1
             eventBases[key] = [numOverlaps + 0.5*numOverlaps]
             eventScores[key] = [score]
             intervals.append(((minVal, maxVal), numOverlaps))
@@ -2040,7 +2108,7 @@ def calculateEventsScoreColored(chromStart, chromEnd, score, eventXValues, event
     maxVal = max(chromStart, chromEnd) 
     minVal = min(chromStart, chromEnd)
     if len(intervals) == 0: # Row is the first row, no comparisons
-        eventXValues.append(minVal + (maxVal - minVal) / 2)
+        eventXValues.append(minVal + ((maxVal-1) - minVal) / 2)
         eventWidths.append(maxVal - minVal)
         eventBases.append(0)
         eventScores.append(score)
@@ -2060,14 +2128,14 @@ def calculateEventsScoreColored(chromStart, chromEnd, score, eventXValues, event
                     slot = value
                     break
             numOverlaps = slot # Set numOverlaps accordingly
-        eventXValues.append(minVal + (maxVal - minVal) / 2)
+        eventXValues.append(minVal + ((maxVal-1) - minVal) / 2)
         eventWidths.append(maxVal - minVal)
-        if numOverlaps > maxStack:
+        if numOverlaps >= maxStack:
             if numOverlaps > maxStack + 1: # Check if a new row needs to be created to place this event
                 maxStack += 1
                 numOverlaps = maxStack
             else:
-                maxStack = numOverlaps
+                maxStack = numOverlaps + 1
         eventBases.append(numOverlaps + 0.5*numOverlaps)
         eventScores.append(score)
         intervals.append(((minVal, maxVal),numOverlaps))
@@ -2393,12 +2461,15 @@ def createGeneModelPlot(isoforms, xAxisMin, xAxisMax, blockHeight, strand):
         # Set color depending on the strand the isoform is located on
         if i.strand != strand: # Isoform is on reverse strand, color grey
             color = 'rgb(128,128,128)'
+            sign = -1
         else: # Isoform is on same strand as selected gene, color black
             color = 'rgb(0,0,0)'
+            sign = 1
         # Calculate proper blockStarts and blockSizes
         blockConstraints = setUpBlockConstraints(i.chromStart, i.chromEnd, i.blockStarts, i.blockSizes, xAxisMin, xAxisMax)
         blockStarts = blockConstraints[0]
         blockSizes= blockConstraints[1]
+        loc = blockConstraints[2] 
         # Lists for the values needed to draw traces
         blockVals = []
         blockWidths = []
@@ -2407,7 +2478,7 @@ def createGeneModelPlot(isoforms, xAxisMin, xAxisMax, blockHeight, strand):
         # Calculate blocks from block start and end positions, as well as thickness
         for j in range(len(blockStarts)):
             blockStart = blockStarts[j]
-            calculateBlocks(i.thickStart, i.thickEnd, blockStart, blockStart + blockSizes[j] - 1, blockVals, blockWidths, blockYs, blockHeight)
+            calculateBlocks(i.thickStart, i.thickEnd, blockStart, blockStart + blockSizes[j] , blockVals, blockWidths, blockYs, blockHeight)
         # Find first and last block to draw line properly
         f = lambda i: blockVals[i]
         lineCoords = []
@@ -2417,8 +2488,24 @@ def createGeneModelPlot(isoforms, xAxisMin, xAxisMax, blockHeight, strand):
         try: # Draw line from first to last Exon
             amaxBlockVals = max(range(len(blockVals)), key=f)
             aminBlockVals = min(range(len(blockVals)), key=f)
-            lineCoords.append(blockVals[amaxBlockVals] + blockWidths[amaxBlockVals] / 2)
-            lineCoords.append(blockVals[aminBlockVals] - blockWidths[aminBlockVals] / 2)
+            if loc == 'left':
+                lineCoords.append(blockVals[aminBlockVals] - blockWidths[aminBlockVals] / 2)
+                if sign > 0 :
+                    lineCoords.append(xAxisMin)
+                else:
+                    lineCoords.append(xAxisMax-1)                      
+            elif loc == 'right':
+                lineCoords.append(blockVals[amaxBlockVals] + blockWidths[amaxBlockVals] / 2)
+                if sign > 0 :
+                    lineCoords.append(xAxisMax-1)
+                else:
+                    lineCoords.append(xAxisMin)   
+            elif loc == 'both':
+                lineCoords.append(xAxisMax-1)
+                lineCoords.append(xAxisMin)  
+            else:
+                lineCoords.append(blockVals[amaxBlockVals] + blockWidths[amaxBlockVals] / 2)
+                lineCoords.append(blockVals[aminBlockVals] - blockWidths[aminBlockVals] / 2)
         except ValueError: # Case that no exons are present and only a line is drawn
             lineCoords.append(xAxisMin)
             lineCoords.append(xAxisMax)
@@ -2480,10 +2567,11 @@ def setUpBlockConstraints(chromStart, chromEnd, blockStarts, blockSizes, xAxisMi
     """
     if chromStart >= xAxisMin:
         if chromEnd <= xAxisMax: # Gene contained entirely in region, no cutting necessary
+            loc = 'cont'
             blockStartsF = [int(x) + chromStart for x in blockStarts.rstrip(',').split(',')]
             blockSizesF = [int(x) for x in blockSizes.rstrip(',').split(',')]
-
         else: # Gene overlaps region on right, cut end
+            loc = 'left'
             blockStartsF = [int(x) + chromStart for x in blockStarts.rstrip(',').split(',')]
             blockSizesF = [int(x) for x in blockSizes.rstrip(',').split(',')]
             for index, elem in enumerate(blockStartsF):
@@ -2495,6 +2583,7 @@ def setUpBlockConstraints(chromStart, chromEnd, blockStarts, blockSizes, xAxisMi
                         blockSizesF[index] = blockSizesF[index] - (blockEnd-xAxisMax)
     else: 
         if chromEnd <= xAxisMax: # Gene overlaps on the left, cut start
+            loc = 'right'
             blockStartsF = [int(x) + chromStart for x in blockStarts.rstrip(',').split(',')]
             blockSizesF = [int(x) for x in blockSizes.rstrip(',').split(',')]
             for index, elem in enumerate(blockStartsF):
@@ -2506,6 +2595,7 @@ def setUpBlockConstraints(chromStart, chromEnd, blockStarts, blockSizes, xAxisMi
                         blockStartsF[index] = xAxisMin
                         blockSizesF[index] = blockSizesF[index] - startOffset
         else: # Gene extends to the left and right of the region, cut on both ends
+            loc = 'both'
             blockStartsF = [int(x) + chromStart for x in blockStarts.rstrip(',').split(',')]
             blockSizesF = [int(x) for x in blockSizes.rstrip(',').split(',')]
             for index, elem in enumerate(blockStartsF):
@@ -2519,7 +2609,14 @@ def setUpBlockConstraints(chromStart, chromEnd, blockStarts, blockSizes, xAxisMi
                         blockSizesF[index] = blockSizesF[index] - startOffset
                     if blockEnd > xAxisMax: # Block overlaps on the right
                         blockSizesF[index] = blockSizesF[index] - (blockEnd-xAxisMax)
-    return (blockStartsF, blockSizesF)
+    # Additional checks for bad inputs
+    for index, elem in enumerate(blockStartsF):
+        if elem > xAxisMax:
+            blockStartsF[index] = -1 
+        else:
+            if elem + blockSizesF[index] > xAxisMax:
+                blockSizesF[index] = xAxisMax - elem
+    return (blockStartsF, blockSizesF, loc)
                 
 def calculateBlocks(thickStart, thickEnd, blockStart, blockEnd, blockVals, blockWidths, blockYs, blockHeight):
     """ This function determines the actual shape of each block, based on wether it's

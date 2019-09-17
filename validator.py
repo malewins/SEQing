@@ -834,7 +834,6 @@ loadBasicDescriptions()
     
 # Advanced descriptions for the Details tab
 loadAdvancedDescriptions()
-print(advancedDescriptions)
 # Subtatbles for the Details tab
 
 loadSubTables
