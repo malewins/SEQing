@@ -210,7 +210,6 @@ def isRGB(color):
     return True
 
 def loadAnnotations():
-    
     for idx, i in enumerate(geneAnnotationPaths):
         print('Loading file ' + str(idx+1) )
         try:
@@ -237,7 +236,9 @@ def loadAnnotations():
                         print('Loaded from pickle')
                     except IOError:
                         print('pickle not  found, loading from raw file')
-                        df = pandas.read_csv(i, sep = '\t', comment = '#', names = bedHeader)                    
+                        dtypes = {'chrom' : 'category', 'chromStart' : 'uint32','chromEnd': 'uint32','name' : 'object','score' : 'int16','strand' : 'category','thickStart' : 'uint64',
+                                  'thickEnd' : 'uint64', 'blockCount' : 'uint32','blockSizes' : 'object','blockStarts' : 'object'}
+                        df = pandas.read_csv(i, sep = '\t', comment = '#', names = bedHeader, dtype = dtypes)
                         validation = validateBed12(df)
                         if validation[0] == True:
                             geneAnnotations.append(df)
