@@ -910,8 +910,6 @@ def showDetails(data, name):
     tableRows = []  # Will contain the table rows
     for i in generalColumns:
         if i in columns:
-            print(i)
-            print(df)
             if str(df.iloc[0][i]) not in ['nan', ';""']:
                 tableRows.append(html.Tr(children=[html.Td(html.B(i.replace('_', ' ').title())),
                                                html.Td(str(df.iloc[0][i]).strip())],
