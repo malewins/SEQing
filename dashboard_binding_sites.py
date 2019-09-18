@@ -910,12 +910,13 @@ def showDetails(data, name):
                       'curator_summary', 'name']
     tableRows = []  # Will contain the table rows
     for i in generalColumns:
-        if i in columns and str(df.iloc[0][i]) not in ['nan', ';""']:
-            tableRows.append(html.Tr(children=[html.Td(html.B(i.replace('_', ' ').title())),
+        if i in columns:
+            if str(df.iloc[0][i]) not in ['nan', ';""']:
+                tableRows.append(html.Tr(children=[html.Td(html.B(i.replace('_', ' ').title())),
                                                html.Td(str(df.iloc[0][i]).strip())],
                                      style={'background-color': tableColors[rowCounter % 2]}))
-            usedColumns.append(i)
-            rowCounter += 1
+                usedColumns.append(i)
+                rowCounter += 1
     # Go through a number of predefined columns
     if 'synonyms' in columns:
         synonyms = str(df.iloc[0]['synonyms'])
