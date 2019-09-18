@@ -17,20 +17,8 @@ import converter
 
 __author__ = "Yannik Bramkamp"
 
-# Setup directories to store pickles
-binFilePath = os.path.join(os.path.dirname(__file__),'bin_data/')
-if not os.path.exists(binFilePath):
-    os.mkdir(binFilePath)
-coveragePath = os.path.join(binFilePath, 'coverage/')
-if not os.path.exists(coveragePath):
-    os.mkdir(coveragePath)
-# Dict containing checksums for gene annotation files, files loaded once will
-# be serialized to speed up future loading
-try:
-    sums = pickle.load(open(binFilePath+'checksums', 'rb'))
-except IOError:
-    sums = []
-checksums = dict(sums)
+
+
 
 plotColors = []
 geneAnnotations = []
@@ -714,6 +702,12 @@ parser.add_argument('-pswd',
                     type = str,
                     default = '',
                     metavar = 'String')
+parser.add_argument('-name',
+                    dest = 'name',
+                    help = '''Name to create subfolder for binary files''',
+                    type = str,
+                    default = '',
+                    metavar = 'String')
 
 args=parser.parse_args()
 
@@ -755,6 +749,7 @@ if useCfg == False: # Use command line arguments for setup
         else:
             print('Color string ' + str(i) + ' is not valid')
     password = args.auth
+    subDir = args.name
 else: # Use xml document for setup
     geneAnnotationPaths = args.geneAnno
     try:
@@ -821,7 +816,26 @@ else: # Use xml document for setup
         password = configFile.getElementsByTagName('password')[0].firstChild.data
     except (AttributeError, IndexError):
         password = ''
-        
+
+# Setup directories to store pickles
+if subDir == '':
+    binFilePath = os.path.join(os.path.dirname(__file__),'bin_data/')
+else:
+    binFilePath = os.path.join(os.path.dirname(__file__),'bin_data/' + subDir +'/')
+if not os.path.exists(binFilePath):
+    os.mkdir(binFilePath)
+coveragePath = os.path.join(binFilePath, 'coverage/')
+if not os.path.exists(coveragePath):
+    os.mkdir(coveragePath)
+    
+# Dict containing checksums for gene annotation files, files loaded once will
+# be serialized to speed up future loading
+try:
+    sums = pickle.load(open(binFilePath+'checksums', 'rb'))
+except IOError:
+    sums = []
+checksums = dict(sums)
+
 if len(plotColors) == 0:
     print('No valid color strings provided, using defaults')
     plotColors = ['rgb( 88, 24, 69 )', 'rgb( 199, 0, 57 )', 'rgb(46, 214, 26)', 'rgb(255, 87, 51)']        
