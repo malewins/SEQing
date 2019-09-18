@@ -400,15 +400,19 @@ def loadAdvancedDescriptions():
     global advancedDescriptions
     try:
         advancedDescriptions = pandas.read_csv(advancedDescPath, sep = '\t')
-        if 'gene_ids' not in list(advancedDescriptions.columns.values):
-            print('Advanced description file does not contain "gene_ids" column, ignoring file.')
-            advancedDescriptions = None
+        if len(advancedDescriptions.index.values) > 0:
+            if 'gene_ids' not in list(advancedDescriptions.columns.values):
+                print('Advanced description file does not contain "gene_ids" column, ignoring file.')
+                advancedDescriptions = None
+            elif list(advancedDescriptions.index.values) != list(range(0, len(advancedDescriptions.index.values))):
+                print('You might be missing a column name in your advanced descriptions. Ignoring file')
+                advancedDescriptions = None
     except FileNotFoundError:
         print('Adanced description file could not be found, ignoring.')
         advancedDescriptions = None
-    except ValueError:
-        print('Error loading advanced description')
-        advancedDescriptions = None
+#    except ValueError:
+#        print('Error loading advanced description')
+#        advancedDescriptions = None
 
 def loadSubTables():
     global subTables
