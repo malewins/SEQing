@@ -636,8 +636,9 @@ parser.add_argument('-bsraw', dest = 'bsraw', help = '''files containing iCLIP d
 parser.add_argument('-port', dest = 'port', help = 'port for the dashboard to run on, defaults to 8060',
                     default = 8060, metavar = 'INTEGER', type = int)
 parser.add_argument('-desc', dest = 'desc', help = '''file containing gene descriptions,
-                    tab seperated csv with 4 columns. This file should include a header line matching:
-                        ensembl_gene_id description external_gene_name gene_biotype''',
+                    tab seperated csv with 3 columns. This file should not include include a header line,
+                    but the column order has to match:
+                        gene_id description gene_name''',
                     type = Path, metavar = 'FILE')
 parser.add_argument('-seqs', dest = 'fastas', help = '''Fasta files containing genomic sequences,
                     please consult readme for important details''',
