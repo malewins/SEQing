@@ -148,8 +148,9 @@ This will also work for semicolon separated values as well as in subtables, but 
 ### Restricting access to the dashboard
 If you hvae data that you don't want to be openly accessable een over a local network you can use the -pswd option to specify a password. Users will then have to enter this password before they can connect to the dashboard. The application will use a hardcoded username, which is "u", in conjunction with the password you provided.
 
-### Screenshot
+### Screenshots
 ![SEQing example](SEQing_iCLIP_sample.PNG)
+![SEQing example](SEQing_RNA_sample.png)
 
 ### Input file format overview
 The following is a quick overview over all files types used as inputs and their respective requirements:
