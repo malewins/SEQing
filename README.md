@@ -85,9 +85,9 @@ Apart from visualising iCLIP and binding site information the program can also s
 ```
 python validator.py some_gene_annotation_file -desc description_file
 ```
-Here description_file should be a tab separated csv file containing the following columns and header:
+Here description_file should be a tab separated csv file without a header line containing 3 columns which are expected in the following order:
 ```
-ensembl_gene_id	description	external_gene_name	gene_biotype
+gene_id	description	gene_name
 ``` 
 For this option the program only takes a single file.
 
@@ -164,7 +164,7 @@ The following is a quick overview over all files types used as inputs and their 
 
 **Splice event data:** BED6 files conforming to the standard. Do not include header rows
 
-**Basic description files:**
+**Basic description files:** Tab separated file with 3 columns. No header line. Columns are expected in order: gene_id, description, gene_name
 
 **Advanced description file:** Tab separated file. Has to contain a header row and a column named "gene_ids". All other columns can be custom. 
 
