@@ -1,9 +1,8 @@
-ensembl_gene_id	description	external_gene_name	gene_biotype
-AT1G03680	thioredoxin M-type 1	THM1	protein
-AT1G05850	Chitinase family protein	POM1	protein
-AT1G24020	MLP-like protein 423	MLP423	protein
-AT1G69840	SPFH/Band 7/PHB domain-containing membrane-associated protein family	AT1G69840	protein
-AT5G12360	hypothetical protein	AT5G12360	protein
-AT5G15960	stress-responsive protein (KIN1) / stress-induced protein (KIN1)	KIN1	protein
-AT5G23040	cell growth defect factor-like protein (DUF3353)	CDF1	protein
-AT5G66210	calcium-dependent protein kinase 28	CPK28	protein
+AT1G03680	thioredoxin M-type 1	THM1
+AT1G05850	Chitinase family protein	POM1
+AT1G24020	MLP-like protein 423	MLP423
+AT1G69840	SPFH/Band 7/PHB domain-containing membrane-associated protein family	AT1G69840
+AT5G12360	hypothetical protein	AT5G12360
+AT5G15960	stress-responsive protein (KIN1) / stress-induced protein (KIN1)	KIN1
+AT5G23040	cell growth defect factor-like protein (DUF3353)	CDF1
+AT5G66210	calcium-dependent protein kinase 28	CPK28

@@ -371,13 +371,11 @@ def loadSequences():
 def loadBasicDescriptions():
     global descAvail, geneDescriptions
     try:
-        geneDescriptions = pandas.read_csv(descriptionPath, sep = '\t')
-        if list(geneDescriptions.columns.values)	 == ['ensembl_gene_id', 'description', 'external_gene_name', 'gene_biotype']:
-            geneDescriptions = geneDescriptions[geneDescriptions['ensembl_gene_id'].isin(geneNames)]
-            geneDescriptions.fillna(':',inplace = True)
-        else:
-            print('Header for descriptions does not match specifications, ignoring description file')
-            descAvail = False
+        geneDescriptions = pandas.read_csv(descriptionPath, 
+                            names = ['ensembl_gene_id', 'description', 'external_gene_name'], sep = '\t', usecols=[0,1,2])        
+        # Filter for genes that are actually in the dataset
+        geneDescriptions = geneDescriptions[geneDescriptions['ensembl_gene_id'].isin(geneNames)]
+        geneDescriptions.fillna(':',inplace = True)
     except FileNotFoundError:
         print('Description file not found, proceeding without')
         descAvail = False
