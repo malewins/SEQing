@@ -151,6 +151,24 @@ If you hvae data that you don't want to be openly accessable een over a local ne
 ### Screenshot
 ![SEQing example](SEQing_iCLIP_sample.PNG)
 
+### Input file format overview
+The following is a quick overview over all files types used as inputs and their respective requirements:
+
+**Gene annotations:** BED12 or gtf files that conform to the corresponding standards. Do not include header rows.
+
+**iCLIP raw data:** BEDGRAPH files conforming to the standard. Do not include header rows.
+
+**Binding Site data:** BED6 files conforming to the standard. Do not include header rows.
+
+**Coverage data:** BEDGRAPH files conforming to the standard. Do not include header rows.
+
+**Splice event data:** BED6 files conforming to the standard. Do not include header rows
+
+**Basic description files:**
+
+**Advanced description file:** Tab separated file. Has to contain a header row and a column named "gene_ids". All other columns can be custom. 
+
+**Subtable file:** 2 column tab separated file, first column contains column names from advanced descriptions, second column contains subtable column names separated by semicolon.
 ## Built With
 
 ## Contributions
