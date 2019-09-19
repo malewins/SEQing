@@ -168,7 +168,7 @@ The following is a quick overview over all files types used as inputs and their 
 
 **Advanced description file:** Tab separated file. Has to contain a header row and a column named "gene_ids". All other columns can be custom. 
 
-**Subtable file:** 2 column tab separated file, first column contains column names from advanced descriptions, second column contains subtable column names separated by semicolon.
+**Subtable file:** 2 column tab separated file, first column contains column names from advanced descriptions, second column contains subtable column names separated by semicolon. No header line.
 ## Built With
 
 ## Contributions
