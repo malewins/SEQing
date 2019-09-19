@@ -1997,7 +1997,9 @@ def createEventPlots(displayMode, eventData, ds, axisTitles, eventMaxHeights, ev
             hoverinfo = 'x+text',
             marker=dict(
                 color= eventScores,
-                colorscale = 'Viridis',
+                colorscale=[[0.25, "rgb(165,0,38)"],
+                            [0.5, "rgb(0,0,0)"],
+                            [0.75, "rgb(49,54,149)"]],
                 showscale = True,
                 cmin = colorScale[0],
                 cmax = colorScale[1],
