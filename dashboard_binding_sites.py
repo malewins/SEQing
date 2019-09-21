@@ -868,10 +868,9 @@ def showHelpPopup(open_click, close_click):
 
 @app.callback(
     dash.dependencies.Output('advMem', component_property='children'),
-    [dash.dependencies.Input('submit', 'n_clicks')],
-    [dash.dependencies.State('geneDrop', 'value')]
+    [dash.dependencies.Input('geneDrop', 'value')]
 )
-def storeDesc(nclicks, geneName):
+def storeDesc(geneName):
     """ Save description data to hidden div for display
     
     Positional arguments:
@@ -1518,10 +1517,9 @@ def changeColorEvent(r, g, b, dataset, oldColors):
 
 @app.callback(
     dash.dependencies.Output('headline', component_property='children'),
-    [dash.dependencies.Input('submit', 'n_clicks')],
-    [dash.dependencies.State('geneDrop', 'value')]
+    [dash.dependencies.Input('geneDrop', 'value')]
 )
-def setHeadline(clicks, name):
+def setHeadline(name):
     """Callback to set the headline
 
     Positional arguments:
@@ -1539,10 +1537,9 @@ def setHeadline(clicks, name):
 
 @app.callback(
     dash.dependencies.Output('rnaDescDiv', component_property='children'),
-    [dash.dependencies.Input('submit', 'n_clicks')],
-    [dash.dependencies.State('geneDrop', 'value')]
+    [dash.dependencies.Input('geneDrop', 'value')],
 )
-def rnaDesc(clicks, name):
+def rnaDesc(name):
     if descAvail:
         try:
             return [
@@ -1570,13 +1567,19 @@ def rnaDesc(clicks, name):
      dash.dependencies.Input('eventScale', 'value')]
 )
 def showRNA(figData, dataSets, displayType, covColor, eventColor, legendSpacing, coverageScale, eventScale):
+    print('ShowStart')
+    start = time.time()
     legendColumnSpacing = json.loads(legendSpacing)
     figData = json.loads(figData)
     traces = figData['rnaTraces']
     geneModels = figData['geneModels']
+    coverageColors = json.loads(covColor)
+    eventColors = json.loads(eventColor)
     eventIndices = [] # Save indices of all elements that contain event traces
     rnaDataSets = sorted(list(coverageData.keys()))
     displayed_rnaDataSet = []
+    maxYDict = figData['maxYList']
+    yVals = []
     for rm in sorted(dataSets):
         for set in rnaDataSets:
             if rm == set.split('_')[0]:
@@ -1588,10 +1591,17 @@ def showRNA(figData, dataSets, displayType, covColor, eventColor, legendSpacing,
             if len(t[displayType]) > 1:
                 try:
                     if t[displayType][0]['meta'] in displayed_rnaDataSet:
+                        if displayType == 'two':
+                            for i in t[displayType]:
+                                newColor = eventColors[i['name']]
+                                i['marker'] = {'color' : newColor}
                         finTraces.append(t[displayType])      
                         eventIndices.append(index//2)
                 except KeyError:
                     if t[displayType]['meta'] in displayed_rnaDataSet:
+                        if displayType == 'two':
+                            newColor = eventColors[t['name']]
+                            t['marker'] = {'color' : newColor}
                         finTraces.append(t[displayType])      
                         eventIndices.append(index//2)
             else:
@@ -1600,6 +1610,9 @@ def showRNA(figData, dataSets, displayType, covColor, eventColor, legendSpacing,
                     eventIndices.append(index//2)
         except KeyError:
             if t['meta'] in displayed_rnaDataSet:
+                newColor = coverageColors[t['meta'].split('_')[0]]
+                yVals.append(maxYDict[t['meta']])
+                t['fillcolor'] = newColor
                 finTraces.append(t)              
     numIsoforms = len(geneModels) # Number of isoforms in the gene model
     numRows = len(finTraces)+numIsoforms
@@ -1653,17 +1666,7 @@ def showRNA(figData, dataSets, displayType, covColor, eventColor, legendSpacing,
             eventIndicesDraw.append(index)
     for i in eventIndicesDraw: # Add event traces after all coverage traces have been added for legend item positioning
         for x in finTraces[i]:
-            fig.append_trace(x, i + 1, 1)
-        
-#    for index, t in enumerate(finTraces):
-#        try:
-#            if isinstance(t, list):
-#                if len t > 0:
-#                for i in t:
-#                    fig.append_trace(i, index+1, 1)
-#            else:
-#                if t['meta'] in displayed_rnaDataSet:
-#                    fig.append_trace(t, index+1, 1)              
+            fig.append_trace(x, i + 1, 1)         
     counter = len(finTraces)+1
     for model in geneModels:
         for part in model:
@@ -1690,7 +1693,10 @@ def showRNA(figData, dataSets, displayType, covColor, eventColor, legendSpacing,
      #   fig['layout']['yaxis'].update(showticklabels=True, showgrid=True, zeroline=True)
     # Set axis titles, grid and range for other y-axes where applicable
     axisTitles = figData['axisTitles']
-    maxYVal = figData['maxY']
+    try:
+        maxYVal = max(yVals)
+    except ValueError:
+        maxYVal = 0
     blockHeight = 0.4
     for i in range(1, numRows+1):
             if spliceEventAvail:
@@ -1719,6 +1725,8 @@ def showRNA(figData, dataSets, displayType, covColor, eventColor, legendSpacing,
     fig['layout']['height'] = (size + 85)
     # set spacing for the second legend column
     fig['layout']['legend'].update(x = legendColumnSpacing)
+    end = time.time()
+    print('Showcallback: ' + str(end-start))
     return fig
 
 @app.callback(
@@ -1754,6 +1762,7 @@ def rnaCallback(geneName, displayMode,rnaParamList,
         coverageScale -- Scaling factor for coverage plots
         eventScale -- Scaling factor for event plots
         """
+    start = time.time()
     colors = colorsFinal
     figData = {}
 
@@ -1784,13 +1793,22 @@ def rnaCallback(geneName, displayMode,rnaParamList,
     xVals = {}
     yVals = {}
     maxYVal = 0 # Used to scale y-axes later
+    maxYVals = {}
     eventDict = {} # stores dataframes with relevant splice event data
+    start = time.time()
+    iterTime = 0
+    evSel = 0
+    covSel = 0
     for ds in sorted(displayed_rnaDataSet): # Select relevant coverage files from Index
+        covStart = time.time()
         spliceSlice = coverageDataSelection(ds, xAxisMin, xAxisMax, chrom)
+        covEnd = time.time()
+        covSel += covEnd-covStart
         # Pre-init y-value list
         yVal = [0] * (len(range(xAxisMin, xAxisMax)))
         organism = ds.split("_")[0] # Prefix of the curret data frame, first filter
         spliceEvents = pandas.DataFrame() # will hold splice event data for the current data set
+        evStart = time.time()
         if any(organism in s for s in spliceEventNames[1]): # Check if there are splice events for the current prefix
             for d in sorted(spliceEventDFs.keys()):
                 if ds in d: # Check for remaining filename, to match the correct files
@@ -1802,6 +1820,9 @@ def rnaCallback(geneName, displayMode,rnaParamList,
                     bcrit32 = spliceEventDFs[d]['chromEnd'] <= xAxisMax
                     spliceEvents = spliceEventDFs[d].loc[bcrit11 & ((bcrit21 & bcrit22) | (bcrit31 & bcrit32))]
         # Use itertuples to iterate over rows, since itertuples is supposed to be faster
+        evEnd = time.time()
+        evSel += evEnd-evStart
+        iterStart = time.time()
         for row in spliceSlice.itertuples():
             # Increment all values covered by the current row, will overshoot when row crosses border of gene, thus try except
             for j in range(row.chromStart, row.chromEnd):
@@ -1810,6 +1831,8 @@ def rnaCallback(geneName, displayMode,rnaParamList,
                         yVal[j - xAxisMin] += row.count
                     except IndexError:
                             pass
+        iterEnd = time.time()
+        iterTime += iterEnd-iterStart
          # Store reference to value list in dict
         yVals[ds] = yVal
         # Safe event dataframe to be used in the next function
@@ -1818,13 +1841,21 @@ def rnaCallback(geneName, displayMode,rnaParamList,
         xVal = list(range(xAxisMin, xAxisMax))
         xVals[ds] = xVal
         # Find maximum y-axis value for axis scaling
+        maxYVals.update({ds: max(yVal)})
         if max(yVal) > maxYVal: maxYVal = max(yVal)
-
+    end = time.time()
+    print('Data selection ' + str(end-start))
+    print('Iteration: ' + str(iterTime))
+    print('covSel: ' + str(covSel))
+    print('evSel: ' + str(evSel))
     figData.update({'maxY' : maxYVal})
+    figData.update({'maxYList' : maxYVals})
     # Create
+    plotStart = time.time()
     rnaSeqPlotData = createRNAPlots(xVals, yVals, eventDict, displayed_rnaDataSet, 
                           color_dict, displayMode, eventColors, eventColorsFinal)
-
+    plotEnd = time.time()
+    print('Plotting: ' + str(plotEnd-plotStart))
     traces = rnaSeqPlotData[0]
     eventMaxHeights = rnaSeqPlotData[1]
     axisTitles = rnaSeqPlotData[2]
@@ -1851,6 +1882,8 @@ def rnaCallback(geneName, displayMode,rnaParamList,
     # Calculate gene models. We have to distinguish between coding region and non-coding region
     geneModels = createGeneModelPlot(isoformList, xAxisMin, xAxisMax, blockHeight, strand)
     figData.update({'geneModels' : geneModels})
+    end = time.time()
+    print('Calccallback: ' + str(end-start))
     return json.dumps(figData, cls=pu.PlotlyJSONEncoder)
 
 def coverageDataSelection(ds, xAxisMin, xAxisMax, chrom):
@@ -1930,12 +1963,18 @@ def createRNAPlots(xVals, yVals, eventData, displayed, colorDict,
     legendSet = {} # Keeps track of legend items to avoid duplicates for event types
     for val in eventTypes:
         legendSet[val] = False
+    covTime = 0
     for ds in sorted(displayed):
         if spliceAvail:
+            covStart = time.time()
             data.append(createAreaChart(xVals, yVals, ds, colorDict, axisTitles))
+            covEnd = time.time()
+            covTime += covEnd-covStart
         if spliceEventAvail:
+            start = time.time()
             data.append(createEventPlots(displayMode, eventData, ds, axisTitles, eventMaxHeights, evColors, legendSet))
-
+            print('EventCalc ' + str(time.time()-start))
+    print('coverage time : ' + str(covTime))
     return (data, eventMaxHeights, axisTitles)
 
 def createAreaChart(xVals, yVals, ds, colorDict, axisTitles):
@@ -2207,10 +2246,9 @@ def calculateEventsScoreColored(chromStart, chromEnd, score, eventXValues, event
 
 @app.callback(
     dash.dependencies.Output('descDiv', component_property='children'),
-    [dash.dependencies.Input('submit', 'n_clicks')],
-    [dash.dependencies.State('geneDrop', 'value')]
+    [dash.dependencies.Input('geneDrop', 'value')]
 )
-def setDesc(clicks, name):
+def setDesc(name):
     """Callback to update gene description
 
     Positional arguments:

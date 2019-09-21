@@ -396,9 +396,8 @@ def loadAdvancedDescriptions():
     except FileNotFoundError:
         print('Adanced description file could not be found, ignoring.')
         advancedDescriptions = None
-#    except ValueError:
-#        print('Error loading advanced description')
-#        advancedDescriptions = None
+    except ValueError:
+        advancedDescriptions = None
 
 def loadSubTables():
     global subTables
