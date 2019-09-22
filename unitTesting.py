@@ -206,56 +206,50 @@ class TestDashboard(unittest.TestCase):
                             i[0][2], i[0][3], i[0][4], i[0][5], i[0][6], i[0][7], i[0][8])
             self.assertEqual((xVals, widths, bases, scores, intervals, overlap), i[1])
     
-#    def testSetUpBlockConstraints(self):
-#        testCases = []
-#        
-#       # caseInput = (23311, 24099, "0","788", 23311, 24099)
-#    #    # blockStartsF, blockSizesF
-#   ##     caseOutput = ([200,280,-1], [40,20,40])
-#    #    testCases.append((caseInput, caseOutput))
-#        
-#        # Test overlap on right side of region and with chromStart/end equal xAxisMin/Max
-#        # chromStart, chromEnd, blockStarts, blockSizes, xAxisMin, xAxisMax
-#        caseInput = (0, 300, "200,280,340","40,40,40", 0, 300)
-#        # blockStartsF, blockSizesF
-#        caseOutput = ([200,280,-1], [40,20,40])
-#        testCases.append((caseInput, caseOutput))
-#        
-#        # Test overlap on right side of region
-#        # chromStart, chromEnd, blockStarts, blockSizes, xAxisMin, xAxisMax
-#        caseInput = (100, 400, "100,180,240","40,40,40", 100, 300)
-#        # blockStartsF, blockSizesF
-#        caseOutput = ([200,280,-1], [40,20,40])
-#        testCases.append((caseInput, caseOutput))
-#        
-#        # Test overlap on left side of region
-#        # chromStart, chromEnd, blockStarts, blockSizes, xAxisMin, xAxisMax
-#        caseInput = (0, 200, "40,80,140","40,40,40", 100, 300)
-#        # blockStartsF, blockSizesF
-#        caseOutput = ([-1,100,140], [40,20,40])
-#        testCases.append((caseInput, caseOutput))
-#        
-#        # Test extension over both sides of the region
-#        # chromStart, chromEnd, blockStarts, blockSizes, xAxisMin, xAxisMax
-#        caseInput = (0, 500, "40,80,240,400","40,40,70,40", 100, 300)
-#        # blockStartsF, blockSizesF
-#        caseOutput = ([-1,100,240,-1], [40,20,60,40])
-#        testCases.append((caseInput, caseOutput))
-#        
-#        # Test inclusion in region
-#        # chromStart, chromEnd, blockStarts, blockSizes, xAxisMin, xAxisMax
-#        caseInput = (120, 200, "40,80","40,40", 100, 300)
-#        # blockStartsF, blockSizesF
-#        caseOutput = ([160, 200], [40, 40])
-#        testCases.append((caseInput, caseOutput))       
-#        for i in testCases:
-#            self.assertEquals(db.setUpBlockConstraints(i[0][0],i[0][1],i[0][2],i[0][3],i[0][4],i[0][5]), i[1])
+    def testSetUpBlockConstraints(self):
+        testCases = []
+        # Test overlap on right side of region and with chromStart/end equal xAxisMin/Max
+        # chromStart, chromEnd, blockStarts, blockSizes, xAxisMin, xAxisMax
+        caseInput = (0, 300, "200,280,340","40,40,40", 0, 300)
+        # blockStartsF, blockSizesF
+        caseOutput = ([200,280,-1], [40,20,40], 'cont')
+        testCases.append((caseInput, caseOutput))
+        
+        # Test overlap on right side of region
+        # chromStart, chromEnd, blockStarts, blockSizes, xAxisMin, xAxisMax
+        caseInput = (100, 400, "100,180,240","40,40,40", 100, 300)
+        # blockStartsF, blockSizesF
+        caseOutput = ([200,280,-1], [40,20,40], 'left')
+        testCases.append((caseInput, caseOutput))
+        
+        # Test overlap on left side of region
+        # chromStart, chromEnd, blockStarts, blockSizes, xAxisMin, xAxisMax
+        caseInput = (0, 200, "40,80,140","40,40,40", 100, 300)
+        # blockStartsF, blockSizesF
+        caseOutput = ([-1,100,140], [40,20,40], 'right')
+        testCases.append((caseInput, caseOutput))
+        
+        # Test extension over both sides of the region
+        # chromStart, chromEnd, blockStarts, blockSizes, xAxisMin, xAxisMax
+        caseInput = (0, 500, "40,80,240,400","40,40,70,40", 100, 300)
+        # blockStartsF, blockSizesF
+        caseOutput = ([-1,100,240,-1], [40,20,60,40], 'both')
+        testCases.append((caseInput, caseOutput))
+        
+        # Test inclusion in region
+        # chromStart, chromEnd, blockStarts, blockSizes, xAxisMin, xAxisMax
+        caseInput = (120, 200, "40,80","40,40", 100, 300)
+        # blockStartsF, blockSizesF
+        caseOutput = ([160, 200], [40, 40], 'cont')
+        testCases.append((caseInput, caseOutput))       
+        for i in testCases:
+            self.assertEquals(db.setUpBlockConstraints(i[0][0],i[0][1],i[0][2],i[0][3],i[0][4],i[0][5]), i[1])
     
     def testCalculateBlocks(self):
         testCases = []
         
         # thickStart, thickEnd, blockStart, blockEnd, blockHeight
-        caseInput = (23311,24099, 23311, 24099, 0.4)
+        caseInput = (10,50, 20, 40, 0.4)
         # blockVals, blockYs, blockWidths
         caseOutput = ([29.5],[0.4],[20])
         testCases.append((caseInput,caseOutput))
