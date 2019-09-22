@@ -2415,8 +2415,7 @@ def iCLIPCallback(geneName, dataSets, seqDisp, colors, colorsFinal, legendSpacin
     dataSets = dataSetNames
     # Check which of the two triggering buttons was pressed last
     colors = colorsFinal
-        
-    legendColumnSpacing = json.loads(legendSpacing)
+    # Dict that will store plot data, to be serialized later
     figData = {}
     # Sort the list of selected data tracks to keep consistent order
     for i in sortKeys:
@@ -2512,29 +2511,77 @@ def generateMasterSequence(sequences, isoforms, xAxisMax):
     isoforms -- List containing three-tuples(start, end, name) for each isoform
     xAxisMax -- endpoint of the gene on the x-axis, used for potential early termination
     """  
+    if xAxisMax <= 0:
+        return ''
+    try:
+        if len(isoforms) == 0:
+            return ''
+    except TypeError:
+        return ''
     # Sort tuples by start point. this ensures that the algorithm will cover the whole
     # gene sequence, if possible, albeit not necessarily with the least amount of subsequences
     isoforms.sort()
     # Initialize using the leftmost sequence
     currentEnd = isoforms[0][1]
     seqDict = None
-    for i in sequences: # Determine which dict contains the relevant sequences, all have to be in the same dict
-        if isoforms[0][2] in i:
-            seqDict = i
-    combinedSeq = str(seqDict[isoforms[0][2]].seq)
+    try:
+        for i in sequences: # Determine which dict contains the relevant sequences, all have to be in the same dict
+            if isoforms[0][2] in i:
+                seqDict = i
+    except TypeError:
+        return ''
+    if seqDict == None:
+        return ''
+    if len(str(seqDict[isoforms[0][2]].seq)) == isoforms[0][1]- isoforms[0][0]:
+        combinedSeq = str(seqDict[isoforms[0][2]].seq)
+    else:
+        combinedSeq = str(seqDict[isoforms[0][2]].seq)
+        combinedSeq += ' '* (isoforms[0][1]-(len(str(seqDict[isoforms[0][2]].seq)))-1)
     # Loop through elements and try to append sequences
     for elem in isoforms:
+        provEnd = -1 # Used to fill blanks resulting from bad isoform names
         if elem[1] > currentEnd: 
             if elem[0] <= currentEnd: # current element overlaps and adds to the sequence
-                combinedSeq += str(seqDict[elem[2]].seq)[(currentEnd - elem[0]):]
-                currentEnd = elem[1]
+                if provEnd != -1: # Check if sequence before triggered a KeyError and fill gaps
+                    if elem[0] >= provEnd:
+                        combinedSeq += ' '*(elem[0]-currentEnd)
+                        provEnd = -1
+                    if elem[0] < provEnd:
+                        combinedSeq += ' ' * (elem[0]-provEnd)
+                        provEnd = -1
+                try:
+                    if len(str(seqDict[elem[2]].seq)[(currentEnd - elem[0]):]) == (elem[1]- elem[0]):
+                        combinedSeq += str(seqDict[elem[2]].seq)[(currentEnd - elem[0]):]
+                        currentEnd = elem[1]
+                    else:
+                        combinedSeq += str(seqDict[elem[2]].seq)[(currentEnd - elem[0]):]
+                        combinedSeq += ' ' * ((elem[1] -elem[0]) - len(str(seqDict[elem[2]].seq)[(currentEnd - elem[0]):]))
+                        currentEnd = elem[1]
+                except KeyError:
+                    provEnd = elem[1]
             else: # Current element does not overlap but will add to the sequence, fill with gaps
-                fillerDist = elem[0] - currentEnd
-                combinedSeq += [''] * fillerDist
-                combinedSeq += str(seqDict[elem[2]].seq)
-                currentEnd = elem[1]                    
+                try:
+                    if provEnd != -1: # Check if sequence before triggered a KeyError and fill gaps
+                        if elem[0] >= provEnd:
+                            combinedSeq += ' '*(elem[0]-currentEnd)
+                            provEnd = -1
+                        if elem[0] < provEnd:
+                            combinedSeq += ' ' * (elem[0]-provEnd)
+                            provEnd = -1
+                    fillerDist = elem[0] - currentEnd
+                    combinedSeq += ' ' * fillerDist
+                    if len(seqDict[elem[2]].seq) == (elem[1]-elem[0]):
+                        combinedSeq += str(seqDict[elem[2]].seq)
+                    else:
+                        combinedSeq += str(seqDict[elem[2]].seq)
+                        combinedSeq += ' ' * (elem[1]- (elem[0]+ len(seqDict[elem[2]].seq)))
+                    currentEnd = elem[1]
+                except:
+                    provEnd = elem[1]
         if currentEnd >= xAxisMax: # The master sequence is complete, the entire region is covered
             break
+    if provEnd != -1:
+        combinedSeq += ' '*(xAxisMax-currentEnd)
     return combinedSeq
 
 def createICLIPTrace(name, xMax, xMin, chrom, strand, colors):
