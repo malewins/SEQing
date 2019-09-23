@@ -820,6 +820,8 @@ if subDir == '':
     binFilePath = os.path.join(os.path.dirname(__file__),'bin_data/')
 else:
     binFilePath = os.path.join(os.path.dirname(__file__),'bin_data/' + subDir +'/')
+if not os.path.exists(os.path.join(os.path.dirname(__file__),'bin_data/')):
+    os.mkdir(os.path.join(os.path.dirname(__file__),'bin_data/'))
 if not os.path.exists(binFilePath):
     os.mkdir(binFilePath)
 coveragePath = os.path.join(binFilePath, 'coverage/')
