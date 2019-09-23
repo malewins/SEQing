@@ -4,15 +4,60 @@
 """Unit tests for SEQing"""
 import unittest
 import dashboard_binding_sites as db
+import validator as val
 import json
 import dash_html_components as html
-from Bio import SeqIO
 from Bio.Alphabet import generic_dna
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
-import itertools
 import collections
+import pandas
 
+class TestValidator(unittest.TestCase):
+    def testISRGB(self):
+        testCases = []
+        testCases.append((None, False))
+        testCases.append((22, False))
+        testCases.append(([2,3,4,5], False))
+        testCases.append(('', False))
+        testCases.append((' ', False))
+        testCases.append(('rgb(22,22,22)', True))
+        testCases.append(('rgb(-22,22,22)', False))
+        testCases.append(('rgb(22,-22,22)', False))
+        testCases.append(('rgb(22,22,-22)', False))
+        testCases.append(('rgb(2222,22,22)', False))
+        testCases.append(('rgb(22,2222,22)', False))
+        testCases.append(('rgb(22,22,2222)', False))
+        for i in testCases:
+            if i[1] == False:
+                self.assertFalse(val.isRGB(i[0]))
+            else:
+                self.assertTrue(val.isRGB(i[0]))              
+
+    def testValidateGTF(self):
+        self.assertFalse(val.validateGTF(None)[0])
+        self.assertFalse(val.validateGTF(1)[0])
+        self.assertFalse(val.validateGTF("2222")[0])
+        self.assertFalse(val.validateGTF(pandas.DataFrame())[0])
+
+    def testValidateBed12(self):
+        self.assertFalse(val.validateGTF(None)[0])
+        self.assertFalse(val.validateBed12(1)[0])
+        self.assertFalse(val.validateBed12("2222")[0])
+        self.assertFalse(val.validateBed12(pandas.DataFrame())[0])
+
+    def testValidateBedGraph(self):
+        self.assertFalse(val.validateBedGraph(None)[0])
+        self.assertFalse(val.validateBedGraph(1)[0])
+        self.assertFalse(val.validateBedGraph("2222")[0])
+        self.assertFalse(val.validateBedGraph(pandas.DataFrame())[0])
+
+    def testValidateBed(self):
+        self.assertFalse(val.validateBed(None)[0])
+        self.assertFalse(val.validateBed(1)[0])
+        self.assertFalse(val.validateBed("2222")[0])
+        self.assertFalse(val.validateBed(pandas.DataFrame())[0])        
+        
 class TestDashboard(unittest.TestCase):
     def testFormatChangeiCLIP(self):
         self.maxDiff = None

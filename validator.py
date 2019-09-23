@@ -75,21 +75,23 @@ def validateGTF(df):
     Positional arguments:
     df -- Dataframe to be validated
     """
-    
-    msg = ''
-    if df.isnull().values.any() == True:
-        msg = 'Missing values' + '\n' + str(df.isnull().sum())
-        return [False, msg]
-    if df['start'].map(lambda x: type(x)).values.any() != int:
-        msg = 'Column start contains non int values'
-        return [False, msg]
-    if df['end'].map(lambda x: type(x)).values.any() != int:
-        msg = 'Column end contains non int values'
-        return [False, msg]
-    if (all(x in ['+', '-'] for x in df['strand'].cat.categories.tolist())) != True:
-        msg = 'Bad strand symbol(has to be + or -'
-        return [False, msg]
-    return [True, msg] 
+    try:
+        msg = ''
+        if df.isnull().values.any() == True:
+            msg = 'Missing values' + '\n' + str(df.isnull().sum())
+            return [False, msg]
+        if df['start'].map(lambda x: type(x)).values.any() != int:
+            msg = 'Column start contains non int values'
+            return [False, msg]
+        if df['end'].map(lambda x: type(x)).values.any() != int:
+            msg = 'Column end contains non int values'
+            return [False, msg]
+        if (all(x in ['+', '-'] for x in df['strand'].cat.categories.tolist())) != True:
+            msg = 'Bad strand symbol(has to be + or -'
+            return [False, msg]
+        return [True, msg]
+    except (TypeError, AttributeError, KeyError):
+        return [False, 'Not a valid dataframe']   
 
 def validateBed12(df):
     """Validates 12 column bed files. Returns True and an empty String if dataframe is valid,
@@ -98,37 +100,39 @@ def validateBed12(df):
     Positional arguments:
     df -- Dataframe to be validated
     """
+    try:
+        msg = ''
+        if df.isnull().values.any() == True:        
+            msg = 'Missing values' + '\n' + str(df.isnull().sum())
+            return [False, msg]
+        if (all(x in ['+', '-'] for x in df['strand'].cat.categories.tolist())) != True:
+            msg = 'Bad strand symbol(has to be + or -'
+            return [False, msg]
+        if df['chromStart'].map(lambda x: type(x)).values.any() != int:
+            msg = 'Column chromStart contains non int values'
+            return [False, msg]
+        if df['chromEnd'].map(lambda x: type(x)).values.any() != int:
+            msg = 'Column chromEnd contains non int values'
+            return [False, msg]    
+        if df['thickStart'].map(lambda x: type(x)).values.any() != int:
+            msg = 'Column thickStart contains non int values'
+            return [False, msg]
+        if df['thickEnd'].map(lambda x: type(x)).values.any() != int:
+            msg = 'Column thickEnd contains non int values'
+            return [False, msg]
+        if df['blockCount'].map(lambda x: type(x)).values.any() != int:
+            msg = 'Column blockCount contains non int values'
+            return [False, msg]
+        if all(y.isdigit() for z in df['blockSizes'].map(lambda x: x.split(',')[:-1]).tolist()[0] for y in z ) == False:
+            msg = 'Column blockSizes contains non int values'
+            return [False, msg]    
+        if all(y.isdigit() for z in df['blockStarts'].map(lambda x: x.split(',')[:-1]).tolist()[0] for y in z ) == False:
+            msg = 'Column blockStarts contains non int values'
+            return [False, msg]
+        return [True, msg]
+    except (TypeError, AttributeError, KeyError):
+        return [False, 'Not a valid dataframe']   
     
-    msg = ''
-    if df.isnull().values.any() == True:        
-        msg = 'Missing values' + '\n' + str(df.isnull().sum())
-        return [False, msg]
-    if (all(x in ['+', '-'] for x in df['strand'].cat.categories.tolist())) != True:
-        msg = 'Bad strand symbol(has to be + or -'
-        return [False, msg]
-    if df['chromStart'].map(lambda x: type(x)).values.any() != int:
-        msg = 'Column chromStart contains non int values'
-        return [False, msg]
-    if df['chromEnd'].map(lambda x: type(x)).values.any() != int:
-        msg = 'Column chromEnd contains non int values'
-        return [False, msg]    
-    if df['thickStart'].map(lambda x: type(x)).values.any() != int:
-        msg = 'Column thickStart contains non int values'
-        return [False, msg]
-    if df['thickEnd'].map(lambda x: type(x)).values.any() != int:
-        msg = 'Column thickEnd contains non int values'
-        return [False, msg]
-    if df['blockCount'].map(lambda x: type(x)).values.any() != int:
-        msg = 'Column blockCount contains non int values'
-        return [False, msg]
-    if all(y.isdigit() for z in df['blockSizes'].map(lambda x: x.split(',')[:-1]).tolist()[0] for y in z ) == False:
-        msg = 'Column blockSizes contains non int values'
-        return [False, msg]    
-    if all(y.isdigit() for z in df['blockStarts'].map(lambda x: x.split(',')[:-1]).tolist()[0] for y in z ) == False:
-        msg = 'Column blockStarts contains non int values'
-        return [False, msg]
-    return [True, msg]
-
 def validateBedGraph(df):
     """Validates 4 column bedgraph files. Returns True and an empty String if dataframe is valid,
     else returns false and an error message.
@@ -136,21 +140,23 @@ def validateBedGraph(df):
     Positional arguments:
     df -- Dataframe to be validated
     """
-    
-    msg = ''
-    if df.isnull().values.any() == True:        
-        msg = 'Missing values' + '\n' + str(df.isnull().sum())
-        return [False, msg]
-    if df['chromStart'].map(lambda x: type(x)).values.any() != int:
-        msg = 'Column chromStart contains non int values'
-        return [False, msg]
-    if df['chromEnd'].map(lambda x: type(x)).values.any() != int:
-        msg = 'Column chromEnd contains non int values'
-        return [False, msg]    
-    if df['count'].map(lambda x: type(x)).values.any() != int:
-        msg = 'Column count contains non int values'
-        return [False, msg]
-    return [True, msg]
+    try:
+        msg = ''
+        if df.isnull().values.any() == True:        
+            msg = 'Missing values' + '\n' + str(df.isnull().sum())
+            return [False, msg]
+        if df['chromStart'].map(lambda x: type(x)).values.any() != int:
+            msg = 'Column chromStart contains non int values'
+            return [False, msg]
+        if df['chromEnd'].map(lambda x: type(x)).values.any() != int:
+            msg = 'Column chromEnd contains non int values'
+            return [False, msg]    
+        if df['count'].map(lambda x: type(x)).values.any() != int:
+            msg = 'Column count contains non int values'
+            return [False, msg]
+        return [True, msg]
+    except (TypeError, AttributeError, KeyError):
+        return [False, 'Not a valid dataframe']   
 
 def validateBed(df):
     """Validates 6 column bed files. Returns True and an empty String if dataframe is valid,
@@ -159,43 +165,48 @@ def validateBed(df):
     Positional arguments:
     df -- Dataframe to be validated
     """
+    try:
+        msg = ''
+        if df.isnull().values.any() == True:        
+            msg = 'Missing values' + '\n' + str(df.isnull().sum())
+            return [False, msg]
+        if (all(x in ['+', '-'] for x in df['strand'].cat.categories.tolist())) != True:
+            msg = 'Bad strand symbol(has to be + or -)'
+            return [False, msg]
+        if df['chromStart'].map(lambda x: type(x)).values.any() != int:
+            msg = 'Column chromStart contains non int values'
+            return [False, msg]
+        if df['chromEnd'].map(lambda x: type(x)).values.any() != int:
+            msg = 'Column chromEnd contains non int values'
+            return [False, msg]    
+        if df['score'].map(lambda x: type(x)).values.any() != float:
+            msg = 'Column score contains non float values'
+            return [False, msg]    
+        return [True, msg]
+    except (TypeError, AttributeError, KeyError):
+        return [False, 'Not a valid dataframe']   
     
-    msg = ''
-    if df.isnull().values.any() == True:        
-        msg = 'Missing values' + '\n' + str(df.isnull().sum())
-        return [False, msg]
-    if (all(x in ['+', '-'] for x in df['strand'].cat.categories.tolist())) != True:
-        msg = 'Bad strand symbol(has to be + or -)'
-        return [False, msg]
-    if df['chromStart'].map(lambda x: type(x)).values.any() != int:
-        msg = 'Column chromStart contains non int values'
-        return [False, msg]
-    if df['chromEnd'].map(lambda x: type(x)).values.any() != int:
-        msg = 'Column chromEnd contains non int values'
-        return [False, msg]    
-    if df['score'].map(lambda x: type(x)).values.any() != float:
-        msg = 'Column score contains non float values'
-        return [False, msg]    
-    return [True, msg]
-
 def isRGB(color):
     """ Check if the provided strings match the required rgb format
 
     Positional arguments:
     color -- a single color string
     """
-    if color[0:4] != 'rgb(':
-        return False
-    if color[-1:] != ')':
-        return False
-    if len(color[4:-1].split(',')) != 3:
-        return False
-    for i in color[4:-1].split(','):
-        if i.replace(' ', '').isdigit() == False:
+    try:
+        if color[0:4] != 'rgb(':
             return False
-        if int(i.replace(' ', '')) < 0 or int(i.replace(' ', '')) > 255:
+        if color[-1:] != ')':
             return False
-    return True
+        if len(color[4:-1].split(',')) != 3:
+            return False
+        for i in color[4:-1].split(','):
+            if i.replace(' ', '').isdigit() == False:
+                return False
+            if int(i.replace(' ', '')) < 0 or int(i.replace(' ', '')) > 255:
+                return False
+        return True
+    except TypeError:
+        return False
 
 def loadAnnotations():
     for idx, i in enumerate(geneAnnotationPaths):
@@ -265,11 +276,14 @@ def loadAnnotations():
                         else:
                             print('Error in file ' + str(i) + ':')
                             print(validation[1])
+                            
             if i.suffix.lower() == '.gtf':
                 checksum = hashlib.md5(open(str(i)).read().encode('utf-8'))
                 if checksums.get(str(i.stem), None) != checksum.hexdigest():
                     checksums[str(i.stem)] = checksum.hexdigest()
-                    df = pandas.read_csv(i, sep = '\t', comment = '#', names = gtfheader)
+                    dtypes = {'seqname' : 'object', 'source' : 'object', 'feature' : 'object', 'start' : 'uint32', 'end': 'uint32', 'score' : 'object',
+                              'strand' : 'category', 'frame' : 'object', 'attribute' : 'object'}
+                    df = pandas.read_csv(i, sep = '\t', comment = '#', names = gtfheader, dtype = dtypes)
                     validation = validateGTF(df)
                     if validation[0] == True:
                         df = converter.convertGTFToBed(df)
@@ -287,7 +301,9 @@ def loadAnnotations():
                         print('Loaded from pickle')
                     except IOError:
                         print('pickle not  found, loading from raw file')
-                        df = pandas.read_csv(i, sep = '\t', comment = '#', names = gtfheader)
+                        dtypes = {'seqname' : 'object', 'source' : 'object', 'feature' : 'object', 'start' : 'uint32', 'end': 'uint32', 'score' : 'category',
+                              'strand' : 'category', 'frame' : 'object', 'attribute' : 'object'}
+                        df = pandas.read_csv(i, sep = '\t', comment = '#', names = gtfheader, dtype = dtypes)
                         validation = validateGTF(df)
                         if validation[0] == True:
                             df = converter.convertGTFToBed(df)
@@ -300,7 +316,9 @@ def loadAnnotations():
                             print(validation[1])
                     except UnicodeDecodeError:
                         print('Error decoding pickle binary file, will load from raw file instead')
-                        df = pandas.read_csv(i, sep = '\t', comment = '#', names = gtfheader)
+                        dtypes = {'seqname' : 'object', 'source' : 'object', 'feature' : 'object', 'start' : 'uint32', 'end': 'uint32', 'score' : 'category',
+                              'strand' : 'category', 'frame' : 'object', 'attribute' : 'object'}
+                        df = pandas.read_csv(i, sep = '\t', comment = '#', names = gtfheader, dtype = dtypes)
                         validation = validateGTF(df)
                         if validation[0] == True:
                             df = converter.convertGTFToBed(df)
@@ -313,7 +331,9 @@ def loadAnnotations():
                             print(validation[1])
                     except ModuleNotFoundError:
                         print('Pickle was created using different package versions, will load from raw file instead')
-                        df = pandas.read_csv(i, sep = '\t', comment = '#', names = gtfheader)
+                        dtypes = {'seqname' : 'object', 'source' : 'object', 'feature' : 'object', 'start' : 'uint32', 'end': 'uint32', 'score' : 'category',
+                              'strand' : 'category', 'frame' : 'object', 'attribute' : 'object'}
+                        df = pandas.read_csv(i, sep = '\t', comment = '#', names = gtfheader, dtype = dtypes)
                         validation = validateGTF(df)
                         if validation[0] == True:
                             df = converter.convertGTFToBed(df)
@@ -706,245 +726,245 @@ parser.add_argument('-name',
                     type = str,
                     default = '',
                     metavar = 'String')
-
-args=parser.parse_args()
-
-# Check if xml config file was provided
-useCfg = False
-if args.cfg != None:
-    try:
-        configFile = minidom.parse(str(args.cfg))
-        useCfg = True
-    except FileNotFoundError:
-        print('Could not open config file, aborting.')
-        exit()
+if __name__ == '__main__':
+    args=parser.parse_args()
     
-if useCfg == False: # Use command line arguments for setup  
-    port = args.port
-    geneAnnotationPaths = args.geneAnno
-    bindingSitePaths = args.bsdata
-    bindingSiteRawPaths = args.bsraw
-    fastaPaths = args.fastas
-    sortKeys = args.keys
-    spliceSitePaths = args.splice_data
-    spliceEventsPaths = args.splice_events
-    try:
-        advancedDescPath = Path(args.advancedDesc)
-    except TypeError:
-        advancedDescPath = None
-    try:
-        subTablePath = Path(args.subTables)
-    except TypeError:
-        subTablePath = None
-    try:
-        descriptionPath = Path(args.desc)
-    except TypeError:
-        descriptionPath = None
-    colors = args.colors
-    for i in colors:
-        if isRGB(i) == True:
-            plotColors.append(i)
-        else:
-            print('Color string ' + str(i) + ' is not valid')
-    password = args.auth
-    subDir = args.name
-else: # Use xml document for setup
-    geneAnnotationPaths = args.geneAnno
-    try:
-        port = configFile.getElementsByTagName('port')[0].firstChild.data
-    except (AttributeError, IndexError):
-        print('No port specified, using 8060')
-        port = 8060
-    try:
-        fastaPaths = [Path(i.firstChild.data) for i in configFile.getElementsByTagName('seq')]
-    except (AttributeError, IndexError):
-        fastaPaths = None
-    try:
-        descriptionPath = [Path(i.firstChild.data) for i in configFile.getElementsByTagName('desc')][0]
-        print(descriptionPath)
-    except (AttributeError, IndexError):
-        descriptionPath = None
-    try:
-        sortKeys = []
-        keyList = [i for i in configFile.getElementsByTagName('key')]
-        for  i in keyList:
-            sortKeys.append([i.getElementsByTagName('lambda')[0].firstChild.data,
-                             i.getElementsByTagName('reverse')[0].firstChild.data])
-    except (AttributeError, IndexError):
-        sortKeys = None
-    try:
-        dataSetList = [i for i in configFile.getElementsByTagName('set')]
-    except (AttributeError, IndexError):
-        dataSetList = []
-    bindingSitePaths = []
-    bindingSiteRawPaths = []
-    if len(dataSetList) >= 1:
-        for  i in dataSetList:
-            try:
-                bindingSiteRawPaths.append(Path(i.getElementsByTagName('clip')[0].firstChild.data))
-            except (AttributeError, IndexError):
-                pass
-            try:
-                bindingSitePaths.append(Path(i.getElementsByTagName('binding')[0].firstChild.data))
-            except (AttributeError, IndexError):
-                pass
-            try:
-                color = i.getElementsByTagName('color')[0].firstChild.data
-                if isRGB(color) == True:
-                    plotColors.append(color)
-            except (AttributeError, IndexError):
-                pass
-    try:
-        advancedDescPath = Path(configFile.getElementsByTagName('advDesc')[0].firstChild.data)
-    except (AttributeError, IndexError):
-        advancedDescPath = None
-    try:
-        subTablePath = Path(configFile.getElementsByTagName('subtables')[0].firstChild.data)
-    except (AttributeError, IndexError):
-        subTablePath = None
-    try:
-        spliceSitePaths = [Path(i.firstChild.data) for i in configFile.getElementsByTagName('rnaData')]
-    except (AttributeError, IndexError):
-        spliceSitePaths = []
-    try:
-        spliceEventsPaths = [Path(i.firstChild.data) for i in configFile.getElementsByTagName('spliceEvents')]
-    except (AttributeError, IndexError):
-        spliceEventsPaths = []
-    try:
-        password = configFile.getElementsByTagName('password')[0].firstChild.data
-    except (AttributeError, IndexError):
-        password = ''
-
-# Setup directories to store pickles
-if subDir == '':
-    binFilePath = os.path.join(os.path.dirname(__file__),'bin_data/')
-else:
-    binFilePath = os.path.join(os.path.dirname(__file__),'bin_data/' + subDir +'/')
-if not os.path.exists(binFilePath):
-    os.mkdir(binFilePath)
-coveragePath = os.path.join(binFilePath, 'coverage/')
-if not os.path.exists(coveragePath):
-    os.mkdir(coveragePath)
+    # Check if xml config file was provided
+    useCfg = False
+    if args.cfg != None:
+        try:
+            configFile = minidom.parse(str(args.cfg))
+            useCfg = True
+        except FileNotFoundError:
+            print('Could not open config file, aborting.')
+            exit()
+        
+    if useCfg == False: # Use command line arguments for setup  
+        port = args.port
+        geneAnnotationPaths = args.geneAnno
+        bindingSitePaths = args.bsdata
+        bindingSiteRawPaths = args.bsraw
+        fastaPaths = args.fastas
+        sortKeys = args.keys
+        spliceSitePaths = args.splice_data
+        spliceEventsPaths = args.splice_events
+        try:
+            advancedDescPath = Path(args.advancedDesc)
+        except TypeError:
+            advancedDescPath = None
+        try:
+            subTablePath = Path(args.subTables)
+        except TypeError:
+            subTablePath = None
+        try:
+            descriptionPath = Path(args.desc)
+        except TypeError:
+            descriptionPath = None
+        colors = args.colors
+        for i in colors:
+            if isRGB(i) == True:
+                plotColors.append(i)
+            else:
+                print('Color string ' + str(i) + ' is not valid')
+        password = args.auth
+        subDir = args.name
+    else: # Use xml document for setup
+        geneAnnotationPaths = args.geneAnno
+        try:
+            port = configFile.getElementsByTagName('port')[0].firstChild.data
+        except (AttributeError, IndexError):
+            print('No port specified, using 8060')
+            port = 8060
+        try:
+            fastaPaths = [Path(i.firstChild.data) for i in configFile.getElementsByTagName('seq')]
+        except (AttributeError, IndexError):
+            fastaPaths = None
+        try:
+            descriptionPath = [Path(i.firstChild.data) for i in configFile.getElementsByTagName('desc')][0]
+            print(descriptionPath)
+        except (AttributeError, IndexError):
+            descriptionPath = None
+        try:
+            sortKeys = []
+            keyList = [i for i in configFile.getElementsByTagName('key')]
+            for  i in keyList:
+                sortKeys.append([i.getElementsByTagName('lambda')[0].firstChild.data,
+                                 i.getElementsByTagName('reverse')[0].firstChild.data])
+        except (AttributeError, IndexError):
+            sortKeys = None
+        try:
+            dataSetList = [i for i in configFile.getElementsByTagName('set')]
+        except (AttributeError, IndexError):
+            dataSetList = []
+        bindingSitePaths = []
+        bindingSiteRawPaths = []
+        if len(dataSetList) >= 1:
+            for  i in dataSetList:
+                try:
+                    bindingSiteRawPaths.append(Path(i.getElementsByTagName('clip')[0].firstChild.data))
+                except (AttributeError, IndexError):
+                    pass
+                try:
+                    bindingSitePaths.append(Path(i.getElementsByTagName('binding')[0].firstChild.data))
+                except (AttributeError, IndexError):
+                    pass
+                try:
+                    color = i.getElementsByTagName('color')[0].firstChild.data
+                    if isRGB(color) == True:
+                        plotColors.append(color)
+                except (AttributeError, IndexError):
+                    pass
+        try:
+            advancedDescPath = Path(configFile.getElementsByTagName('advDesc')[0].firstChild.data)
+        except (AttributeError, IndexError):
+            advancedDescPath = None
+        try:
+            subTablePath = Path(configFile.getElementsByTagName('subtables')[0].firstChild.data)
+        except (AttributeError, IndexError):
+            subTablePath = None
+        try:
+            spliceSitePaths = [Path(i.firstChild.data) for i in configFile.getElementsByTagName('rnaData')]
+        except (AttributeError, IndexError):
+            spliceSitePaths = []
+        try:
+            spliceEventsPaths = [Path(i.firstChild.data) for i in configFile.getElementsByTagName('spliceEvents')]
+        except (AttributeError, IndexError):
+            spliceEventsPaths = []
+        try:
+            password = configFile.getElementsByTagName('password')[0].firstChild.data
+        except (AttributeError, IndexError):
+            password = ''
     
-# Dict containing checksums for gene annotation files, files loaded once will
-# be serialized to speed up future loading
-try:
-    sums = pickle.load(open(binFilePath+'checksums', 'rb'))
-except IOError:
-    sums = []
-checksums = dict(sums)
-
-if len(plotColors) == 0:
-    print('No valid color strings provided, using defaults')
-    plotColors = ['rgb( 88, 24, 69 )', 'rgb( 199, 0, 57 )', 'rgb(46, 214, 26)', 'rgb(255, 87, 51)']        
-
-# Load gene annotations from either bed or gtf files. also handle pickling
-loadAnnotations()
-# Read dna sequences from fasta
-geneNames = list(set().union([x[0] for y in [i['name'].str.split('.') for i in geneAnnotations] for x in y]))
-print('Done.')
-print('Loading description and sequence data if provided.')
-# Read dna sequences from fasta
-loadSequences()
-
-# Read gene descriptions from csv
-loadBasicDescriptions()
+    # Setup directories to store pickles
+    if subDir == '':
+        binFilePath = os.path.join(os.path.dirname(__file__),'bin_data/')
+    else:
+        binFilePath = os.path.join(os.path.dirname(__file__),'bin_data/' + subDir +'/')
+    if not os.path.exists(binFilePath):
+        os.mkdir(binFilePath)
+    coveragePath = os.path.join(binFilePath, 'coverage/')
+    if not os.path.exists(coveragePath):
+        os.mkdir(coveragePath)
+        
+    # Dict containing checksums for gene annotation files, files loaded once will
+    # be serialized to speed up future loading
+    try:
+        sums = pickle.load(open(binFilePath+'checksums', 'rb'))
+    except IOError:
+        sums = []
+    checksums = dict(sums)
     
-# Advanced descriptions for the Details tab
-loadAdvancedDescriptions()
-
-# Subtatbles for the Details tab
-
-loadSubTables
-
-# Setup dropdown with gene descriptions if available
-if descAvail == True:
-    geneDict = geneDescriptions.to_dict(orient = 'records')
-    # Builds list of gene names and descriptions.
-    # Note, in order to be added to the dashboard a gene has to have an entry in the descriptions file
-    for i in geneDict:
-        dropList.append(
-            [i['ensembl_gene_id'] + ' - ' + i['description'][:30] + ' - ' + i['external_gene_name'],
-            i['ensembl_gene_id']]
-        )
-if descAvail == False or len(dropList) == 0:
-    dropList = [[i,i] for i in geneNames]
-dropList.sort(key = lambda x : x[1])
-
-print('Done.')
-# Setup iCLIP data
-loadICLIPData()
-# Setup data for binding sites
-loadBSData()
-
-try:
-    coverageSums = pickle.load(open(binFilePath + 'coverage_checksums', 'rb'))
-except IOError:
-    coverageSums = []
-coverageChecksums = dict(coverageSums)
-
-# Setup data for splice sites
-loadCoverageData()           
-# Write new checksums file
-out = open(binFilePath + 'coverage_checksums', 'wb')
-pickle.dump(coverageChecksums, out)
-out.close()
-
-loadSpliceEvents()
-print('post_splice')
-
-# Keys for sorting of dataset names in iCLIP tab
-if sortKeys == None:
-    sortKeys = [['lambda x : x[:1]', 'False']]
-else:
-    if len(sortKeys) == 0:
-        sortKeys.append(['lambda x : x[:1]', 'False'])
-
-for i in range(len(dataSetNames)):
-    colorMap.update({dataSetNames[i] : plotColors[i%len(plotColors)]})
-
-for index, ds in enumerate(sorted(spliceSetNames[1])):
-    coverageColorDict.update({ds : coverageColors[index%len(coverageColors)]})
-
-for index, elem in enumerate(sorted(spliceEventTypes)):
-    spliceEventColors.update({elem : eventColors[index%len(eventColors)]})
-
-print('preparing to start dashboard on port ' + str(port) + '.')
-
-# Setup gloabl variables for the dashboard
-globalDict = {
-    'colorMap' : colorMap, # Contains colors for the data traces
-    'descAvail' : descAvail, # Description file present yes/no
-    'colorA' : colorA, # Colors for sequence display
-    'colorC' : colorC,
-    'colorG' : colorG,
-    'colorT' : colorT,
-    'port' : port, # Port the dashboard runs on
-    'procAvail' : procAvail, # Binding site data available True/False
-    'dsElements' : dsElements, # Number of elements per dataset, can be 0,1,2
-    'spliceElements': spliceElements, # Number of elements per rna dataset, can be 0, 1
-    'bsProcDFs' : bsProcDFs, # Dataframes with binding site data
-    'bsRawDFs' : bsRawDFs, # Dataframes with iCLIP data
-    'dataSetNames' : dataSetNames, # Names for the data sets
-    'spliceSetNames' : spliceSetNames, # Names for the rnaSeq data sets
-    'rawAvail' : rawAvail, # iCLIP data available True/False
-    'spliceAvail' : spliceAvail, # rnaSeq data available True/False
-    'dropList' : dropList, # list of entries for the gene selection dropdown
-    'geneDescriptions' : geneDescriptions, # dataframe with gene descriptions
-    'sequences' : sequences, # list containing sequence files
-    'geneAnnotations' : geneAnnotations, # dataframes containing gene annotation data
-    'ensembl' : ensembl, # ensembl style fasta format True/False
-    'sortKeys' : sortKeys, # arguments for the list.sort function
-    'advancedDesc' : advancedDescriptions, # advanced descriptions for Details tab
-    'subTables' : subTables, # subtable information for Details tab
-    'spliceEventElements' : spliceEventsElements, # Number of elements per rna dataset
-    'spliceEventDFs' : spliceEventsDFs,  # Dataframes with splice event data
-    'spliceEventNames' : spliceEventNames, # Names for the splice event data sets
-    'spliceEventAvail' : spliceEventsAvail, # splice event data available True/False,
-    'eventColors' : spliceEventColors, # Colorsfor the splice event types
-    'coverageColors' : coverageColorDict, # Colors for the coverage plots
-    'eventTypes' : sorted(spliceEventTypes), # List containing types of splice events
-    'authentication': password, # Password for authentication
-    'coverageData' : fileDict} # Types of splice events
-
-runpy.run_module('dashboard_binding_sites', init_globals = globalDict, run_name = '__main__')
+    if len(plotColors) == 0:
+        print('No valid color strings provided, using defaults')
+        plotColors = ['rgb( 88, 24, 69 )', 'rgb( 199, 0, 57 )', 'rgb(46, 214, 26)', 'rgb(255, 87, 51)']        
+    
+    # Load gene annotations from either bed or gtf files. also handle pickling
+    loadAnnotations()
+    # Read dna sequences from fasta
+    geneNames = list(set().union([x[0] for y in [i['name'].str.split('.') for i in geneAnnotations] for x in y]))
+    print('Done.')
+    print('Loading description and sequence data if provided.')
+    # Read dna sequences from fasta
+    loadSequences()
+    
+    # Read gene descriptions from csv
+    loadBasicDescriptions()
+        
+    # Advanced descriptions for the Details tab
+    loadAdvancedDescriptions()
+    
+    # Subtatbles for the Details tab
+    
+    loadSubTables
+    
+    # Setup dropdown with gene descriptions if available
+    if descAvail == True:
+        geneDict = geneDescriptions.to_dict(orient = 'records')
+        # Builds list of gene names and descriptions.
+        # Note, in order to be added to the dashboard a gene has to have an entry in the descriptions file
+        for i in geneDict:
+            dropList.append(
+                [i['ensembl_gene_id'] + ' - ' + i['description'][:30] + ' - ' + i['external_gene_name'],
+                i['ensembl_gene_id']]
+            )
+    if descAvail == False or len(dropList) == 0:
+        dropList = [[i,i] for i in geneNames]
+    dropList.sort(key = lambda x : x[1])
+    
+    print('Done.')
+    # Setup iCLIP data
+    loadICLIPData()
+    # Setup data for binding sites
+    loadBSData()
+    
+    try:
+        coverageSums = pickle.load(open(binFilePath + 'coverage_checksums', 'rb'))
+    except IOError:
+        coverageSums = []
+    coverageChecksums = dict(coverageSums)
+    
+    # Setup data for splice sites
+    loadCoverageData()           
+    # Write new checksums file
+    out = open(binFilePath + 'coverage_checksums', 'wb')
+    pickle.dump(coverageChecksums, out)
+    out.close()
+    
+    loadSpliceEvents()
+    print('post_splice')
+    
+    # Keys for sorting of dataset names in iCLIP tab
+    if sortKeys == None:
+        sortKeys = [['lambda x : x[:1]', 'False']]
+    else:
+        if len(sortKeys) == 0:
+            sortKeys.append(['lambda x : x[:1]', 'False'])
+    
+    for i in range(len(dataSetNames)):
+        colorMap.update({dataSetNames[i] : plotColors[i%len(plotColors)]})
+    
+    for index, ds in enumerate(sorted(spliceSetNames[1])):
+        coverageColorDict.update({ds : coverageColors[index%len(coverageColors)]})
+    
+    for index, elem in enumerate(sorted(spliceEventTypes)):
+        spliceEventColors.update({elem : eventColors[index%len(eventColors)]})
+    
+    print('preparing to start dashboard on port ' + str(port) + '.')
+    
+    # Setup gloabl variables for the dashboard
+    globalDict = {
+        'colorMap' : colorMap, # Contains colors for the data traces
+        'descAvail' : descAvail, # Description file present yes/no
+        'colorA' : colorA, # Colors for sequence display
+        'colorC' : colorC,
+        'colorG' : colorG,
+        'colorT' : colorT,
+        'port' : port, # Port the dashboard runs on
+        'procAvail' : procAvail, # Binding site data available True/False
+        'dsElements' : dsElements, # Number of elements per dataset, can be 0,1,2
+        'spliceElements': spliceElements, # Number of elements per rna dataset, can be 0, 1
+        'bsProcDFs' : bsProcDFs, # Dataframes with binding site data
+        'bsRawDFs' : bsRawDFs, # Dataframes with iCLIP data
+        'dataSetNames' : dataSetNames, # Names for the data sets
+        'spliceSetNames' : spliceSetNames, # Names for the rnaSeq data sets
+        'rawAvail' : rawAvail, # iCLIP data available True/False
+        'spliceAvail' : spliceAvail, # rnaSeq data available True/False
+        'dropList' : dropList, # list of entries for the gene selection dropdown
+        'geneDescriptions' : geneDescriptions, # dataframe with gene descriptions
+        'sequences' : sequences, # list containing sequence files
+        'geneAnnotations' : geneAnnotations, # dataframes containing gene annotation data
+        'ensembl' : ensembl, # ensembl style fasta format True/False
+        'sortKeys' : sortKeys, # arguments for the list.sort function
+        'advancedDesc' : advancedDescriptions, # advanced descriptions for Details tab
+        'subTables' : subTables, # subtable information for Details tab
+        'spliceEventElements' : spliceEventsElements, # Number of elements per rna dataset
+        'spliceEventDFs' : spliceEventsDFs,  # Dataframes with splice event data
+        'spliceEventNames' : spliceEventNames, # Names for the splice event data sets
+        'spliceEventAvail' : spliceEventsAvail, # splice event data available True/False,
+        'eventColors' : spliceEventColors, # Colorsfor the splice event types
+        'coverageColors' : coverageColorDict, # Colors for the coverage plots
+        'eventTypes' : sorted(spliceEventTypes), # List containing types of splice events
+        'authentication': password, # Password for authentication
+        'coverageData' : fileDict} # Types of splice events
+    
+    runpy.run_module('dashboard_binding_sites', init_globals = globalDict, run_name = '__main__')

@@ -1552,6 +1552,8 @@ def rnaDesc(name):
             ]
         except IndexError:
             return ['No description available']
+        except KeyError:
+            return ['No description available']
     else:
         return ['No description available']
 
@@ -2267,6 +2269,8 @@ def setDesc(name):
             ]
         except IndexError:
             return ['No description available']
+        except KeyError:
+            return ['No description available']        
     else:
         return ['No description available']
 
