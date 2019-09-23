@@ -144,4 +144,7 @@ def convertGTFToBed(df):
                             thickStart = int(i[1]['start'])-1
                         if thickEnd == -1 or thickEnd < i[1]['end']:
                             thickEnd = i[1]['end']
-    return pandas.DataFrame(data = bedFile, columns = gtfHeader, dtype = dtypes)
+    finDF = pandas.DataFrame(data = bedFile, columns = gtfHeader)
+    for key, dtype in dtypes.items():
+        finDF[key] = finDF[key].astype(dtype)
+    return finDF
