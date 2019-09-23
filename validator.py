@@ -269,7 +269,9 @@ def loadAnnotations():
                 checksum = hashlib.md5(open(str(i)).read().encode('utf-8'))
                 if checksums.get(str(i.stem), None) != checksum.hexdigest():
                     checksums[str(i.stem)] = checksum.hexdigest()
-                    df = pandas.read_csv(i, sep = '\t', comment = '#', names = gtfheader)
+                    dtypes = {'seqname' : 'object', 'source' : 'object', 'feature' : 'object', 'start' : 'uint32', 'end': 'uint32', 'score' : 'object',
+                              'strand' : 'category', 'frame' : 'object', 'attribute' : 'object'}
+                    df = pandas.read_csv(i, sep = '\t', comment = '#', names = gtfheader, dtype = dtypes)
                     validation = validateGTF(df)
                     if validation[0] == True:
                         df = converter.convertGTFToBed(df)
@@ -287,7 +289,9 @@ def loadAnnotations():
                         print('Loaded from pickle')
                     except IOError:
                         print('pickle not  found, loading from raw file')
-                        df = pandas.read_csv(i, sep = '\t', comment = '#', names = gtfheader)
+                        dtypes = {'seqname' : 'object', 'source' : 'object', 'feature' : 'object', 'start' : 'uint32', 'end': 'uint32', 'score' : 'category',
+                              'strand' : 'category', 'frame' : 'object', 'attribute' : 'object'}
+                        df = pandas.read_csv(i, sep = '\t', comment = '#', names = gtfheader, dtype = dtypes)
                         validation = validateGTF(df)
                         if validation[0] == True:
                             df = converter.convertGTFToBed(df)
@@ -300,7 +304,9 @@ def loadAnnotations():
                             print(validation[1])
                     except UnicodeDecodeError:
                         print('Error decoding pickle binary file, will load from raw file instead')
-                        df = pandas.read_csv(i, sep = '\t', comment = '#', names = gtfheader)
+                        dtypes = {'seqname' : 'object', 'source' : 'object', 'feature' : 'object', 'start' : 'uint32', 'end': 'uint32', 'score' : 'category',
+                              'strand' : 'category', 'frame' : 'object', 'attribute' : 'object'}
+                        df = pandas.read_csv(i, sep = '\t', comment = '#', names = gtfheader, dtype = dtypes)
                         validation = validateGTF(df)
                         if validation[0] == True:
                             df = converter.convertGTFToBed(df)
@@ -313,7 +319,9 @@ def loadAnnotations():
                             print(validation[1])
                     except ModuleNotFoundError:
                         print('Pickle was created using different package versions, will load from raw file instead')
-                        df = pandas.read_csv(i, sep = '\t', comment = '#', names = gtfheader)
+                        dtypes = {'seqname' : 'object', 'source' : 'object', 'feature' : 'object', 'start' : 'uint32', 'end': 'uint32', 'score' : 'category',
+                              'strand' : 'category', 'frame' : 'object', 'attribute' : 'object'}
+                        df = pandas.read_csv(i, sep = '\t', comment = '#', names = gtfheader, dtype = dtypes)
                         validation = validateGTF(df)
                         if validation[0] == True:
                             df = converter.convertGTFToBed(df)
