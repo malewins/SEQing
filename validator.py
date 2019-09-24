@@ -80,12 +80,6 @@ def validateGTF(df):
     if df.isnull().values.any() == True:
         msg = 'Missing values' + '\n' + str(df.isnull().sum())
         return [False, msg]
-    if df['start'].map(lambda x: type(x)).values.any() != int:
-        msg = 'Column start contains non int values'
-        return [False, msg]
-    if df['end'].map(lambda x: type(x)).values.any() != int:
-        msg = 'Column end contains non int values'
-        return [False, msg]
     if (all(x in ['+', '-'] for x in df['strand'].cat.categories.tolist())) != True:
         msg = 'Bad strand symbol(has to be + or -'
         return [False, msg]
@@ -105,21 +99,6 @@ def validateBed12(df):
         return [False, msg]
     if (all(x in ['+', '-'] for x in df['strand'].cat.categories.tolist())) != True:
         msg = 'Bad strand symbol(has to be + or -'
-        return [False, msg]
-    if df['chromStart'].map(lambda x: type(x)).values.any() != int:
-        msg = 'Column chromStart contains non int values'
-        return [False, msg]
-    if df['chromEnd'].map(lambda x: type(x)).values.any() != int:
-        msg = 'Column chromEnd contains non int values'
-        return [False, msg]    
-    if df['thickStart'].map(lambda x: type(x)).values.any() != int:
-        msg = 'Column thickStart contains non int values'
-        return [False, msg]
-    if df['thickEnd'].map(lambda x: type(x)).values.any() != int:
-        msg = 'Column thickEnd contains non int values'
-        return [False, msg]
-    if df['blockCount'].map(lambda x: type(x)).values.any() != int:
-        msg = 'Column blockCount contains non int values'
         return [False, msg]
     if all(y.isdigit() for z in df['blockSizes'].map(lambda x: x.split(',')[:-1]).tolist()[0] for y in z ) == False:
         msg = 'Column blockSizes contains non int values'
@@ -141,15 +120,6 @@ def validateBedGraph(df):
     if df.isnull().values.any() == True:        
         msg = 'Missing values' + '\n' + str(df.isnull().sum())
         return [False, msg]
-    if df['chromStart'].map(lambda x: type(x)).values.any() != int:
-        msg = 'Column chromStart contains non int values'
-        return [False, msg]
-    if df['chromEnd'].map(lambda x: type(x)).values.any() != int:
-        msg = 'Column chromEnd contains non int values'
-        return [False, msg]    
-    if df['count'].map(lambda x: type(x)).values.any() != int:
-        msg = 'Column count contains non int values'
-        return [False, msg]
     return [True, msg]
 
 def validateBed(df):
@@ -167,15 +137,6 @@ def validateBed(df):
     if (all(x in ['+', '-'] for x in df['strand'].cat.categories.tolist())) != True:
         msg = 'Bad strand symbol(has to be + or -)'
         return [False, msg]
-    if df['chromStart'].map(lambda x: type(x)).values.any() != int:
-        msg = 'Column chromStart contains non int values'
-        return [False, msg]
-    if df['chromEnd'].map(lambda x: type(x)).values.any() != int:
-        msg = 'Column chromEnd contains non int values'
-        return [False, msg]    
-    if df['score'].map(lambda x: type(x)).values.any() != float:
-        msg = 'Column score contains non float values'
-        return [False, msg]    
     return [True, msg]
 
 def isRGB(color):
@@ -204,7 +165,6 @@ def loadAnnotations():
             if i.suffix.lower() =='.bed':
                 checksum = hashlib.md5(open(str(i)).read().encode('utf-8'))
                 if checksums.get(str(i.stem), None) != checksum.hexdigest():
-                    checksums[str(i.stem)] = checksum.hexdigest()
                     dtypes = {'chrom' : 'category', 'chromStart' : 'uint32','chromEnd': 'uint32','name' : 'object','score' : 'int16','strand' : 'category','thickStart' : 'uint64',
                  'thickEnd' : 'uint64', 'blockCount' : 'uint32','blockSizes' : 'object','blockStarts' : 'object'}
                     df = pandas.read_csv(i, sep = '\t', comment = '#', names = bedHeader, dtype = dtypes)
@@ -217,6 +177,7 @@ def loadAnnotations():
                     else:
                         print('Error in file ' + str(i) + ':')
                         print(validation[1])
+                    checksums[str(i.stem)] = checksum.hexdigest()
                 else:
                     try:
                         df = pickle.load(open(binFilePath + str(i.stem)+'.bin', 'rb'))
@@ -268,7 +229,7 @@ def loadAnnotations():
             if i.suffix.lower() == '.gtf':
                 checksum = hashlib.md5(open(str(i)).read().encode('utf-8'))
                 if checksums.get(str(i.stem), None) != checksum.hexdigest():
-                    checksums[str(i.stem)] = checksum.hexdigest()
+
                     dtypes = {'seqname' : 'object', 'source' : 'object', 'feature' : 'object', 'start' : 'uint32', 'end': 'uint32', 'score' : 'object',
                               'strand' : 'category', 'frame' : 'object', 'attribute' : 'object'}
                     df = pandas.read_csv(i, sep = '\t', comment = '#', names = gtfheader, dtype = dtypes)
@@ -282,6 +243,7 @@ def loadAnnotations():
                     else:
                         print('Error in file ' + str(i) + ':')
                         print(validation[1])
+                    checksums[str(i.stem)] = checksum.hexdigest()                        
                 else:
                     try:
                         df = pickle.load(open(binFilePath + str(i.stem)+'.bin', 'rb'))
@@ -336,6 +298,8 @@ def loadAnnotations():
                 print('Invalid file format, please use only .bed or .gtf files')              
         except FileNotFoundError:
             print('File ' + str(i.stem) + ' not found, skipping')
+        except ValueError as e:
+            print('File ' + str(i.stem) + ' had errornous datatypes or missing values, skipping: ' + str(e))                
     if len(geneAnnotations) == 0:
         print('No valid gene annotation files found, terminating.')
         exit()
@@ -437,6 +401,8 @@ def loadICLIPData():
                     print(validation[1])
             except FileNotFoundError:
                 print('File '+str(i) + ' was not found')
+            except ValueError as e:
+                print('File ' + str(i.stem) + ' had errornous data types or missing values: ' + str(e))        
         print('Done.')
     if len(bsRawDFs) > 0:
         rawAvail = True
@@ -462,6 +428,8 @@ def loadBSData():
                     print(validation[1])                   
             except FileNotFoundError:
                 print('File '+str(i) + ' was not found')  
+            except ValueError as e:
+                print('File ' + str(i.stem) + ' had errornous datatypes or missing values, skipping: ' + str(e))    
         else:
             print('No corresponding raw data found for data set ' + i.stem.split('_')[0])
     if len(bindingSitePaths) > 0:
@@ -489,10 +457,12 @@ def loadCoverageData():
             try: 
                 dtypes = {'chrom' : 'category', 'chromStart' : 'uint64','chromEnd' : 'uint64','type' : 'category', 'score' : 'float32', 'strand' : 'category'}
                 df = pandas.read_csv(path, sep= '\t', names= rawHeader, dtype = dtypes)
-                coverageChecksums[str(path.stem)] = checksum.hexdigest()
                 validation = validateBedGraph(df)
+                coverageChecksums[str(path.stem)] = checksum.hexdigest()
             except FileNotFoundError:
                 validation = [False]
+            except ValueError as e:
+                print('File ' + str(path.stem) + ' had errornous datatypes or missing values, skipping: ' + str(e))                       
             if validation[0]:
                 df.sort_values(by=['chromStart'])
                 # Split dataframe into small parts, these will be pickled and loaded on demand.
@@ -541,6 +511,8 @@ def loadCoverageData():
                     validation = validateBedGraph(df)
                 except FileNotFoundError:
                     validation = [False]
+                except ValueError as e:
+                    print('File ' + str(path.stem) + ' had errornous datatypes or missing values, skipping: ' + str(e))    
                 if validation[0]:
                     df.sort_values(by=['chromStart'])
                     dfList = [df.iloc[i:i+10000,] for i in range(0, len(df),10000)]
@@ -609,6 +581,8 @@ def loadSpliceEvents():
             validation = None
         except FileNotFoundError:
             print('File ' + str(i) + ' was not found')
+        except ValueError as e:
+            print('File ' + str(i.stem) + ' had errornous datatypes or missing values, skipping: ' + str(e))                
     if len(spliceEventsPaths) > 0:
         print('Done.')
     if len(spliceEventsDFs) > 0:
