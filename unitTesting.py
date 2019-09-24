@@ -12,6 +12,7 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 import collections
 import pandas
+import numpy as np
 
 class TestValidator(unittest.TestCase):
     def testISRGB(self):
@@ -35,6 +36,39 @@ class TestValidator(unittest.TestCase):
                 self.assertTrue(val.isRGB(i[0]))              
 
     def testValidateGTF(self):
+        gtfHeader = ['seqname', 'source', 'feature', 'start', 'end', 'score',
+               'strand', 'frame', 'attribute']
+        dtypes = {'seqname' : 'object', 'source' : 'object', 'feature' : 'object', 'start' : 'uint32', 'end': 'uint32', 'score' : 'object',
+                              'strand' : 'category', 'frame' : 'object', 'attribute' : 'object'}
+        testCases = []
+        # Case that should work
+        bedFile = []
+        bedFile.append(['test.1', 'source', 'gene' , 300, 500, '.', '-', '.', '.'])
+        bedFile.append(['test.2', 'source', 'gene' , 600, 700, '.', '-', '.', '.'])
+        df = pandas.DataFrame(data = bedFile, columns = gtfHeader)
+        for key, dtype in dtypes.items():
+            df[key] = df[key].astype(dtype)
+        testCases.append((df,(True,'')))
+        # Case that should fail on missing values
+        bedFile = []
+        bedFile.append(['test.1', 'source', 'gene' , 300, 500, np.NaN, '-', '.', '.'])
+        bedFile.append([np.NaN, 'source', 'gene' , 600, 799, '.', '-', '.', '.'])
+        df = pandas.DataFrame(data = bedFile, columns = gtfHeader)
+        for key, dtype in dtypes.items():
+            df[key] = df[key].astype(dtype)
+        testCases.append((df,(False,'Missing values')))
+        # Case that should fail on bad strand symbol
+        bedFile = []
+        bedFile.append(['test.1', 'source', 'gene' , 300, 500, '.', '-', '.', '.'])
+        bedFile.append(['test.2', 'source', 'gene' , 600, 799, '.', ',', '.', '.'])
+        df = pandas.DataFrame(data = bedFile, columns = gtfHeader)
+        for key, dtype in dtypes.items():
+            df[key] = df[key].astype(dtype)
+        testCases.append((df,(False,'Bad strand symbol')))
+        for i in testCases:
+            result = val.validateGTF(i[0])
+            self.assertEqual(result[0], i[1][0])
+            self.assertEqual(result[1][0:13], i[1][1][0:13])
         self.assertFalse(val.validateGTF(None)[0])
         self.assertFalse(val.validateGTF(1)[0])
         self.assertFalse(val.validateGTF("2222")[0])
