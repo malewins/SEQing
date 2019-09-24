@@ -2587,7 +2587,6 @@ def generateMasterSequence(sequences, isoforms, xAxisMax):
     if provEnd != -1:
         combinedSeq += ' '*(xAxisMax-currentEnd)
     return combinedSeq
-
 def createICLIPTrace(name, xMax, xMin, chrom, strand, colors):
     """Helper function to plot the subplots containing iCLIP data
     
