@@ -5,6 +5,7 @@
 import unittest
 import dashboard_binding_sites as db
 import validator as val
+import converter as conv
 import json
 import dash_html_components as html
 from Bio.Alphabet import generic_dna
@@ -14,6 +15,35 @@ import collections
 import pandas
 import numpy as np
 
+class TestConverter(unittest.TestCase):
+    def testConvertGTFToBed(self):
+        gtfHeader = ['seqname', 'source', 'feature', 'start', 'end', 'score',
+               'strand', 'frame', 'attribute']
+        bedHeader = ['chrom','chromStart','chromEnd','name','score','strand','thickStart',
+             'thickEnd','itemRGB','blockCount','blockSizes','blockStarts']
+        dtypes = {'seqname' : 'object', 'source' : 'object', 'feature' : 'object', 'start' : 'uint32', 'end': 'uint32', 'score' : 'object',
+                              'strand' : 'category', 'frame' : 'object', 'attribute' : 'object'}
+        dtypesBed12 = {'chrom' : 'category', 'chromStart' : 'uint32','chromEnd': 'uint32', 'name' : 'object', 'score' : 'int16', 'strand' : 'category','thickStart' : 'uint64',
+                 'thickEnd' : 'uint64', 'blockCount' : 'uint32','itemRGB' : 'int16','blockSizes' : 'object','blockStarts' : 'object'}
+        testCases = []
+        # Case that should work
+        bedFile = []
+        bedFile.append(['Chr1', 'Araport11', '5UTR', 3631, 3759, '.', '+', '.', 'transcript_id "AT1G01010.1"; gene_id "AT1G01010";'])
+        bedFile.append(['Chr1', 'Araport11', 'exon', 3631, 3913, '.', '+', '.', 'transcript_id "AT1G01010.1"; gene_id "AT1G01010";'])
+        bedFile.append(['Chr1', 'Araport11', 'CDS', 3760, 3913, '.', '+', '.', 'transcript_id "AT1G01010.1"; gene_id "AT1G01010";'])
+        bedFile.append(['Chr1', 'Araport11', '5UTR', 3631, 3759, '.', '+', '.', 'transcript_id "AT1G01010.1"; gene_id "AT1G01010";'])    
+        df = pandas.DataFrame(data = bedFile, columns = gtfHeader)
+        for key, dtype in dtypes.items():
+            df[key] = df[key].astype(dtype)
+        outFile = []
+        outFile.append(['Chr1',3630,3913,'AT1G01010.1',0,'+',3759,3913,0,1,'283','0'])
+        outDF = pandas.DataFrame(data = outFile, columns = bedHeader)
+        for key, dtype in dtypesBed12.items():
+            outDF[key] = outDF[key].astype(dtype)        
+        testCases.append((df,outDF))
+        for i in testCases:
+            self.assertTrue(conv.convertGTFToBed(i[0]).equals(i[1]))
+            
 class TestValidator(unittest.TestCase):
     def testISRGB(self):
         testCases = []
@@ -42,6 +72,14 @@ class TestValidator(unittest.TestCase):
                               'strand' : 'category', 'frame' : 'object', 'attribute' : 'object'}
         testCases = []
         # Case that should work
+        bedFile = []
+        bedFile.append(['test.1', 'source', 'gene' , 300, 500, '.', '-', '.', '.'])
+        bedFile.append(['test.2', 'source', 'gene' , 600, 700, '.', '+', '.', '.'])
+        df = pandas.DataFrame(data = bedFile, columns = gtfHeader)
+        for key, dtype in dtypes.items():
+            df[key] = df[key].astype(dtype)
+        testCases.append((df,(True,'')))
+        # Case with only a single strand symbol present
         bedFile = []
         bedFile.append(['test.1', 'source', 'gene' , 300, 500, '.', '-', '.', '.'])
         bedFile.append(['test.2', 'source', 'gene' , 600, 700, '.', '-', '.', '.'])
@@ -75,18 +113,121 @@ class TestValidator(unittest.TestCase):
         self.assertFalse(val.validateGTF(pandas.DataFrame())[0])
 
     def testValidateBed12(self):
+        bedHeader = ['chrom','chromStart','chromEnd','name','score','strand','thickStart',
+             'thickEnd','itemRGB','blockCount','blockSizes','blockStarts']
+        dtypes = {'chrom' : 'category', 'chromStart' : 'uint32','chromEnd': 'uint32', 'name' : 'object', 'score' : 'int16', 'strand' : 'category','thickStart' : 'uint64',
+                 'thickEnd' : 'uint64', 'blockCount' : 'uint32','blockSizes' : 'object','blockStarts' : 'object'}
+        testCases = []
+        # Case that should work
+        bedFile = []
+        bedFile.append(['chrom1', 0, 10 , 'test.1', 0, '-', 0, 10, 0, 2, '2,4','0,3'])
+        bedFile.append(['chrom1', 20, 40 , 'test.1', 0, '+', 1, 10, 0, 2,'2,3','20,23'])
+        df = pandas.DataFrame(data = bedFile, columns = bedHeader)
+        for key, dtype in dtypes.items():
+            df[key] = df[key].astype(dtype)
+        testCases.append((df,(True,'')))
+        # Case with only a single strand symbol present
+        bedFile = []
+        bedFile.append(['chrom1', 0, 10 , 'test.1', 0, '-', 0, 10, 0, 2, '2,4','0,3'])
+        bedFile.append(['chrom1', 20, 40 , 'test.1', 0, '-', 1, 10, 0, 2,'2,3','20,23'])
+        df = pandas.DataFrame(data = bedFile, columns = bedHeader)
+        for key, dtype in dtypes.items():
+            df[key] = df[key].astype(dtype)
+        testCases.append((df,(True,'')))
+        # Case that should fail on missing values
+        bedFile = []
+        bedFile.append(['chrom1', 0, 10 , np.NaN, 0, '-', 0, 10, 0, 2, '2,4','0,3'])
+        bedFile.append(['chrom1', 20, 40 , 'test.1', 0, '-', 1, 10, 0, 2,'2,3','20,23'])
+        df = pandas.DataFrame(data = bedFile, columns = bedHeader)
+        for key, dtype in dtypes.items():
+            df[key] = df[key].astype(dtype)
+        testCases.append((df,(False,'Missing values')))
+        # Case that should fail on bad strand symbol
+        bedFile = []
+        bedFile.append(['chrom1', 0, 10 , 'test.1', 0, 'g', 0, 10, 0, 2, '2,4','0,3'])
+        bedFile.append(['chrom1', 20, 40 , 'test.1', 0, '-', 1, 10, 0, 2,'2,3','20,23'])
+        df = pandas.DataFrame(data = bedFile, columns = bedHeader)
+        for key, dtype in dtypes.items():
+            df[key] = df[key].astype(dtype)
+        testCases.append((df,(False,'Bad strand symbol')))
+        for i in testCases:
+            result = val.validateBed12(i[0])
+            self.assertEqual(result[0], i[1][0])
+            self.assertEqual(result[1][0:13], i[1][1][0:13])
         self.assertFalse(val.validateGTF(None)[0])
         self.assertFalse(val.validateBed12(1)[0])
         self.assertFalse(val.validateBed12("2222")[0])
         self.assertFalse(val.validateBed12(pandas.DataFrame())[0])
 
     def testValidateBedGraph(self):
+        rawHeader = ['chrom','chromStart','chromEnd','count']
+        dtypes = {'chrom' : 'category' ,'chromStart' : 'uint64','chromEnd' : 'uint64', 'count' : 'uint32'}
+        testCases = []
+        # Case that should work
+        bedFile = []
+        bedFile.append(['chrom1', 0, 10 , 0])
+        bedFile.append(['chrom1', 20, 40 , 2])
+        df = pandas.DataFrame(data = bedFile, columns = rawHeader)
+        for key, dtype in dtypes.items():
+            df[key] = df[key].astype(dtype)
+        testCases.append((df,(True,'')))
+        # Case that should fail on missing values
+        bedFile = []
+        bedFile.append([np.NaN, 0, 10 , 0])
+        bedFile.append(['chrom1', 20, 40 , 2])
+        df = pandas.DataFrame(data = bedFile, columns = rawHeader)
+        for key, dtype in dtypes.items():
+            df[key] = df[key].astype(dtype)
+        testCases.append((df,(False,'Missing values')))
+        for i in testCases:
+            result = val.validateBedGraph(i[0])
+            self.assertEqual(result[0], i[1][0])
+            self.assertEqual(result[1][0:13], i[1][1][0:13])
         self.assertFalse(val.validateBedGraph(None)[0])
         self.assertFalse(val.validateBedGraph(1)[0])
         self.assertFalse(val.validateBedGraph("2222")[0])
         self.assertFalse(val.validateBedGraph(pandas.DataFrame())[0])
 
     def testValidateBed(self):
+        bsHeader = ['chrom', 'chromStart','chromEnd','type', 'score', 'strand']
+        dtypes = {'chrom' : 'category', 'chromStart' : 'uint64','chromEnd' : 'uint64','type' : 'category', 'score' : 'float32', 'strand' : 'category'}
+        testCases = []
+        # Case that should work
+        bedFile = []
+        bedFile.append(['chrom1', 0, 10 , '.', 0 , '-'])
+        bedFile.append(['chrom1', 20, 40 , '.', 0, '+'])
+        df = pandas.DataFrame(data = bedFile, columns = bsHeader)
+        for key, dtype in dtypes.items():
+            df[key] = df[key].astype(dtype)
+        testCases.append((df,(True,'')))
+        # Case with only a single strand symbol present
+        bedFile = []
+        bedFile.append(['chrom1', 0, 10 , '.', 0 , '-'])
+        bedFile.append(['chrom1', 20, 40 , '.', 0, '-'])
+        df = pandas.DataFrame(data = bedFile, columns = bsHeader)
+        for key, dtype in dtypes.items():
+            df[key] = df[key].astype(dtype)
+        testCases.append((df,(True,'')))
+        # Case that should fail on missing values
+        bedFile = []
+        bedFile.append([np.NaN, 0, 10 , '.', 0 , '-'])
+        bedFile.append(['chrom1', 20, 40 , '.', 0, '-'])
+        df = pandas.DataFrame(data = bedFile, columns = bsHeader)
+        for key, dtype in dtypes.items():
+            df[key] = df[key].astype(dtype)
+        testCases.append((df,(False,'Missing values')))
+        # Case that should fail on bad strand symbol
+        bedFile = []
+        bedFile.append(['chrom1', 0, 10 , '.', 0 , '-'])
+        bedFile.append(['chrom1', 20, 40 , '.', 0, 'df'])
+        df = pandas.DataFrame(data = bedFile, columns = bsHeader)
+        for key, dtype in dtypes.items():
+            df[key] = df[key].astype(dtype)
+        testCases.append((df,(False,'Bad strand symbol')))
+        for i in testCases:
+            result = val.validateBed(i[0])
+            self.assertEqual(result[0], i[1][0])
+            self.assertEqual(result[1][0:13], i[1][1][0:13])
         self.assertFalse(val.validateBed(None)[0])
         self.assertFalse(val.validateBed(1)[0])
         self.assertFalse(val.validateBed("2222")[0])

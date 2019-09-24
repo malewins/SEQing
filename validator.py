@@ -121,6 +121,8 @@ def validateBedGraph(df):
     """
     try:
         msg = ''
+        if df.empty:
+            return [False, 'Not a valid dataframe']           
         if df.isnull().values.any() == True:        
             msg = 'Missing values' + '\n' + str(df.isnull().sum())
             return [False, msg]

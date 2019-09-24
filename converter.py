@@ -11,7 +11,7 @@ if __name__ == '__main__':
 
 gtfHeader = ['chrom','chromStart','chromEnd','name','score','strand','thickStart','thickEnd','itemRGB','blockCount','blockSizes','blockStarts']
 dtypes = {'chrom' : 'category', 'chromStart' : 'uint32','chromEnd': 'uint32','name' : 'object','score' : 'int16','strand' : 'category','thickStart' : 'uint64',
-                                  'thickEnd' : 'uint64', 'itemRGB' : 'object', 'blockCount' : 'uint32','blockSizes' : 'object','blockStarts' : 'object'}
+                                  'thickEnd' : 'uint64', 'itemRGB' : 'int16', 'blockCount' : 'uint32','blockSizes' : 'object','blockStarts' : 'object'}
 
 def convertGTFToBed(df):
     """ Convert a gtf dataframe to a bed12 dataframe for internal use. Only relevant
@@ -23,7 +23,6 @@ def convertGTFToBed(df):
     """
 
     bedFile = []
-    print(dtypes)
     current = ''
     chrom = ''
     strand = ''
@@ -146,6 +145,18 @@ def convertGTFToBed(df):
                             thickStart = int(i[1]['start'])-1
                         if thickEnd == -1 or thickEnd < i[1]['end']:
                             thickEnd = i[1]['end']
+    chromStart = min(blockStarts)
+    chromEnd = max(blockEnds)
+    if thickEnd == -1:
+        thickEnd = chromEnd
+    if thickStart == -1:
+        thickStart = chromStart-1
+    bBlockStarts = [int(i)-int(chromStart) for i in blockStarts]
+    # append data of previous gene before resetting values for
+    # the new one
+    bedFile.append([chrom, chromStart-1, chromEnd, current, score,
+                                    strand, thickStart, thickEnd, itemRGB,
+                                    blockCount, ','.join(map(str, blockSizes)), ','.join(map(str, bBlockStarts))])
     finDF = pandas.DataFrame(data = bedFile, columns = gtfHeader)
     for key, dtype in dtypes.items():
         finDF[key] = finDF[key].astype(dtype)
