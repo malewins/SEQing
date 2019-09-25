@@ -1679,7 +1679,7 @@ def showRNA(figData, dataSets, displayType, covColor, eventColor, legendSpacing,
     fig['layout']['xaxis'].update(ticks='outside')
     fig['layout']['xaxis'].update(ticksuffix='b')
     fig['layout']['xaxis'].update(ticksuffix='b')
-    fig['layout'].update(hovermode='x')
+    fig['layout'].update(hovermode='closest')
     fig['layout']['yaxis'].update(fixedrange=True)
     fig['layout'].update(barmode='relative')
     # Reverse x-axis if gene is on - strand to always show models in 3'->5'
