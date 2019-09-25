@@ -1580,6 +1580,7 @@ def showRNA(figData, dataSets, displayType, covColor, eventColor, legendSpacing,
     rnaDataSets = sorted(list(coverageData.keys()))
     displayed_rnaDataSet = []
     maxYDict = figData['maxYList']
+    axisTitles = []
     yVals = []
     for rm in sorted(dataSets):
         for set in rnaDataSets:
@@ -1598,6 +1599,7 @@ def showRNA(figData, dataSets, displayType, covColor, eventColor, legendSpacing,
                                 i['marker'] = {'color' : newColor}
                         finTraces.append(t[displayType])      
                         eventIndices.append(index//2)
+                        axisTitles.append()
                 except KeyError:
                     if t[displayType]['meta'] in displayed_rnaDataSet:
                         if displayType == 'two':
@@ -1605,14 +1607,18 @@ def showRNA(figData, dataSets, displayType, covColor, eventColor, legendSpacing,
                             t['marker'] = {'color' : newColor}
                         finTraces.append(t[displayType])      
                         eventIndices.append(index//2)
+                        axisTitles.append('')
             else:
                 if t[displayType][0] in displayed_rnaDataSet:
                     finTraces.append([])
+                    axisTitles.append('')
                     eventIndices.append(index//2)
+
         except KeyError:
             if t['meta'] in displayed_rnaDataSet:
                 newColor = coverageColors[t['meta'].split('_')[0]]
                 yVals.append(maxYDict[t['meta']])
+                axisTitles.append(figData['axisTitles'][index])
                 t['fillcolor'] = newColor
                 finTraces.append(t)              
     numIsoforms = len(geneModels) # Number of isoforms in the gene model
@@ -1693,7 +1699,6 @@ def showRNA(figData, dataSets, displayType, covColor, eventColor, legendSpacing,
     #except IndexError:
      #   fig['layout']['yaxis'].update(showticklabels=True, showgrid=True, zeroline=True)
     # Set axis titles, grid and range for other y-axes where applicable
-    axisTitles = figData['axisTitles']
     try:
         maxYVal = max(yVals)
     except ValueError:
