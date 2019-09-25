@@ -335,12 +335,16 @@ if __name__ == '__main__':
                                         html.Div(style = {'height' : '25px'}),
                                         html.Div(
                                             children = [html.Div(id = 'bsGraphMem', style = {'display' : 'none'}),
+                                                        dcc.Loading(
+                                                        id ="iCLIP_loading",
+                                                        type = 'circle',
+                                                        children = [
                                                         dcc.Graph(id='bsGraph',
                                                             style = {'padding' : '3px'},
                                                             config = {'toImageButtonOptions' : 
                                                                 {'filename' : 'iCLIP', 'width' : None,
                                                                 'scale' : 1.0, 'height' : None, 'format' : 'svg'} }
-                                                        ),
+                                                        )]),
                                                         html.Div(
                                                             children = [
                                                                 html.Div(id = 'advMem',
@@ -440,10 +444,16 @@ if __name__ == '__main__':
                                     ),
                                     html.Div(style = {'height' : '25px'}),
                                     html.Div(id = 'spliceMem',style = {'display' : 'none'}),
-                                    dcc.Graph(id='spliceGraph',
-                                        style = {'padding' : '3px'},
-                                        config = {'toImageButtonOptions' : 
+                                    dcc.Loading(
+                                        id ="RNAseq_loading",
+                                        type = 'circle',
+                                        children = [
+                                            dcc.Graph(id='spliceGraph',
+                                            style = {'padding' : '3px'},
+                                            config = {'toImageButtonOptions' : 
                                             {'filename' : 'iCLIP', 'width' : None, 'scale' : 1.0, 'height' : None, 'format' : 'svg'} }
+                                            )
+                                        ]
                                     )
                                 ])
                             ]
