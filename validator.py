@@ -878,7 +878,7 @@ if __name__ == '__main__':
         coverageSums = pickle.load(open(binFilePath + 'coverage_checksums', 'rb'))
     except IOError:
         coverageSums = []
-        coverageChecksums = dict(coverageSums)
+    coverageChecksums = dict(coverageSums)
         
     
     # Setup data for splice sites
