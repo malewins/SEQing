@@ -2037,6 +2037,8 @@ def createEventPlots(displayMode, eventData, ds, axisTitles, eventMaxHeights, ev
                     legend = True
                 traceColor = evColors[k]
             trace = go.Bar(
+               # text = eventScores,
+                #hoverinfo = 'x+text',
                 x=eventXValues[k],
                 y=[1]*len(eventXValues[k]),
                 width = eventWidths[k],
@@ -2049,7 +2051,8 @@ def createEventPlots(displayMode, eventData, ds, axisTitles, eventMaxHeights, ev
                     family="Arial",
                     color="black"
                 ),
-                textposition='auto',
+                text = eventScores[k],
+                hoverinfo = 'x+text',
                 marker=dict(
                     color= traceColor,
                 )
