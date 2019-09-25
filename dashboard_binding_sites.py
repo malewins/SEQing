@@ -75,8 +75,6 @@ if __name__ == '__main__':
                        heatmap, letters, and no display at all. heatmap is strongly recommended for interactive use, as letters has a signifficantly
                        higher performance impact and is recommended only for the creation of static images.
                     
-                Please note that you will have to hit the submit button for changes to be applied.
-                    
                 ##### RNA-seq
                 
                 In this tab you can view RNA-seq coverage plots as well as splice events, if the necessary data was provided.
@@ -91,7 +89,7 @@ if __name__ == '__main__':
                 ##### Settings
                 
                 Here you can select colors for the graphs in the iCLIP-seq tab. Select a dataset from the dropdown, choose your color using
-                the sliders and hit confirm. You don't need to hit submit for this. Should the plot legend elements overlap you can change the
+                the sliders and hit confirm. Should the plot legend elements overlap you can change the
                  distance between the colorbar and the trace legend with the colorbar margin slider. You can also select your desired format for
                  image export, currently png and svg are supported.
                 '''
@@ -237,13 +235,6 @@ if __name__ == '__main__':
                                 style={'width': '1vw', 'display': 'table-cell', 'verticalalign': 'middle'}
                             ),
                             html.Div(
-                                children=[
-                                    html.Button(id='submit', n_clicks=0, n_clicks_timestamp=0, children='Submit', 
-                                                style = {'backgroundColor' : 'rgb(255,255,255)'})
-                                ],
-                                style={'width': '8vw', 'display': 'table-cell', 'verticalalign': 'middle'}
-                            ),
-                            html.Div(
                                 style={'width': '3vw', 'display': 'table-cell', 'verticalalign': 'middle'}
                             ),
                             html.Div(
@@ -337,23 +328,21 @@ if __name__ == '__main__':
                                             children = [html.Div(id = 'bsGraphMem', style = {'display' : 'none'}),
                                                         dcc.Loading(
                                                         id ="iCLIP_loading",
-                                                        type = 'circle',
+                                                        type = 'dot',
                                                         children = [
-                                                        dcc.Graph(id='bsGraph',
-                                                            style = {'padding' : '3px'},
-                                                            config = {'toImageButtonOptions' : 
-                                                                {'filename' : 'iCLIP', 'width' : None,
-                                                                'scale' : 1.0, 'height' : None, 'format' : 'svg'} }
-                                                        )]),
                                                         html.Div(
                                                             children = [
                                                                 html.Div(id = 'advMem',
                                                                     style = {'display' : 'none'}
                                                                 )
                                                             ]
-                                                        )    
-                                               
-                                               
+                                                        ),                                                                
+                                                        dcc.Graph(id='bsGraph',
+                                                            style = {'padding' : '3px'},
+                                                            config = {'toImageButtonOptions' : 
+                                                                {'filename' : 'iCLIP', 'width' : None,
+                                                                'scale' : 1.0, 'height' : None, 'format' : 'svg'} }
+                                                        )])                                              
                                             ]         
                                         )
                                     ]
@@ -443,11 +432,11 @@ if __name__ == '__main__':
     
                                     ),
                                     html.Div(style = {'height' : '25px'}),
-                                    html.Div(id = 'spliceMem',style = {'display' : 'none'}),
                                     dcc.Loading(
                                         id ="RNAseq_loading",
                                         type = 'circle',
                                         children = [
+                                            html.Div(id = 'spliceMem',style = {'display' : 'none'}),
                                             dcc.Graph(id='spliceGraph',
                                             style = {'padding' : '3px'},
                                             config = {'toImageButtonOptions' : 
@@ -1746,23 +1735,17 @@ def showRNA(figData, dataSets, displayType, covColor, eventColor, legendSpacing,
     [dash.dependencies.Input('geneDrop', 'value')],
     [dash.dependencies.State('rnaRadio', 'value'),
      dash.dependencies.State('rnaParamList', 'values'),
-     dash.dependencies.State('covColorDiv', 'children'),
      dash.dependencies.State('covColorFinal', 'children'),
-     dash.dependencies.State('eventColorDiv', 'children'),
      dash.dependencies.State('eventColorFinal', 'children'),
      dash.dependencies.State('legendSpacingDiv', 'children'),
      dash.dependencies.State('coverageScale', 'value'),
      dash.dependencies.State('eventScale', 'value')]
 )
-def rnaCallback(geneName, displayMode,rnaParamList,
-                colors, colorsFinal, eventColors, eventColorsFinal, legendSpacing,
+def rnaCallback(geneName, displayMode,rnaParamList, colorsFinal, eventColorsFinal, legendSpacing,
                 coverageScale, eventScale):
     """Main callback that handles the dynamic visualisation of the RNA-seq data.
 
         Positional arguments:
-        submit -- Needed to trigger callback with submit button
-        confirm -- Needed to trigger callback with confirm button
-        eventConfirm -- Triggers callback with confirm button of event color selector
         geneName -- Name of the selected gene in order to filter the data
         displaymode --determines how splice events will be visualized
         rnaParamList -- Selected RNA data sets to plot 
@@ -1865,7 +1848,7 @@ def rnaCallback(geneName, displayMode,rnaParamList,
     # Create
     plotStart = time.time()
     rnaSeqPlotData = createRNAPlots(xVals, yVals, eventDict, displayed_rnaDataSet, 
-                          color_dict, displayMode, eventColors, eventColorsFinal)
+                          color_dict, displayMode, eventColorsFinal)
     plotEnd = time.time()
     print('Plotting: ' + str(plotEnd-plotStart))
     traces = rnaSeqPlotData[0]
@@ -1949,7 +1932,7 @@ def overlap(a, b):
 
 
 def createRNAPlots(xVals, yVals, eventData, displayed, colorDict,
-                    displayMode, eventColors, 
+                    displayMode, 
                     eventColorsFinal):
     """Create the plots for both coverage and splice events.
 
@@ -1960,9 +1943,6 @@ def createRNAPlots(xVals, yVals, eventData, displayed, colorDict,
     displayed -- displayed datasets
     colorDict -- colors for the coverage plots
     displayMode -- determines how splice events are visualized
-    eventconfirm -- confirm button for event color selection
-    submit -- global submit button 
-    eventColors -- Colors for splice events being confirmed
     eventColorsFinal -- last confirmed colors for splice events
     """
     # Select correct colorset depending on whih button was pressed last
@@ -2409,20 +2389,16 @@ def showICLIP(figData, dataSets, seqDisp, colorF, legendSpacing):
     [dash.dependencies.Input('geneDrop', 'value')],
     [dash.dependencies.State('paramList', 'values'),
      dash.dependencies.State('sequenceRadio', 'value'),
-     dash.dependencies.State('colorDiv', 'children'),
      dash.dependencies.State('colorFinal', 'children'),
      dash.dependencies.State('legendSpacingDiv', 'children')]
 )
-def iCLIPCallback(geneName, dataSets, seqDisp, colors, colorsFinal, legendSpacing):
+def iCLIPCallback(geneName, dataSets, seqDisp, colorsFinal, legendSpacing):
     """Main callback that handles the dynamic visualisation of selected data
 
     Positional arguments:
-    submit -- Submit button time stamp
-    confirm -- Confirm button time stamp
     geneName -- Name of the selected gene in order to filter the data
     dataSets -- Selected data tracks with raw binding site data
     seqDisp -- Display mode for dna sequence trace
-    colors -- Color currently being confirmed. Needed due to lack of order on callbacks
     colorsFinal -- Last confirmed color
     legendSpacing -- Specifies margin between colorbar and other legend items
     """
