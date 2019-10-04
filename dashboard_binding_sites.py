@@ -43,7 +43,6 @@ if __name__ == '__main__':
     geneDescriptions = globals()['geneDescriptions']
     sequences = globals()['sequences']
     geneAnnotations = globals()['geneAnnotations']
-    ensembl = globals()['ensembl']
     sortKeys = globals()['sortKeys']
     advancedDesc = globals()['advancedDesc']
     subTables = globals()['subTables']
@@ -2422,8 +2421,6 @@ def iCLIPCallback(geneName, dataSets, seqDisp, colorsFinal, legendSpacing):
         except (TypeError, SyntaxError):
             print(
                 'Please check your keys. Each key should be added similar to this: -k \'lambda x : x[-2:]\' \'False\'	. For multiple keys use multiple instances of -k')
-    numParams = len(dataSets)  # Number of selected data tracks
-    rowOffset = 4  # Relative size of data tracks compared to gene model tracks
     # Select appropriate data from either the coding or non-coding set
     currentGene = pandas.DataFrame()
     for elem in geneAnnotations:
@@ -2453,21 +2450,7 @@ def iCLIPCallback(geneName, dataSets, seqDisp, colorsFinal, legendSpacing):
         
     overlaps = pandas.concat(overlappingGenes)
     isoformList = pandas.concat([currentGene, overlaps]) 
-    numRows = numParams * dsElements + len(
-        isoformList) + 1  # Number of rows without weights for specific sizes, +1 for dna sequence track
-    plotSpace = 0.8  # Space taken up by data tracks
 
-    rowHeight = plotSpace / numRows
-
-
-    # Final height values for rows respecting type, has to be in bottom-up order
-    dataSetHeights = [] # Base unit to build height list from contains entries for one dataset
-    if procAvail == True:
-        dataSetHeights.append(rowHeight / 2)
-    if rawAvail == True:
-        dataSetHeights.append(rowHeight * rowOffset)
-    rowHeights = [rowHeight] * len(isoformList) + dataSetHeights * numParams + [rowHeight]
-    figData.update({'rowHeights' : rowHeights})
     # Create list of 3-tupels containing start, end, name for each isoform.
     isoformRanges = []
     for elem in currentGene.itertuples():
@@ -2533,8 +2516,11 @@ def generateMasterSequence(sequences, isoforms, xAxisMax):
     if len(str(seqDict[isoforms[0][2]].seq)) == isoforms[0][1]- isoforms[0][0]:
         combinedSeq = str(seqDict[isoforms[0][2]].seq)
     else:
-        combinedSeq = str(seqDict[isoforms[0][2]].seq)
-        combinedSeq += ' '* (isoforms[0][1]-(len(str(seqDict[isoforms[0][2]].seq)))-1)
+        if len(str(seqDict[isoforms[0][2]].seq)) < isoforms[0][1]- isoforms[0][0]:
+            combinedSeq = str(seqDict[isoforms[0][2]].seq)
+            combinedSeq += ' '* (isoforms[0][1]-(len(str(seqDict[isoforms[0][2]].seq)))-1)
+        else:
+            combinedSeq = str(seqDict[isoforms[0][2]].seq)[0:isoforms[0][1]]        
     # Loop through elements and try to append sequences
     for elem in isoforms:
         provEnd = -1 # Used to fill blanks resulting from bad isoform names
@@ -2552,9 +2538,13 @@ def generateMasterSequence(sequences, isoforms, xAxisMax):
                         combinedSeq += str(seqDict[elem[2]].seq)[(currentEnd - elem[0]):]
                         currentEnd = elem[1]
                     else:
-                        combinedSeq += str(seqDict[elem[2]].seq)[(currentEnd - elem[0]):]
-                        combinedSeq += ' ' * ((elem[1] -elem[0]) - len(str(seqDict[elem[2]].seq)[(currentEnd - elem[0]):]))
-                        currentEnd = elem[1]
+                        if len(str(seqDict[elem[2]].seq)[(currentEnd - elem[0]):]) < (elem[1]- elem[0]):
+                            combinedSeq += str(seqDict[elem[2]].seq)[(currentEnd - elem[0]):]
+                            combinedSeq += ' ' * ((elem[1] -elem[0]) - len(str(seqDict[elem[2]].seq)[(currentEnd - elem[0]):]))
+                            currentEnd = elem[1]
+                        else:
+                            combinedSeq += str(seqDict[elem[2]].seq)[(currentEnd - elem[0]):elem[1]]    
+                            currentEnd = elem[1]                          
                 except KeyError:
                     provEnd = elem[1]
             else: # Current element does not overlap but will add to the sequence, fill with gaps
@@ -2571,16 +2561,20 @@ def generateMasterSequence(sequences, isoforms, xAxisMax):
                     if len(seqDict[elem[2]].seq) == (elem[1]-elem[0]):
                         combinedSeq += str(seqDict[elem[2]].seq)
                     else:
-                        combinedSeq += str(seqDict[elem[2]].seq)
-                        combinedSeq += ' ' * (elem[1]- (elem[0]+ len(seqDict[elem[2]].seq)))
+                        if len(seqDict[elem[2]].seq) < (elem[1]-elem[0]):
+                            combinedSeq += str(seqDict[elem[2]].seq)
+                            combinedSeq += ' ' * (elem[1]- (elem[0]+ len(seqDict[elem[2]].seq)))
+                        else:
+                            combinedSeq += str(seqDict[elem[2]].seq)[:elem[1]-elem[0]]
                     currentEnd = elem[1]
-                except:
+                except KeyError:
                     provEnd = elem[1]
         if currentEnd >= xAxisMax: # The master sequence is complete, the entire region is covered
             break
     if provEnd != -1:
         combinedSeq += ' '*(xAxisMax-currentEnd)
     return combinedSeq
+
 def createICLIPTrace(name, xMax, xMin, chrom, strand, colors):
     """Helper function to plot the subplots containing iCLIP data
     

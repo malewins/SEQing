@@ -309,6 +309,17 @@ class TestDashboard(unittest.TestCase):
         caseInput = ([records], isoforms, 12)
         caseOutput = 'ATTTAGCGCGC'
         testCases.append((caseInput, caseOutput))
+        
+        records = collections.OrderedDict()
+        records['test.1'] = SeqRecord(Seq('ATTTA', generic_dna), id ='test.1::Chr1:1-6', name = 'test.1::Chr1:1-6',
+                           description = 'test.1::Chr1:1-6')
+        records['test.2'] = SeqRecord(Seq('AAAAGCGGGG', generic_dna), id ='test.2::Chr1:6-12', name = 'test.2::Chr1:6-12',
+                           description = 'test.2::Chr1:6-12'
+                           )
+        isoforms = [(1, 6, 'test.1'),(8, 12, 'test.2')]
+        caseInput = ([records], isoforms, 12)
+        caseOutput = 'ATTTAGCGCGC'
+        testCases.append((caseInput, caseOutput))
         # test more than 2 sequences
         records = collections.OrderedDict()
         records['test.1'] = SeqRecord(Seq('ATTTA', generic_dna), id ='test.1::Chr1:1-6', name = 'test.1::Chr1:1-6',

@@ -329,7 +329,6 @@ def loadSequences():
     try:
         for i in fastaPaths:
             try:
-    
                 seq = SeqIO.parse(str(i), 'fasta', alphabet = generic_dna)
                 for record in seq:
                     if record.description == record.name:
