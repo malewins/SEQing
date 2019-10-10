@@ -51,8 +51,6 @@ def showR(r):
     Positional arguments:
     r -- Value for red
     """
-    print(self)
-    print(r)
     return html.P(html.B('R: ' + str(r)))
 
 
