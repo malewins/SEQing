@@ -4,32 +4,12 @@
 import dash
 import pandas
 from app import app
+import cfg
 import json
 import dash_html_components as html
 from plotly import tools
 import plotly.graph_objs as go
 import plotly.utils as pu
-
-def init(globs):
-    global descAvail, geneDescriptions, dsElements, rawAvail, geneAnnotations, procAvail, dataSetNames, sortKeys, sequences
-    global bsRawDFs, bsProcDFs, colorC, colorA, colorT, colorG, subTables
-    descAvail = globs['descAvail']
-    geneDescriptions = globs['geneDescriptions']
-    dsElements = globs['dsElements']
-    rawAvail = globs['rawAvail']
-    procAvail = globs['procAvail']
-    geneAnnotations = globs['geneAnnotations']
-    dataSetNames = globs['dataSetNames']
-    sortKeys = globs['sortKeys']
-    sequences = globs['sequences']
-    bsRawDFs = globs['bsRawDFs']
-    bsProcDFs = globs['bsProcDFs']
-    colorC = globs['colorC']
-    colorA = globs['colorA']
-    colorT = globs['colorT']
-    colorG = globs['colorG']
-    subTables = globs['subTables']
-    
 
 @app.callback(
     dash.dependencies.Output('descDiv', component_property='children'),
@@ -42,13 +22,12 @@ def setDesc(name):
     clicks -- Related to button, not needed in code
     name -- Name of the currently selected gene
     """
-    if descAvail:
+    if cfg.descAvail:
         try:
             return [
-                html.P(
-                        
-                    geneDescriptions.loc[
-                        geneDescriptions['ensembl_gene_id'] == name,
+                html.P(    
+                    cfg.geneDescriptions.loc[
+                        cfg.geneDescriptions['ensembl_gene_id'] == name,
                         ['description']
                     ].iloc[0]
                 )
@@ -115,17 +94,17 @@ def showICLIP(figData, dataSets, seqDisp, colorF, legendSpacing):
     # Set correct graph height based on row number and type
     rowOffset = 4  # Relative size of data tracks compared to gene model tracks
     baseHeight = 30  # Size of gene model row, for plot scaling
-    if rawAvail == True:
+    if cfg.rawAvail == True:
         rawDataRows = numParams * rowOffset
     else:
         rawDataRows = 0
-    if procAvail == True and rawDataRows > 0:
+    if cfg.procAvail == True and rawDataRows > 0:
         procDataRows = numParams * 0.5
     else:
         procDataRows = 0
-    if procAvail == True:
+    if cfg.procAvail == True:
         dataSetHeights.append(rowHeight / 2)
-    if rawAvail == True:
+    if cfg.rawAvail == True:
         dataSetHeights.append(rowHeight * rowOffset)
         
     rowHeights = [rowHeight] * numIsoforms + dataSetHeights * numParams + [rowHeight]
@@ -163,11 +142,11 @@ def showICLIP(figData, dataSets, seqDisp, colorF, legendSpacing):
         margin=go.layout.Margin(l=30, r=40, t=25, b=60)
     )
     fig['layout']['yaxis'].update(visible=False, showticklabels=False, showgrid=False, zeroline=False)
-    if procAvail:
-        for i in range(0, numParams * dsElements, 2):
+    if cfg.procAvail:
+        for i in range(0, numParams * cfg.dsElements, 2):
             fig['layout']['yaxis' + str(i + 3)].update(showticklabels=False, showgrid=False, zeroline=False)
     for i in range(numIsoforms):  # Edit all y axis in gene model plots
-        fig['layout']['yaxis' + str(i + numParams * dsElements + 2)].update(showticklabels=False, showgrid=False,
+        fig['layout']['yaxis' + str(i + numParams * cfg.dsElements + 2)].update(showticklabels=False, showgrid=False,
                                                                             zeroline=False, range =[-blockHeight, blockHeight])
     for i in range(1,numRows + 1):  # Prevent zoom on y axis
         fig['layout']['yaxis' + str(i)].update(fixedrange=True)
@@ -198,13 +177,13 @@ def iCLIPCallback(geneName, dataSets, seqDisp, colorsFinal, legendSpacing):
     colorsFinal -- Last confirmed color
     legendSpacing -- Specifies margin between colorbar and other legend items
     """
-    dataSets = dataSetNames
+    dataSets = cfg.dataSetNames
     # Check which of the two triggering buttons was pressed last
     colors = colorsFinal
     # Dict that will store plot data, to be serialized later
     figData = {}
     # Sort the list of selected data tracks to keep consistent order
-    for i in sortKeys:
+    for i in cfg.sortKeys:
         try:
             dataSets.sort(key=eval(i[0], {'__builtins__': None}, {}), reverse=eval(i[1], {'__builtins__': None}, {}))
         except (TypeError, SyntaxError):
@@ -212,7 +191,7 @@ def iCLIPCallback(geneName, dataSets, seqDisp, colorsFinal, legendSpacing):
                 'Please check your keys. Each key should be added similar to this: -k \'lambda x : x[-2:]\' \'False\'	. For multiple keys use multiple instances of -k')
     # Select appropriate data from either the coding or non-coding set
     currentGene = pandas.DataFrame()
-    for elem in geneAnnotations:
+    for elem in cfg.geneAnnotations:
         currentGene = elem[elem['name'].str.contains(geneName)]
         if not currentGene.empty:
             break
@@ -225,7 +204,7 @@ def iCLIPCallback(geneName, dataSets, seqDisp, colorsFinal, legendSpacing):
    
     figData.update({'strand' : strand})
     overlappingGenes = []
-    for i in geneAnnotations: # Select data for gene model from all annotaion files
+    for i in cfg.geneAnnotations: # Select data for gene model from all annotaion files
         bcrit11 = i['chrom'] == chrom
         bcrit21 = i['chromStart'] >= xAxisMin
         bcrit22 = i['chromStart'] <= xAxisMax
@@ -249,7 +228,7 @@ def iCLIPCallback(geneName, dataSets, seqDisp, colorsFinal, legendSpacing):
         isoformRanges.append((elem.chromStart, elem.chromEnd, name))
     # Create master sequence for sequence display
     try:
-        combinedSeq = generateMasterSequence(sequences, isoformRanges, xAxisMax)
+        combinedSeq = generateMasterSequence(cfg.sequences, isoformRanges, xAxisMax)
     except TypeError:
         combinedSeq = ''
 
@@ -377,12 +356,12 @@ def createICLIPTrace(name, xMax, xMin, chrom, strand, colors):
     """
     colors = json.loads(colors)
     # Selection criteria
-    crit1 = bsRawDFs[name]['chrom'] == chrom
-    crit21 = bsRawDFs[name]['chromStart'] >= xMin
-    crit22 = bsRawDFs[name]['chromStart'] <= xMax
-    crit31 = bsRawDFs[name]['chromEnd'] >= xMin
-    crit32 = bsRawDFs[name]['chromEnd'] <= xMax
-    rawSites = bsRawDFs[name].loc[crit1 & ((crit21 & crit22) | (crit31 & crit32))]
+    crit1 = cfg.bsRawDFs[name]['chrom'] == chrom
+    crit21 = cfg.bsRawDFs[name]['chromStart'] >= xMin
+    crit22 = cfg.bsRawDFs[name]['chromStart'] <= xMax
+    crit31 = cfg.bsRawDFs[name]['chromEnd'] >= xMin
+    crit32 = cfg.bsRawDFs[name]['chromEnd'] <= xMax
+    rawSites = cfg.bsRawDFs[name].loc[crit1 & ((crit21 & crit22) | (crit31 & crit32))]
     # Setup arrays to hold the values that will be needed for plotting
     countsX = []
     countsY = []
@@ -409,13 +388,13 @@ def createICLIPTrace(name, xMax, xMin, chrom, strand, colors):
     # Setup criteria to select binding sites that are within the current region of the genome
     procSitesList = []
     try:
-        bcrit11 = bsProcDFs[name]['chrom'] == chrom
-        bcrit12 = bsProcDFs[name]['strand'] == strand
-        bcrit21 = bsProcDFs[name]['chromStart'] >= xMin
-        bcrit22 = bsProcDFs[name]['chromStart'] <= xMax
-        bcrit31 = bsProcDFs[name]['chromEnd'] >= xMin
-        bcrit32 = bsProcDFs[name]['chromEnd'] <= xMax
-        bindingSites = bsProcDFs[name].loc[bcrit11 & bcrit12 & ((bcrit21 & bcrit22) | (bcrit31 & bcrit32))]
+        bcrit11 = cfg.bsProcDFs[name]['chrom'] == chrom
+        bcrit12 = cfg.bsProcDFs[name]['strand'] == strand
+        bcrit21 = cfg.bsProcDFs[name]['chromStart'] >= xMin
+        bcrit22 = cfg.bsProcDFs[name]['chromStart'] <= xMax
+        bcrit31 = cfg.bsProcDFs[name]['chromEnd'] >= xMin
+        bcrit32 = cfg.bsProcDFs[name]['chromEnd'] <= xMax
+        bindingSites = cfg.bsProcDFs[name].loc[bcrit11 & bcrit12 & ((bcrit21 & bcrit22) | (bcrit31 & bcrit32))]
         # Plot binding sites
         for k in bindingSites.itertuples():
                 procSitesList.append(
@@ -606,7 +585,7 @@ def createSequenceTrace(seqDisp, strand, combinedSeq, xAxisMin, xAxisMax):
                 Err.append(i)
         aTrace = go.Scatter(
             text=['A'] * len(xA),
-            textfont=dict(color=colorA),
+            textfont=dict(color=cfg.colorA),
             mode='text',
             name='seqA',
             y=[1] * len(xA),
@@ -619,7 +598,7 @@ def createSequenceTrace(seqDisp, strand, combinedSeq, xAxisMin, xAxisMax):
         cTrace = go.Scatter(
             text=['C'] * len(xC),
             mode='text',
-            textfont=dict(color=colorC),
+            textfont=dict(color=cfg.colorC),
             y=[1] * len(xC),
             x=xC,
             name='seqC',
@@ -630,7 +609,7 @@ def createSequenceTrace(seqDisp, strand, combinedSeq, xAxisMin, xAxisMax):
         )
         gTrace = go.Scatter(
             text=['G'] * len(xG),
-            textfont=dict(color=colorG),
+            textfont=dict(color=cfg.colorG),
             mode='text',
             y=[1] * len(xG),
             name='seqG',
@@ -642,7 +621,7 @@ def createSequenceTrace(seqDisp, strand, combinedSeq, xAxisMin, xAxisMax):
         )
         tTrace = go.Scatter(
             text=['T'] * len(xT),
-            textfont=dict(color=colorT),
+            textfont=dict(color=cfg.colorT),
             mode='text',
             y=[1] * len(xT),
             name='seqT',
@@ -686,27 +665,27 @@ def createSequenceTrace(seqDisp, strand, combinedSeq, xAxisMin, xAxisMax):
                 textList.append('N')
         if errorsPresent == True:
             colors = [
-                [0, colorA],
-                [0.2, colorA],
-                [0.2, colorT],
-                [0.4, colorT],
-                [0.4, colorC],
-                [0.6, colorC],
-                [0.6, colorG],
-                [0.8, colorG],
+                [0, cfg.colorA],
+                [0.2, cfg.colorA],
+                [0.2, cfg.colorT],
+                [0.4, cfg.colorT],
+                [0.4, cfg.colorC],
+                [0.6, cfg.colorC],
+                [0.6, cfg.colorG],
+                [0.8, cfg.colorG],
                 [0.8, colorE],
                 [1.0, colorE]
             ]
         else:
             colors = [
-                [0, colorA],
-                [0.25, colorA],
-                [0.25, colorT],
-                [0.5, colorT],
-                [0.5, colorC],
-                [0.75, colorC],
-                [0.75, colorG],
-                [1.0, colorG]
+                [0, cfg.colorA],
+                [0.25, cfg.colorA],
+                [0.25, cfg.colorT],
+                [0.5, cfg.colorT],
+                [0.5, cfg.colorC],
+                [0.75, cfg.colorC],
+                [0.75, cfg.colorG],
+                [1.0, cfg.colorG]
             ]
 
         heatTrace = go.Heatmap(

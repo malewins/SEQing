@@ -5,13 +5,9 @@ import dash
 import pandas
 import dash_html_components as html
 from app import app
+import cfg
 
 tableColors = ['rgb(255, 255 ,255)', 'rgb(220, 220, 220)']
-
-def init(pSubTables, pAdvancedDesc):
-    global subTables, advancedDesc
-    advancedDesc = pAdvancedDesc
-    subTables = pSubTables
 
 @app.callback(
     dash.dependencies.Output('advMem', component_property='children'),
@@ -25,8 +21,8 @@ def storeDesc(geneName):
     geneName -- Name of the currently selected gene
     """
     
-    if advancedDesc is not None:
-        df = advancedDesc[advancedDesc['gene_ids'].str.contains(geneName)]
+    if cfg.advancedDesc is not None:
+        df = cfg.advancedDesc[cfg.advancedDesc['gene_ids'].str.contains(geneName)]
         return df.to_json(orient = 'split')
 
 @app.callback(
@@ -45,7 +41,7 @@ def showDetails(data, name):
         df = pandas.read_json(data, orient='split')
     except ValueError:
         try:
-            df = advancedDesc[advancedDesc['gene_ids'].str.contains(name)]
+            df = cfg.advancedDesc[cfg.advancedDesc['gene_ids'].str.contains(name)]
         except TypeError:
             df = pandas.DataFrame()
     columns = list(df.columns.values)
@@ -128,7 +124,7 @@ def createDetailRow(content, name, rowNumber):
     """
     # Check subtable information
     try:
-        headerLine = [subTables['column_id'].str.contains(name)]
+        headerLine = [cfg.subTables['column_id'].str.contains(name)]
     except (TypeError, AttributeError, KeyError):
         headerLine = None
     try:

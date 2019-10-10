@@ -3,6 +3,7 @@
 
 """ Interactive visualizaton for iClIP-Seq and RNA-Seq data"""
 import json
+import dash
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_auth
@@ -12,6 +13,7 @@ import rna_tab
 import iclip_tab
 import settings_tab
 import description_tab
+import cfg
 
 __author__ = "Yannik Bramkamp"
 
@@ -21,43 +23,13 @@ if __name__ == '__main__':
         print('Please start the program via validator.py')
         exit()
     # Properly define all global variables that are handed to this module by validator.py
-    rna_tab.init(globals())
-    iclip_tab.init(globals())
+    cfg.init(globals())
+    #rna_tab.init(globals())
+    #iclip_tab.init(globals())
 
-    colorMap = globals()['colorMap'] 
-    descAvail = globals()['descAvail']
-    colorA = globals()['colorA']
-    colorC = globals()['colorC']
-    colorG = globals()['colorG']
-    colorT = globals()['colorT']
-    port = globals()['port']
-    procAvail = globals()['procAvail']
-    dsElements = globals()['dsElements'] 
-    spliceElements = globals()['spliceElements']
-    bsProcDFs = globals()['bsProcDFs']
-    bsRawDFs = globals()['bsRawDFs'] 
-    dataSetNames = globals()['dataSetNames']
-    spliceSetNames = globals()['spliceSetNames'] 
-    rawAvail = globals()['rawAvail']
-    spliceAvail = globals()['spliceAvail']
-    dropList = globals()['dropList']
-    geneDescriptions = globals()['geneDescriptions']
-    sequences = globals()['sequences']
-    geneAnnotations = globals()['geneAnnotations']
-    sortKeys = globals()['sortKeys']
-    advancedDesc = globals()['advancedDesc']
-    subTables = globals()['subTables']
-    spliceEventElements = globals()['spliceEventElements']
-    spliceEventDFs = globals()['spliceEventDFs']
-    spliceEventNames = globals()['spliceEventNames']
-    spliceEventAvail= globals()['spliceEventAvail']
-    eventColors = globals()['eventColors']
-    coverageColors = globals()['coverageColors']
-    eventTypes = globals()['eventTypes']
-    authentication = globals()['authentication']
-    coverageData = globals()['coverageData']
-    settings_tab.init(geneAnnotations)
-    description_tab.init(subTables, advancedDesc)
+  
+    #settings_tab.init(geneAnnotations)
+    #description_tab.init(subTables, advancedDesc)
         
     helpText = '''
                 ##### General
@@ -100,13 +72,13 @@ if __name__ == '__main__':
     
 
     # Set defaults if no advanced descriptions are available
-    if advancedDesc is None:
+    if cfg.advancedDesc is None:
         print('Advanced description DF is None')
         advList = []
         advStart = None
         advDisabled = True
     else:
-        advList = list(advancedDesc.columns.values)
+        advList = list(cfg.advancedDesc.columns.values)
         advList.remove('gene_ids')
         advDisabled = False
 #        try:
@@ -120,15 +92,15 @@ if __name__ == '__main__':
     imgFormat = 'svg' # Default format for image export
     
     # Hide sequence related controls if no sequence data is available
-    if len(sequences) == 0:
+    if len(cfg.sequences) == 0:
         seqDispStyle = {'display': 'none', 'height' : '100%', 'width' : '20vw'}
     else:
         seqDispStyle = {'height' : '100%', 'width' : '20vw'}
-    if len(dataSetNames) == 0:
+    if len(cfg.dataSetNames) == 0:
         dataSetStyle = {'display': 'none', 'height' : '100%', 'width' : '15vw'}
     else:
         dataSetStyle = {'height' : '100%', 'width' : '15vw'}
-    if len(spliceSetNames[1]) == 0:
+    if len(cfg.spliceSetNames[1]) == 0:
         rnaDataStyle = {'display': 'none', 'height' : '100%', 'width' : '15vw'}
     else:
         rnaDataStyle = {'height' : '100%', 'width' : '15vw'}
@@ -136,21 +108,21 @@ if __name__ == '__main__':
     
     # Try to setup color picker for iCLIP-seq tracks
     try:
-        initialColor = dataSetNames[0]
+        initialColor = cfg.dataSetNames[0]
         disableSettings = False
     except IndexError:
         initialColor = None
         disableSettings = False
     # Try to setup color picker for coverage tracks
     try:
-        initialColorCoverage = spliceSetNames[1][0]
+        initialColorCoverage = cfg.spliceSetNames[1][0]
         disableSettings = False
     except IndexError:
         initialColorCoverage = None
         disableSettings = False
     # Try to setup color picker for coverage tracks
     try:
-        initialColorEvents = eventTypes[0]
+        initialColorEvents = cfg.eventTypes[0]
         disableSettings = False
     except IndexError:
         initialColorEvents = None
@@ -205,10 +177,10 @@ if __name__ == '__main__':
 
 app.config['suppress_callback_exceptions']=True
 if __name__ == '__main__':
-    if authentication != '': # Enable authentication if a password was provided
+    if cfg.authentication != '': # Enable authentication if a password was provided
         auth = dash_auth.BasicAuth(
                 app,
-                {'u' : authentication})
+                {'u' : cfg.authentication})
 
     
     app.layout = html.Div(
@@ -227,8 +199,8 @@ if __name__ == '__main__':
                                 children=[
                                     dcc.Dropdown(
                                         id='geneDrop',
-                                        options=[{'label': i[0], 'value': i[1]} for i in dropList],
-                                        value=dropList[0][1]
+                                        options=[{'label': i[0], 'value': i[1]} for i in cfg.dropList],
+                                        value=cfg.dropList[0][1]
                                     )
                                 ],
                                 style={'width': '70vw', 'display': 'table-cell', 'verticalalign': 'middle'}
@@ -292,8 +264,8 @@ if __name__ == '__main__':
                                                                         html.Legend('Datasets'),                                                     
                                                                         dcc.Checklist(
                                                                             id='paramList',
-                                                                            options=[{'label': i, 'value': i} for i in dataSetNames],
-                                                                            values=[i for i in dataSetNames]
+                                                                            options=[{'label': i, 'value': i} for i in cfg.dataSetNames],
+                                                                            values=[i for i in cfg.dataSetNames]
                                                                         )
                                                                     ]
                                                                 
@@ -388,15 +360,15 @@ if __name__ == '__main__':
                                                                                        dcc.Checklist(
                                                                                            id='rnaParamList',
                                                                                            options=[{'label':
-                                                                                                         spliceSetNames[1][
+                                                                                                         cfg.spliceSetNames[1][
                                                                                                              i], 'value':
-                                                                                                         spliceSetNames[1][
+                                                                                                         cfg.spliceSetNames[1][
                                                                                                              i]} for
                                                                                                     i in range(
-                                                                                                   len(spliceSetNames[1]))],
-                                                                                           values=[spliceSetNames[1][i] for
+                                                                                                   len(cfg.spliceSetNames[1]))],
+                                                                                           values=[cfg.spliceSetNames[1][i] for
                                                                                                    i in range(
-                                                                                                   len(spliceSetNames[1]))],
+                                                                                                   len(cfg.spliceSetNames[1]))],
                                                                                        ),
                                                                                    ]
     
@@ -484,16 +456,16 @@ if __name__ == '__main__':
                                                     html.Div(
                                                         style={'display': 'none'},
                                                         id='colorDiv',
-                                                        children=json.dumps(colorMap)
+                                                        children=json.dumps(cfg.colorMap)
                                                     ),
                                                     html.Div(
                                                         style={'display': 'none'},
                                                         id='colorFinal',
-                                                        children=json.dumps(colorMap)
+                                                        children=json.dumps(cfg.colorMap)
                                                     ),
                                                     dcc.Dropdown(
                                                         id='colorDrop',
-                                                        options=[{'label': i, 'value': i} for i in dataSetNames],
+                                                        options=[{'label': i, 'value': i} for i in cfg.dataSetNames],
                                                         value=initialColor
                                                     ),
                                                     html.Div(
@@ -561,16 +533,16 @@ if __name__ == '__main__':
                                                     html.Div(
                                                         style={'display': 'none'},
                                                         id='covColorDiv',
-                                                        children=json.dumps(coverageColors)
+                                                        children=json.dumps(cfg.coverageColors)
                                                     ),
                                                     html.Div(
                                                         style={'display': 'none'},
                                                         id='covColorFinal',
-                                                        children=json.dumps(coverageColors)
+                                                        children=json.dumps(cfg.coverageColors)
                                                     ),
                                                     dcc.Dropdown(
                                                         id='covColorDrop',
-                                                        options=[{'label': i, 'value': i} for i in spliceSetNames[1]],
+                                                        options=[{'label': i, 'value': i} for i in cfg.spliceSetNames[1]],
                                                         value=initialColorCoverage
                                                     ),
                                                     html.Div(
@@ -638,16 +610,16 @@ if __name__ == '__main__':
                                                     html.Div(
                                                         style={'display': 'none'},
                                                         id='eventColorDiv',
-                                                        children=json.dumps(eventColors)
+                                                        children=json.dumps(cfg.eventColors)
                                                     ),
                                                     html.Div(
                                                         style={'display': 'none'},
                                                         id='eventColorFinal',
-                                                        children=json.dumps(eventColors)
+                                                        children=json.dumps(cfg.eventColors)
                                                     ),
                                                     dcc.Dropdown(
                                                         id='eventColorDrop',
-                                                        options=[{'label': i, 'value': i} for i in eventTypes],
+                                                        options=[{'label': i, 'value': i} for i in cfg.eventTypes],
                                                         value=initialColorEvents
                                                     ),
                                                     html.Div(
@@ -815,7 +787,11 @@ if __name__ == '__main__':
         style = {'backgroundColor' : 'rgb(240,240,240)'}
     )
 
-
+@app.callback(
+    dash.dependencies.Output('help', 'style'),
+    [dash.dependencies.Input("helpButton", "n_clicks"),
+     dash.dependencies.Input("help_close", "n_clicks")]
+)
 def showHelpPopup(open_click, close_click):
     """ Display and hide the help popup depending on the clicked button. Code is
     based on https://community.plot.ly/t/any-way-to-create-an-instructions-popout/18828/3
@@ -838,4 +814,4 @@ def showHelpPopup(open_click, close_click):
 
 
 if __name__ == '__main__':
-    app.run_server(debug=True, host='0.0.0.0', port=port, use_reloader=False)
+    app.run_server(debug=True, host='0.0.0.0', port=cfg.port, use_reloader=False)

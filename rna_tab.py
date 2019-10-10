@@ -4,6 +4,7 @@
 import dash
 import pandas
 from app import app
+import cfg
 import time 
 import pickle
 import json
@@ -13,30 +14,17 @@ import plotly.graph_objs as go
 from iclip_tab import createGeneModelPlot
 import plotly.utils as pu
 
-def init(globs):
-    global descAvail, geneDescriptions, coverageData, spliceEventAvail, geneAnnotations, spliceEventNames, spliceEventDFs
-    global eventTypes, spliceAvail
-    descAvail = globs['descAvail']
-    geneDescriptions = globs['geneDescriptions']
-    coverageData = globs['coverageData']
-    spliceEventAvail = globs['spliceEventAvail']
-    geneAnnotations = globs['geneAnnotations']
-    spliceEventNames = globs['spliceEventNames']
-    spliceEventDFs = globs['spliceEventDFs']
-    eventTypes = globs['eventTypes']
-    spliceAvail = globs['spliceAvail']
-    
 @app.callback(
     dash.dependencies.Output('rnaDescDiv', component_property='children'),
     [dash.dependencies.Input('geneDrop', 'value')],
 )
 def rnaDesc(name):
-    if descAvail:
+    if cfg.descAvail:
         try:
             return [
                 html.P(
-                    geneDescriptions.loc[
-                        geneDescriptions['ensembl_gene_id'] == name,
+                    cfg.geneDescriptions.loc[
+                        cfg.geneDescriptions['ensembl_gene_id'] == name,
                         ['description']
                     ].iloc[0]
                 )
@@ -69,7 +57,7 @@ def showRNA(figData, dataSets, displayType, covColor, eventColor, legendSpacing,
     coverageColors = json.loads(covColor)
     eventColors = json.loads(eventColor)
     eventIndices = [] # Save indices of all elements that contain event traces
-    rnaDataSets = sorted(list(coverageData.keys()))
+    rnaDataSets = sorted(list(cfg.coverageData.keys()))
     displayed_rnaDataSet = []
     maxYDict = figData['maxYList']
     axisTitles = []
@@ -138,7 +126,7 @@ def showRNA(figData, dataSets, displayType, covColor, eventColor, legendSpacing,
                 eventHeights.append(2)
             if i >= 10:
                 eventHeights.append(i % 5 +1)
-    if spliceEventAvail:
+    if cfg.spliceEventAvail:
         for i in range(numRows):
             if i > len(finTraces)-1: rowHeights.append(0.5 * rowHeight) # Gene model row
             elif (i % 2 != 0):
@@ -197,7 +185,7 @@ def showRNA(figData, dataSets, displayType, covColor, eventColor, legendSpacing,
         maxYVal = 0
     blockHeight = 0.4
     for i in range(1, numRows+1):
-            if spliceEventAvail:
+            if cfg.spliceEventAvail:
                 if i % 2 != 0 and i <= len(finTraces): # Coverage row
                     fig['layout']['yaxis' + str(i)].update(range=[0, maxYVal],title={'text': axisTitles[i-1]})
                     fig['layout']['yaxis' + str(i)].update(showticklabels=True, showgrid=True, zeroline=True)
@@ -260,7 +248,7 @@ def rnaCallback(geneName, displayMode,rnaParamList, colorsFinal, eventColorsFina
 
     # Select appropriate data from gene annotations
     currentGene = pandas.DataFrame()
-    for index, elem in enumerate(geneAnnotations):
+    for index, elem in enumerate(cfg.geneAnnotations):
         currentGene = elem[elem['name'].str.contains(geneName)]
         if not currentGene.empty:
             break
@@ -274,7 +262,7 @@ def rnaCallback(geneName, displayMode,rnaParamList, colorsFinal, eventColorsFina
     color_dict = json.loads(colors)  # Color per mutant
     figData.update({'covColors' : color_dict})
     # Filter out needed datasets
-    rnaDataSets = sorted(list(coverageData.keys()))
+    rnaDataSets = sorted(list(cfg.coverageData.keys()))
     displayed_rnaDataSet = rnaDataSets
    # for rm in sorted(rnaParamList):
     #    for set in rnaDataSets:
@@ -301,16 +289,16 @@ def rnaCallback(geneName, displayMode,rnaParamList, colorsFinal, eventColorsFina
         organism = ds.split("_")[0] # Prefix of the curret data frame, first filter
         spliceEvents = pandas.DataFrame() # will hold splice event data for the current data set
         evStart = time.time()
-        if any(organism in s for s in spliceEventNames[1]): # Check if there are splice events for the current prefix
-            for d in sorted(spliceEventDFs.keys()):
+        if any(organism in s for s in cfg.spliceEventNames[1]): # Check if there are splice events for the current prefix
+            for d in sorted(cfg.spliceEventDFs.keys()):
                 if ds in d: # Check for remaining filename, to match the correct files
                     # Criteria to filter relevant lines from current dataframe
-                    bcrit11 = spliceEventDFs[d]['chrom'] == chrom
-                    bcrit21 = spliceEventDFs[d]['chromStart'] >= xAxisMin
-                    bcrit22 = spliceEventDFs[d]['chromStart'] <= xAxisMax
-                    bcrit31 = spliceEventDFs[d]['chromEnd'] >= xAxisMin
-                    bcrit32 = spliceEventDFs[d]['chromEnd'] <= xAxisMax
-                    spliceEvents = spliceEventDFs[d].loc[bcrit11 & ((bcrit21 & bcrit22) | (bcrit31 & bcrit32))]
+                    bcrit11 = cfg.spliceEventDFs[d]['chrom'] == chrom
+                    bcrit21 = cfg.spliceEventDFs[d]['chromStart'] >= xAxisMin
+                    bcrit22 = cfg.spliceEventDFs[d]['chromStart'] <= xAxisMax
+                    bcrit31 = cfg.spliceEventDFs[d]['chromEnd'] >= xAxisMin
+                    bcrit32 = cfg.spliceEventDFs[d]['chromEnd'] <= xAxisMax
+                    spliceEvents = cfg.spliceEventDFs[d].loc[bcrit11 & ((bcrit21 & bcrit22) | (bcrit31 & bcrit32))]
         # Use itertuples to iterate over rows, since itertuples is supposed to be faster
         evEnd = time.time()
         evSel += evEnd-evStart
@@ -355,7 +343,7 @@ def rnaCallback(geneName, displayMode,rnaParamList, colorsFinal, eventColorsFina
     figData.update({'maxHeights' : eventMaxHeights})
     figData.update({'axisTitles' : axisTitles})
     overlappingGenes = []
-    for i in geneAnnotations: # Select data for gene models from all annotation files
+    for i in cfg.geneAnnotations: # Select data for gene models from all annotation files
         bcrit11 = i['chrom'] == chrom
         bcrit21 = i['chromStart'] >= xAxisMin
         bcrit22 = i['chromStart'] <= xAxisMax
@@ -389,7 +377,7 @@ def coverageDataSelection(ds, xAxisMin, xAxisMax, chrom):
         xAxisMax -- Right border of relevant area
         chrom -- Chromosome to search on
     """
-    fileIndex = coverageData[ds]
+    fileIndex = cfg.coverageData[ds]
     dfBcrit11 = fileIndex['start'] <= xAxisMin
     dfBcrit12 = fileIndex['end'] >= xAxisMin
     dfBcrit21 = fileIndex['start'] <= xAxisMax
@@ -450,16 +438,16 @@ def createRNAPlots(xVals, yVals, eventData, displayed, colorDict,
     axisTitles = [] # Will hold axis titles to be added in the main callback
     eventMaxHeights = [] # Will hold number of stacked event rows for layouting
     legendSet = {} # Keeps track of legend items to avoid duplicates for event types
-    for val in eventTypes:
+    for val in cfg.eventTypes:
         legendSet[val] = False
     covTime = 0
     for ds in sorted(displayed):
-        if spliceAvail:
+        if cfg.spliceAvail:
             covStart = time.time()
             data.append(createAreaChart(xVals, yVals, ds, colorDict, axisTitles))
             covEnd = time.time()
             covTime += covEnd-covStart
-        if spliceEventAvail:
+        if cfg.spliceEventAvail:
             start = time.time()
             data.append(createEventPlots(eventData, ds, axisTitles, eventMaxHeights, evColors, legendSet))
             print('EventCalc ' + str(time.time()-start))

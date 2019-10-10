@@ -5,12 +5,8 @@ from app import app
 import json
 import dash
 import dash_html_components as html
+import cfg
 
-
-
-def init(pGeneAnnotations):
-    global geneAnnotations
-    geneAnnotations = pGeneAnnotations
 @app.callback(
     dash.dependencies.Output('bsGraph', 'config'),
     [dash.dependencies.Input('imgFormatDrop', 'value')]
@@ -44,23 +40,19 @@ def changeFormatRNA(imgFormat):
 def changeLegendSpacing(value):
     return json.dumps(value)
 
-@app.callback(
-    dash.dependencies.Output('help', 'style'),
-    [dash.dependencies.Input("helpButton", "n_clicks"),
-     dash.dependencies.Input("help_close", "n_clicks")]
-)
 
 @app.callback(
     dash.dependencies.Output('rDisp', component_property='children'),
     [dash.dependencies.Input('rInput', component_property='value')]
 )
-def showR(r):
+def showR(self,r):
     """Callback to display current value for red
 
     Positional arguments:
     r -- Value for red
     """
-
+    print(self)
+    print(r)
     return html.P(html.B('R: ' + str(r)))
 
 
@@ -607,7 +599,7 @@ def setHeadline(name):
     clicks -- Related to button, not needed otherwise
     name -- Name of the currently selected gene
     """
-    for i in geneAnnotations:
+    for i in cfg.geneAnnotations:
         currentGene = i[i['name'].str.contains(name)]
         if not currentGene.empty:
             break
