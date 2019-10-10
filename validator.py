@@ -944,4 +944,4 @@ if __name__ == '__main__':
         'authentication': password, # Password for authentication
         'coverageData' : fileDict} # Types of splice events
     
-    runpy.run_module('dashboard_binding_sites', init_globals = globalDict, run_name = '__main__')
+    runpy.run_module('app_layout', init_globals = globalDict, run_name = '__main__')

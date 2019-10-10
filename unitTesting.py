@@ -3,7 +3,10 @@
 
 """Unit tests for SEQing"""
 import unittest
-import dashboard_binding_sites as db
+import rna_tab as rna
+import iclip_tab as iclip
+import settings_tab as settings
+import description_tab as details
 import validator as val
 import converter as conv
 import json
@@ -238,7 +241,7 @@ class TestDashboard(unittest.TestCase):
         self.maxDiff = None
         null = None
         for test in ['svg', 'png']:
-            self.assertEqual(eval(db.changeFormatiCLIP(test)), 
+            self.assertEqual(eval(settings.changeFormatiCLIP(test)), 
                 {'response': {'props': {'config':{'toImageButtonOptions' : {'filename' : 'iCLIP', 'width' : None,
                 'scale' : 1.0, 'height' : None, 'format' : test} }}}})
   
@@ -246,24 +249,15 @@ class TestDashboard(unittest.TestCase):
         self.maxDiff = None
         null = None
         for test in ['svg', 'png']:
-            self.assertEqual(eval(db.changeFormatRNA(test)), 
+            self.assertEqual(eval(settings.changeFormatRNA(test)), 
                 {'response': {'props': {'config':{'toImageButtonOptions' : {'filename' : 'RNA', 'width' : None,
                 'scale' : 1.0, 'height' : None, 'format' : test} }}}})
     
     def testChangeLegendSpacing(self):
         self.maxDiff = None
         for test in [0, 0.1, 0.2, 0.3]:
-            self. assertEqual(eval(db.changeLegendSpacing(test)),  {'response': {'props': {'children':str(test)}}} )
-    
-    def testShowHelpPopup(self):
-        self.maxDiff = None
-        null = None
-        testVals = [((0,1),{'response': {'props': {'style': {"display": "none"}}}}),
-                    ((1,0),{'response': {'props': {'style': {"display": "block"}}}}),
-                    ((1,1),{'response': {'props': {'style': {"display": "none"}}}})]
-        for test in testVals:
-            self.assertEqual(eval(db.showHelpPopup(test[0][0],test[0][1])),test[1])
-            
+            self. assertEqual(eval(settings.changeLegendSpacing(test)),  {'response': {'props': {'children':str(test)}}} )
+          
     def testConirmColor(self):
         testCases = []
         testCases.append(('test', json.dumps({'test' :'rgb(0,0,0)'}), {'test' : 'rgb(23, 23, 23)'}, (23,23,23)))
@@ -272,7 +266,7 @@ class TestDashboard(unittest.TestCase):
         testCases.append(('test', json.dumps({'test' :'rgb(0,0,0)'}), {'test' :'rgb(0,0,0)'}, (23,23,None)))
         testCases.append(('set2', json.dumps({'set2' :'rgb(0,0,0)'}), {'set2' : 'rgb(244, 23, 23)'}, (244,23,23)))
         for i in testCases:
-            self.assertEqual(eval(db.confirmColor(0, i[3][0], i[3][1], i[3][2], i[0], i[1])),{'response': {'props': {'children' : json.dumps(i[2])}}} ) 
+            self.assertEqual(eval(settings.confirmColor(0, i[3][0], i[3][1], i[3][2], i[0], i[1])),{'response': {'props': {'children' : json.dumps(i[2])}}} ) 
     
     def testChangeColor(self):
         testCases = []
@@ -281,21 +275,21 @@ class TestDashboard(unittest.TestCase):
         testCases.append(('test',(None,34,134), json.dumps({'test' :'rgb(0,0,0)'}), {'test' :'rgb(0,0,0)'}))
         testCases.append(('test',(22,34,None), json.dumps({'test' :'rgb(0,0,0)'}), {'test' :'rgb(0,0,0)'}))
         for i in testCases:
-            self.assertEqual(eval(db.changeColor(i[1][0], i[1][1], i[1][2], i[0], i[2])),{'response': {'props': {'children' : json.dumps(i[3])}}})
+            self.assertEqual(eval(settings.changeColor(i[1][0], i[1][1], i[1][2], i[0], i[2])),{'response': {'props': {'children' : json.dumps(i[3])}}})
     
     def testPreviewColorEvent(self):
         self.maxDiff = None
-        self.assertEqual(eval(db.previewColorEvent(23, None, 66)),
+        self.assertEqual(eval(settings.previewColorEvent(23, None, 66)),
             {'response': {'props': {'style': {'backgroundColor': 'rgb(255, 255, 255)', 'color': 'rgb(255, 255, 255)'}}}})
-        self.assertEqual(eval(db.previewColorEvent(23, 48, 66)), 
+        self.assertEqual(eval(settings.previewColorEvent(23, 48, 66)), 
             {'response': {'props': {'style': {'backgroundColor': 'rgb(23,48,66)', 'color': 'rgb(23,48,66)'}}}})
         
     def testOverlap(self):
-        self.assertTrue(db.overlap((1,4),(2,7)))
-        self.assertTrue(db.overlap((1,4),(1,4)))
-        self.assertFalse(db.overlap((1,4),(1,1)))
-        self.assertFalse(db.overlap((1,4),(5,7)))
-        self.assertFalse(db.overlap((1,4),(4,7)))
+        self.assertTrue(rna.overlap((1,4),(2,7)))
+        self.assertTrue(rna.overlap((1,4),(1,4)))
+        self.assertFalse(rna.overlap((1,4),(1,1)))
+        self.assertFalse(rna.overlap((1,4),(5,7)))
+        self.assertFalse(rna.overlap((1,4),(4,7)))
     
     def testGenerateMasterSequence(self):
         testCases = []
@@ -318,7 +312,7 @@ class TestDashboard(unittest.TestCase):
                            )
         isoforms = [(1, 6, 'test.1'),(8, 12, 'test.2')]
         caseInput = ([records], isoforms, 12)
-        caseOutput = 'ATTTAGCGCGC'
+        caseOutput = 'ATTTA  AAAA'
         testCases.append((caseInput, caseOutput))
         # test more than 2 sequences
         records = collections.OrderedDict()
@@ -460,7 +454,7 @@ class TestDashboard(unittest.TestCase):
         caseOutput = ''
         testCases.append((caseInput, caseOutput))
         for i in testCases:
-            self.assertEqual(db.generateMasterSequence(i[0][0], i[0][1], i[0][2]), i[1])
+            self.assertEqual(iclip.generateMasterSequence(i[0][0], i[0][1], i[0][2]), i[1])
             
     def testCreateDetailRow(self):
         testCases = []
@@ -525,13 +519,13 @@ class TestDashboard(unittest.TestCase):
                                     ))], style={'background-color': 'rgb(0,0,0)'}), 
                             None))                          
         for i in testCases:
-            db.subTables = i[4]
-            db.tableColors = tableColors
-            self.assertEqual(db.createDetailRow(i[0], i[1], i[2]), i[3])
+            details.subTables = i[4]
+            details.tableColors = tableColors
+            self.assertEqual(details.createDetailRow(i[0], i[1], i[2]), i[3])
         for i in falseCases:
-            db.subTables = i[4]
-            db.tableColors = tableColors
-            self.assertIsNot(db.createDetailRow(i[0], i[1], i[2]), i[3])
+            details.subTables = i[4]
+            details.tableColors = tableColors
+            self.assertIsNot(details.createDetailRow(i[0], i[1], i[2]), i[3])
 
     def testCalculateEvents(self):
         testCases = []
@@ -561,7 +555,7 @@ class TestDashboard(unittest.TestCase):
             bases = i[0][6]
             scores = i[0][7]
             intervals = i[0][8]
-            overlap = db.calculateEvents(i[0][0], i[0][1], i[0][2],
+            overlap = rna.calculateEvents(i[0][0], i[0][1], i[0][2],
                             i[0][3], i[0][4], i[0][5], i[0][6], i[0][7], i[0][8], i[0][9])
             self.assertEqual((xVals, widths, bases, scores, intervals, overlap), i[1])
 
@@ -593,7 +587,7 @@ class TestDashboard(unittest.TestCase):
             bases = i[0][5]
             scores = i[0][6]
             intervals = i[0][7]
-            overlap = db.calculateEventsScoreColored(i[0][0], i[0][1],
+            overlap = rna.calculateEventsScoreColored(i[0][0], i[0][1],
                             i[0][2], i[0][3], i[0][4], i[0][5], i[0][6], i[0][7], i[0][8])
             self.assertEqual((xVals, widths, bases, scores, intervals, overlap), i[1])
     
@@ -634,7 +628,7 @@ class TestDashboard(unittest.TestCase):
         caseOutput = ([160, 200], [40, 40], 'cont')
         testCases.append((caseInput, caseOutput))       
         for i in testCases:
-            self.assertEqual(db.setUpBlockConstraints(i[0][0],i[0][1],i[0][2],i[0][3],i[0][4],i[0][5]), i[1])
+            self.assertEqual(iclip.setUpBlockConstraints(i[0][0],i[0][1],i[0][2],i[0][3],i[0][4],i[0][5]), i[1])
     
     def testCalculateBlocks(self):
         testCases = []
@@ -752,7 +746,7 @@ class TestDashboard(unittest.TestCase):
             inputBlockVals = []
             inputBlockYs = []
             inputBlockWidths = []
-            db.calculateBlocks(i[0][0],i[0][1],i[0][2],i[0][3], inputBlockVals, inputBlockWidths, inputBlockYs, i[0][4])
+            iclip.calculateBlocks(i[0][0],i[0][1],i[0][2],i[0][3], inputBlockVals, inputBlockWidths, inputBlockYs, i[0][4])
             output = (inputBlockVals, inputBlockYs, inputBlockWidths)
             self.assertEqual(output, i[1])
             
