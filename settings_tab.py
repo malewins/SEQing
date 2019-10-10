@@ -45,7 +45,7 @@ def changeLegendSpacing(value):
     dash.dependencies.Output('rDisp', component_property='children'),
     [dash.dependencies.Input('rInput', component_property='value')]
 )
-def showR(self,r):
+def showR(r):
     """Callback to display current value for red
 
     Positional arguments:
