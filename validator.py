@@ -55,6 +55,7 @@ colorMap = {}
 coverageColors = ['rgb(255,0,0)', 'rgb(255,165,0)','rgb(255,255,0)','rgb(0,0,255)', 'rgb(128,0,128)']
 coverageColorDict = {}
 eventColors = ['rgb(0,0,255)', 'rgb(255,0,0)', 'rgb(0,255,0)', 'rgb(128,0,128)', 'rgb(255,165,0)']
+chunkSize = 10000
 spliceEventColors = {} # dictionary for slice event colors
 # Headers for the data files, files obviously need to conform to these headers for the visualization to work
 bedHeader = ['chrom','chromStart','chromEnd','name','score','strand','thickStart',
@@ -479,7 +480,7 @@ def loadCoverageData():
                 df.sort_values(by=['chromStart'])
                 # Split dataframe into small parts, these will be pickled and loaded on demand.
                 # Store covered region as minimum starting point and maximum ending point in the file name.
-                dfList = [df.iloc[i:i+10000,] for i in range(0, len(df),10000)]
+                dfList = [df.iloc[i:i+chunkSize,] for i in range(0, len(df),chunkSize)]
                 # This index will be used to filter out relevant files during runtime
                 fileIndex = pandas.DataFrame(columns = ['start', 'end', 'fileName'])
                 for i in dfList: 
@@ -527,7 +528,7 @@ def loadCoverageData():
                     print('File ' + str(path.stem) + ' had errornous datatypes or missing values, skipping: ' + str(e))    
                 if validation[0]:
                     df.sort_values(by=['chromStart'])
-                    dfList = [df.iloc[i:i+10000,] for i in range(0, len(df),10000)]
+                    dfList = [df.iloc[i:i+chunkSize,] for i in range(0, len(df),chunkSize)]
                     fileIndex = pandas.DataFrame(columns = ['start', 'end', 'fileName'])
                     for i in dfList:
                         end = i['chromEnd'].max()    
@@ -694,6 +695,12 @@ parser.add_argument('-pswd',
                     type = str,
                     default = '',
                     metavar = 'String')
+parser.add_argument('-chunksize',
+                    dest = 'chunkSize',
+                    help = '''Allows specification of the chunk size usedfor subdividing coverage data in lines. Default is 10000''',
+                    type = int,
+                    default = 10000,
+                    metavar = 'Integer')
 parser.add_argument('-name',
                     dest = 'name',
                     help = '''Name to create subfolder for binary files''',
@@ -722,6 +729,7 @@ if __name__ == '__main__':
         sortKeys = args.keys
         spliceSitePaths = args.splice_data
         spliceEventsPaths = args.splice_events
+        chunkSize = args.chunkSize
         try:
             advancedDescPath = Path(args.advancedDesc)
         except TypeError:
