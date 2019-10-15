@@ -10,36 +10,17 @@ import cfg
 tableColors = ['rgb(255, 255 ,255)', 'rgb(220, 220, 220)']
 
 @app.callback(
-    dash.dependencies.Output('advMem', component_property='children'),
+    dash.dependencies.Output('detailMainDiv', component_property = 'children'),
     [dash.dependencies.Input('geneDrop', 'value')]
 )
-def storeDesc(geneName):
-    """ Save description data to hidden div for display
-    
-    Positional arguments:
-    nlicks -- Button parameter
-    geneName -- Name of the currently selected gene
-    """
-    
-    if cfg.advancedDesc is not None:
-        df = cfg.advancedDesc[cfg.advancedDesc['gene_ids'].str.contains(geneName)]
-        return df.to_json(orient = 'split')
-
-@app.callback(
-    dash.dependencies.Output('detailMainDiv', component_property = 'children'),
-    [dash.dependencies.Input('advMem', 'children')],
-    [dash.dependencies.State('geneDrop', 'value')]
-)
-def showDetails(data, name):
+def showDetails(name):
     """ Create tabular view of additional data
 
     Positional arguments:
     data -- Data for the current gene, as json string(dict)
     name -- Gene name for initialization
     """
-    try:
-        df = pandas.read_json(data, orient='split')
-    except ValueError:
+    if cfg.advancedDesc is not None:
         try:
             df = cfg.advancedDesc[cfg.advancedDesc['gene_ids'].str.contains(name)]
         except TypeError:

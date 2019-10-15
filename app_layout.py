@@ -303,14 +303,7 @@ if __name__ == '__main__':
                                                         dcc.Loading(
                                                         id ="iCLIP_loading",
                                                         type = 'dot',
-                                                        children = [
-                                                        html.Div(
-                                                            children = [
-                                                                html.Div(id = 'advMem',
-                                                                    style = {'display' : 'none'}
-                                                                )
-                                                            ]
-                                                        ),                                                                
+                                                        children = [                                                               
                                                         dcc.Graph(id='bsGraph',
                                                             style = {'padding' : '3px'},
                                                             config = {'toImageButtonOptions' : 
@@ -805,13 +798,6 @@ def showHelpPopup(open_click, close_click):
         return {"display": "block"}
     else:
         return {"display": "none"}
-
-
-
-
-
-
-
 
 if __name__ == '__main__':
     app.run_server(debug=True, host='0.0.0.0', port=cfg.port, use_reloader=False)
