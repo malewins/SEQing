@@ -107,14 +107,16 @@ def previewColor(r, g, b):
 
 @app.callback(
     dash.dependencies.Output('rInput', component_property='value'),
-    [dash.dependencies.Input('colorDrop', 'value')],
+    [dash.dependencies.Input('colorDrop', 'value'),
+     dash.dependencies.Input('geneDrop', 'value')],
     [dash.dependencies.State('colorFinal', 'children')]
 )
-def rCallback(dataset, colors):
+def rCallback(dataset, geneid, colors):
     """Callback to set initial value of red slider from dict
 
     Positional arguments:
     dataset -- Currently selected dataset
+    geneid -- not needed, only to register input
     colors -- Dictionary containing the color values(json string)
     """
 
@@ -128,14 +130,16 @@ def rCallback(dataset, colors):
 
 @app.callback(
     dash.dependencies.Output('gInput', component_property='value'),
-    [dash.dependencies.Input('colorDrop', 'value')],
+    [dash.dependencies.Input('colorDrop', 'value'),
+     dash.dependencies.Input('geneDrop', 'value')],
     [dash.dependencies.State('colorFinal', 'children')]
 )
-def gCallback(dataset, colors):
+def gCallback(dataset, geneid, colors):
     """Callback to set initial value of green slider from dict
 
     Positional arguments:
     dataset -- Currently selected dataset
+    geneid -- not needed, only to register input
     colors -- Dictionary containing the color values(json string)
     """
     colorsDict = json.loads(colors)
@@ -148,14 +152,16 @@ def gCallback(dataset, colors):
 
 @app.callback(
     dash.dependencies.Output('bInput', component_property='value'),
-    [dash.dependencies.Input('colorDrop', 'value')],
+    [dash.dependencies.Input('colorDrop', 'value'),
+     dash.dependencies.Input('geneDrop', 'value')],
     [dash.dependencies.State('colorFinal', 'children')]
 )
-def bCallback(dataset, colors):
+def bCallback(dataset, geneid, colors):
     """Callback to set initial value of blue slider from dict
 
     Positional arguments:
     dataset -- Currently selected dataset
+    geneid -- not needed, only to register input
     colors -- Dictionary containing the color values(json string)
     """
     colorsDict = json.loads(colors)
