@@ -412,7 +412,7 @@ class TestDashboard(unittest.TestCase):
                            )
         isoforms = [(1, 6, 'test.1'),(6, 12, 'test.2')]
         caseInput = ([records], isoforms, 12)
-        caseOutput = 'ATTTA'
+        caseOutput = 'ATTTA      '
         testCases.append((caseInput, caseOutput))
         # Standalone with errornous Sequence
         records = collections.OrderedDict()
@@ -423,7 +423,7 @@ class TestDashboard(unittest.TestCase):
                            )
         isoforms = [(1, 6, 'test.1'),(8, 14, 'test.2')]
         caseInput = ([records], isoforms, 14)
-        caseOutput = 'ATTTA'
+        caseOutput = 'ATTTA        '
         testCases.append((caseInput, caseOutput))
         
         records = collections.OrderedDict()

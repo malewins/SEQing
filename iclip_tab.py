@@ -326,7 +326,7 @@ def generateMasterSequence(sequences, isoforms, xAxisMin, xAxisMax):
                     provEnd = elem[1]
         if currentEnd >= xAxisMax: # The master sequence is complete, the entire region is covered
             break
-    if provEnd != -1:
+    if provEnd != -1 or currentEnd < xAxisMax:
         combinedSeq += ' '*(xAxisMax-currentEnd)
     return combinedSeq
 
