@@ -228,10 +228,9 @@ def iCLIPCallback(geneName, dataSets, seqDisp, colorsFinal, legendSpacing):
         isoformRanges.append((elem.chromStart, elem.chromEnd, name))
     # Create master sequence for sequence display
     try:
-        combinedSeq = generateMasterSequence(cfg.sequences, isoformRanges, xAxisMax)
+        combinedSeq = generateMasterSequence(cfg.sequences, isoformRanges, xAxisMin, xAxisMax)
     except TypeError:
         combinedSeq = ''
-
     try:  # Create traces for sequence display, either scatter or heatmap
         figData.update({'heatSeq' : createSequenceTrace('heatSeq', strand, combinedSeq, xAxisMin, xAxisMax)})
         figData.update({'letterSeq' : createSequenceTrace('letterSeq', strand, combinedSeq, xAxisMin, xAxisMax)})
@@ -251,7 +250,7 @@ def iCLIPCallback(geneName, dataSets, seqDisp, colorsFinal, legendSpacing):
     figData.update({'geneModels' : geneModels})
     return json.dumps(figData, cls=pu.PlotlyJSONEncoder)
 
-def generateMasterSequence(sequences, isoforms, xAxisMax):
+def generateMasterSequence(sequences, isoforms, xAxisMin, xAxisMax):
     """Helper function that creates a master sequence given a dataframe with sequences and a list containing
         start and end points as well as names for the relevant isoforms
     
@@ -271,7 +270,6 @@ def generateMasterSequence(sequences, isoforms, xAxisMax):
     # gene sequence, if possible, albeit not necessarily with the least amount of subsequences
     isoforms.sort()
     # Initialize using the leftmost sequence
-    currentEnd = isoforms[0][1]
     seqDict = None
     try:
         for i in sequences: # Determine which dict contains the relevant sequences, all have to be in the same dict
@@ -281,14 +279,17 @@ def generateMasterSequence(sequences, isoforms, xAxisMax):
         return ''
     if seqDict == None:
         return ''
-    if len(str(seqDict[isoforms[0][2]].seq)) == isoforms[0][1]- isoforms[0][0]:
-        combinedSeq = str(seqDict[isoforms[0][2]].seq)
-    else:
-        if len(str(seqDict[isoforms[0][2]].seq)) < isoforms[0][1]- isoforms[0][0]:
-            combinedSeq = str(seqDict[isoforms[0][2]].seq)
-            combinedSeq += ' '* (isoforms[0][1]-(len(str(seqDict[isoforms[0][2]].seq)))-1)
-        else:
-            combinedSeq = str(seqDict[isoforms[0][2]].seq)[0:isoforms[0][1]]        
+    combinedSeq = ''
+    for elem in isoforms:
+        if len(str(seqDict[elem[2]].seq)) == elem[1]- elem[0]:
+            if elem[0] > xAxisMin:
+                combinedSeq = ' '*(elem[0]-xAxisMin-1) + str(seqDict[elem[2]].seq)
+            else:
+                combinedSeq = str(seqDict[elem[2]].seq)
+            currentEnd = elem[1]
+            break
+    if combinedSeq == '':
+        return ''
     # Loop through elements and try to append sequences
     for elem in isoforms:
         provEnd = -1 # Used to fill blanks resulting from bad isoform names
@@ -302,39 +303,25 @@ def generateMasterSequence(sequences, isoforms, xAxisMax):
                         combinedSeq += ' ' * (elem[0]-provEnd)
                         provEnd = -1
                 try:
-                    if len(str(seqDict[elem[2]].seq)[(currentEnd - elem[0]):]) == (elem[1]- elem[0]):
+                    if len(str(seqDict[elem[2]].seq)) == (elem[1]- elem[0]):
                         combinedSeq += str(seqDict[elem[2]].seq)[(currentEnd - elem[0]):]
-                        currentEnd = elem[1]
-                    else:
-                        if len(str(seqDict[elem[2]].seq)[(currentEnd - elem[0]):]) < (elem[1]- elem[0]):
-                            combinedSeq += str(seqDict[elem[2]].seq)[(currentEnd - elem[0]):]
-                            combinedSeq += ' ' * ((elem[1] -elem[0]) - len(str(seqDict[elem[2]].seq)[(currentEnd - elem[0]):]))
-                            currentEnd = elem[1]
-                        else:
-                            combinedSeq += str(seqDict[elem[2]].seq)[(currentEnd - elem[0]):elem[1]]    
-                            currentEnd = elem[1]                          
+                        currentEnd = elem[1]           
                 except KeyError:
                     provEnd = elem[1]
             else: # Current element does not overlap but will add to the sequence, fill with gaps
                 try:
-                    if provEnd != -1: # Check if sequence before triggered a KeyError and fill gaps
-                        if elem[0] >= provEnd:
-                            combinedSeq += ' '*(elem[0]-currentEnd)
-                            provEnd = -1
-                        if elem[0] < provEnd:
-                            combinedSeq += ' ' * (elem[0]-provEnd)
-                            provEnd = -1
-                    fillerDist = elem[0] - currentEnd
-                    combinedSeq += ' ' * fillerDist
                     if len(seqDict[elem[2]].seq) == (elem[1]-elem[0]):
+                        if provEnd != -1: # Check if sequence before triggered a KeyError and fill gaps
+                            if elem[0] >= provEnd:
+                                combinedSeq += ' '*(elem[0]-currentEnd)
+                                provEnd = -1
+                            if elem[0] < provEnd:
+                                combinedSeq += ' ' * (elem[0]-provEnd)
+                                provEnd = -1
+                        fillerDist = elem[0] - currentEnd
+                        combinedSeq += ' ' * fillerDist
                         combinedSeq += str(seqDict[elem[2]].seq)
-                    else:
-                        if len(seqDict[elem[2]].seq) < (elem[1]-elem[0]):
-                            combinedSeq += str(seqDict[elem[2]].seq)
-                            combinedSeq += ' ' * (elem[1]- (elem[0]+ len(seqDict[elem[2]].seq)))
-                        else:
-                            combinedSeq += str(seqDict[elem[2]].seq)[:elem[1]-elem[0]]
-                    currentEnd = elem[1]
+                        currentEnd = elem[1]
                 except KeyError:
                     provEnd = elem[1]
         if currentEnd >= xAxisMax: # The master sequence is complete, the entire region is covered
@@ -567,7 +554,6 @@ def createSequenceTrace(seqDisp, strand, combinedSeq, xAxisMin, xAxisMax):
     xAxisMin -- Startpoint
     xAxisMax -- Endpoit
     """
-
     if seqDisp == 'letterSeq':
         xA = []
         xC = []

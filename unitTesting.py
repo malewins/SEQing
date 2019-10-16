@@ -305,14 +305,14 @@ class TestDashboard(unittest.TestCase):
         testCases.append((caseInput, caseOutput))
         
         records = collections.OrderedDict()
-        records['test.1'] = SeqRecord(Seq('ATTTA', generic_dna), id ='test.1::Chr1:1-6', name = 'test.1::Chr1:1-6',
+        records['test.1'] = SeqRecord(Seq('AT', generic_dna), id ='test.1::Chr1:1-6', name = 'test.1::Chr1:1-6',
                            description = 'test.1::Chr1:1-6')
         records['test.2'] = SeqRecord(Seq('AAAAGCGGGG', generic_dna), id ='test.2::Chr1:6-12', name = 'test.2::Chr1:6-12',
                            description = 'test.2::Chr1:6-12'
                            )
-        isoforms = [(1, 6, 'test.1'),(8, 12, 'test.2')]
+        isoforms = [(1, 6, 'test.1'),(2, 12, 'test.2')]
         caseInput = ([records], isoforms, 12)
-        caseOutput = 'ATTTA  AAAA'
+        caseOutput = ' AAAAGCGGGG'
         testCases.append((caseInput, caseOutput))
         # test more than 2 sequences
         records = collections.OrderedDict()
@@ -324,9 +324,9 @@ class TestDashboard(unittest.TestCase):
         records['test.3'] = SeqRecord(Seq('TACTAC', generic_dna), id ='test.3::Chr1:12-18', name = 'test.2::Chr1:12-18',
                            description = 'test.2::Chr1:12-18'
                            )
-        isoforms = [(1, 6, 'test.1'),(6, 12, 'test.2'),(12, 18, 'test.3')]
+        isoforms = [(1, 6, 'test.1'),(6, 11, 'test.2'),(12, 18, 'test.3')]
         caseInput = ([records], isoforms, 18)
-        caseOutput = 'ATTTAGCGCGCTACTAC'
+        caseOutput = 'ATTTA      TACTAC'
         testCases.append((caseInput, caseOutput))
         # test simple gap insertion
         records = collections.OrderedDict()
@@ -401,7 +401,7 @@ class TestDashboard(unittest.TestCase):
                            )
         isoforms = [(1, 6, 'test.1'),(6, 12, 'test.2')]
         caseInput = ([records], isoforms, 12)
-        caseOutput = 'AT   GCGCGC'
+        caseOutput = '     GCGCGC'
         testCases.append((caseInput, caseOutput))
         # Overlap with errornous sequence
         records = collections.OrderedDict()
@@ -412,7 +412,7 @@ class TestDashboard(unittest.TestCase):
                            )
         isoforms = [(1, 6, 'test.1'),(6, 12, 'test.2')]
         caseInput = ([records], isoforms, 12)
-        caseOutput = 'ATTTAGC    '
+        caseOutput = 'ATTTA'
         testCases.append((caseInput, caseOutput))
         # Standalone with errornous Sequence
         records = collections.OrderedDict()
@@ -423,7 +423,7 @@ class TestDashboard(unittest.TestCase):
                            )
         isoforms = [(1, 6, 'test.1'),(8, 14, 'test.2')]
         caseInput = ([records], isoforms, 14)
-        caseOutput = 'ATTTA  GC    '
+        caseOutput = 'ATTTA'
         testCases.append((caseInput, caseOutput))
         
         records = collections.OrderedDict()
@@ -454,7 +454,7 @@ class TestDashboard(unittest.TestCase):
         caseOutput = ''
         testCases.append((caseInput, caseOutput))
         for i in testCases:
-            self.assertEqual(iclip.generateMasterSequence(i[0][0], i[0][1], i[0][2]), i[1])
+            self.assertEqual(iclip.generateMasterSequence(i[0][0], i[0][1], 0, i[0][2]), i[1])
             
     def testCreateDetailRow(self):
         testCases = []
