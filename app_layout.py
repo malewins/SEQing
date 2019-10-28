@@ -30,8 +30,11 @@ if __name__ == '__main__':
   
     #settings_tab.init(geneAnnotations)
     #description_tab.init(subTables, advancedDesc)
-        
-    helpText = '''
+    try:
+        myfile = open ("../help_text.md", "r")
+        helpText = myfile.read()  
+    except FileNotFoundError:
+        helpText = '''
                 ##### General
                 
                 Welcome to SEQing, an interactive, web based visualisation and exploration tool for iCLIP-seq and RNA-seq data.

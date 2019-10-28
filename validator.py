@@ -14,11 +14,12 @@ import pandas
 from Bio import SeqIO
 from Bio.Alphabet import generic_dna
 import converter
+import time
 
 __author__ = "Yannik Bramkamp"
 
 
-
+start = time.time()
 
 plotColors = []
 geneAnnotations = []
@@ -951,5 +952,6 @@ if __name__ == '__main__':
         'eventTypes' : sorted(spliceEventTypes), # List containing types of splice events
         'authentication': password, # Password for authentication
         'coverageData' : fileDict} # Types of splice events
-    
+    end = time.time()
+    print(end-start)
     runpy.run_module('app_layout', init_globals = globalDict, run_name = '__main__')
