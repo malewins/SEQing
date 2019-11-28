@@ -73,11 +73,12 @@ def showICLIP(figData, dataSets, seqDisp, colorF, legendSpacing):
                 
                 numRows += 1
                 if len(elem) == 2:
-                    elements = elem[1]
-                    for i in elements:
-                        i['marker'] = {'color' : newColor}
-                    traces.append(elements)
-                    numRows += 1
+                    if elem[1] != [] or cfg.procAvail:
+                        elements = elem[1]
+                        for i in elements:
+                            i['marker'] = {'color' : newColor}
+                        traces.append(elements)
+                        numRows += 1
     for i in figData['geneModels']:
         traces.append(i)
         numRows += 1
