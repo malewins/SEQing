@@ -25,6 +25,8 @@ def showDetails(name):
             df = cfg.advancedDesc[cfg.advancedDesc['gene_ids'].str.contains(name)]
         except TypeError:
             df = pandas.DataFrame()
+    else:
+        df = pandas.DataFrame()
     columns = list(df.columns.values)
     rowCounter = 1  # Keep track of the row number to alternate coloring
     usedColumns = []  # Keeps track of preset columns already added, needed later

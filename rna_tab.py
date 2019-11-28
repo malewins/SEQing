@@ -48,7 +48,7 @@ def rnaDesc(name):
      dash.dependencies.Input('eventScale', 'value')]
 )
 def showRNA(figData, dataSets, displayType, covColor, eventColor, legendSpacing, coverageScale, eventScale):
-    print('ShowStart')
+    #print('ShowStart')
     start = time.time()
     legendColumnSpacing = json.loads(legendSpacing)
     figData = json.loads(figData)
@@ -212,7 +212,7 @@ def showRNA(figData, dataSets, displayType, covColor, eventColor, legendSpacing,
     # set spacing for the second legend column
     fig['layout']['legend'].update(x = legendColumnSpacing)
     end = time.time()
-    print('Showcallback: ' + str(end-start))
+    #print('Showcallback: ' + str(end-start))
     return fig
 
 @app.callback(
@@ -324,10 +324,10 @@ def rnaCallback(geneName, displayMode,rnaParamList, colorsFinal, eventColorsFina
         maxYVals.update({ds: max(yVal)})
         if max(yVal) > maxYVal: maxYVal = max(yVal)
     end = time.time()
-    print('Data selection ' + str(end-start))
-    print('Iteration: ' + str(iterTime))
-    print('covSel: ' + str(covSel))
-    print('evSel: ' + str(evSel))
+    #print('Data selection ' + str(end-start))
+   # print('Iteration: ' + str(iterTime))
+    #print('covSel: ' + str(covSel))
+    #print('evSel: ' + str(evSel))
     figData.update({'maxY' : maxYVal})
     figData.update({'maxYList' : maxYVals})
     # Create
@@ -335,7 +335,7 @@ def rnaCallback(geneName, displayMode,rnaParamList, colorsFinal, eventColorsFina
     rnaSeqPlotData = createRNAPlots(xVals, yVals, eventDict, displayed_rnaDataSet, 
                           color_dict, displayMode, eventColorsFinal)
     plotEnd = time.time()
-    print('Plotting: ' + str(plotEnd-plotStart))
+    #print('Plotting: ' + str(plotEnd-plotStart))
     traces = rnaSeqPlotData[0]
     eventMaxHeights = rnaSeqPlotData[1]
     axisTitles = rnaSeqPlotData[2]
@@ -363,7 +363,7 @@ def rnaCallback(geneName, displayMode,rnaParamList, colorsFinal, eventColorsFina
     geneModels = createGeneModelPlot(isoformList, xAxisMin, xAxisMax, blockHeight, strand)
     figData.update({'geneModels' : geneModels})
     end = time.time()
-    print('Calccallback: ' + str(end-start))
+    #print('Calccallback: ' + str(end-start))
     return json.dumps(figData, cls=pu.PlotlyJSONEncoder)
 
 def coverageDataSelection(ds, xAxisMin, xAxisMax, chrom):
@@ -394,7 +394,7 @@ def coverageDataSelection(ds, xAxisMin, xAxisMax, chrom):
         except FileNotFoundError:
             print(i.fileName + ' was not found')
     end = time.time()
-    print(end-start)
+    #print(end-start)
     try: # Final selection of relevant values from the combined df
         finalDF = pandas.concat(finalDF)
         bcrit11 = finalDF['chrom'] == chrom
@@ -450,8 +450,8 @@ def createRNAPlots(xVals, yVals, eventData, displayed, colorDict,
         if cfg.spliceEventAvail:
             start = time.time()
             data.append(createEventPlots(eventData, ds, axisTitles, eventMaxHeights, evColors, legendSet))
-            print('EventCalc ' + str(time.time()-start))
-    print('coverage time : ' + str(covTime))
+            #print('EventCalc ' + str(time.time()-start))
+    #print('coverage time : ' + str(covTime))
     return (data, eventMaxHeights, axisTitles)
 
 def createAreaChart(xVals, yVals, ds, colorDict, axisTitles):

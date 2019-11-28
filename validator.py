@@ -897,7 +897,6 @@ if __name__ == '__main__':
     out.close()
     
     loadSpliceEvents()
-    print('post_splice')
     
     # Keys for sorting of dataset names in iCLIP tab
     if sortKeys == None:
@@ -953,5 +952,4 @@ if __name__ == '__main__':
         'authentication': password, # Password for authentication
         'coverageData' : fileDict} # Types of splice events
     end = time.time()
-    print(end-start)
     runpy.run_module('app_layout', init_globals = globalDict, run_name = '__main__')
