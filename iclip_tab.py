@@ -110,7 +110,7 @@ def showICLIP(figData, dataSets, seqDisp, colorF, legendSpacing):
         
     rowHeights = [rowHeight] * numIsoforms + dataSetHeights * numParams + [rowHeight]
     blockHeight = 0.4
-    fig = tools.make_subplots(rows=numRows, cols=1, shared_xaxes=True, vertical_spacing=vSpace, row_width=rowHeights)
+    fig = tools.make_subplots(print_grid=False, rows=numRows, cols=1, shared_xaxes=True, vertical_spacing=vSpace, row_width=rowHeights)
     for i in seqTrace:
         fig.append_trace(i, 1, 1)
 

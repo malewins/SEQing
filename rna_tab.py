@@ -142,7 +142,7 @@ def showRNA(figData, dataSets, displayType, covColor, eventColor, legendSpacing,
             else:
                 rowHeights.append(3 * rowHeight * coverageScale) # Coverage row
 
-    fig = tools.make_subplots(rows=numRows, cols=1,
+    fig = tools.make_subplots(print_grid=False, rows=numRows, cols=1,
                               shared_xaxes=True, row_width=rowHeights[::-1], vertical_spacing = vSpace)
         # Layouting of the figure
     eventIndicesDraw = [] # Save indices of all elements that contain event traces
