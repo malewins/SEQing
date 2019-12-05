@@ -17,7 +17,6 @@ def showDetails(name):
     """ Create tabular view of additional data
 
     Positional arguments:
-    data -- Data for the current gene, as json string(dict)
     name -- Gene name for initialization
     """
     if cfg.advancedDesc is not None:

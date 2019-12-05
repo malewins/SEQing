@@ -38,24 +38,24 @@ def rnaDesc(name):
 
 @app.callback(
     dash.dependencies.Output('spliceGraph', 'figure'),
-    [dash.dependencies.Input('spliceMem', 'children'),
+    [dash.dependencies.Input('spliceMem', 'data'),
      dash.dependencies.Input('rnaParamList', 'values'),
      dash.dependencies.Input('rnaRadio', 'value'),
-     dash.dependencies.Input('covColorFinal', 'children'),
-     dash.dependencies.Input('eventColorFinal', 'children'),
-     dash.dependencies.Input('legendSpacingDiv', 'children'),
+     dash.dependencies.Input('covColorFinal', 'data'),
+     dash.dependencies.Input('eventColorFinal', 'data'),
+     dash.dependencies.Input('legendSpacingDiv', 'data'),
      dash.dependencies.Input('coverageScale', 'value'),
      dash.dependencies.Input('eventScale', 'value')]
 )
 def showRNA(figData, dataSets, displayType, covColor, eventColor, legendSpacing, coverageScale, eventScale):
     #print('ShowStart')
     start = time.time()
-    legendColumnSpacing = json.loads(legendSpacing)
-    figData = json.loads(figData)
+    legendColumnSpacing = legendSpacing
+    figData = figData
     traces = figData['rnaTraces']
     geneModels = figData['geneModels']
-    coverageColors = json.loads(covColor)
-    eventColors = json.loads(eventColor)
+    coverageColors = covColor
+    eventColors = eventColor
     eventIndices = [] # Save indices of all elements that contain event traces
     rnaDataSets = sorted(list(cfg.coverageData.keys()))
     displayed_rnaDataSet = []
@@ -216,13 +216,13 @@ def showRNA(figData, dataSets, displayType, covColor, eventColor, legendSpacing,
     return fig
 
 @app.callback(
-    dash.dependencies.Output('spliceMem', 'children'),
+    dash.dependencies.Output('spliceMem', 'data'),
     [dash.dependencies.Input('geneDrop', 'value')],
     [dash.dependencies.State('rnaRadio', 'value'),
      dash.dependencies.State('rnaParamList', 'values'),
-     dash.dependencies.State('covColorFinal', 'children'),
-     dash.dependencies.State('eventColorFinal', 'children'),
-     dash.dependencies.State('legendSpacingDiv', 'children'),
+     dash.dependencies.State('covColorFinal', 'data'),
+     dash.dependencies.State('eventColorFinal', 'data'),
+     dash.dependencies.State('legendSpacingDiv', 'data'),
      dash.dependencies.State('coverageScale', 'value'),
      dash.dependencies.State('eventScale', 'value')]
 )
@@ -259,7 +259,7 @@ def rnaCallback(geneName, displayMode,rnaParamList, colorsFinal, eventColorsFina
     chrom = currentGene['chrom'].iloc[0]
     strand = currentGene['strand'].iloc[0]
     figData.update({'strand': strand})
-    color_dict = json.loads(colors)  # Color per mutant
+    color_dict = colors  # Color per mutant
     figData.update({'covColors' : color_dict})
     # Filter out needed datasets
     rnaDataSets = sorted(list(cfg.coverageData.keys()))
@@ -364,7 +364,7 @@ def rnaCallback(geneName, displayMode,rnaParamList, colorsFinal, eventColorsFina
     figData.update({'geneModels' : geneModels})
     end = time.time()
     #print('Calccallback: ' + str(end-start))
-    return json.dumps(figData, cls=pu.PlotlyJSONEncoder)
+    return figData
 
 def coverageDataSelection(ds, xAxisMin, xAxisMax, chrom):
     """ This function performs selection and loading of relevant coverage data. 
@@ -431,7 +431,7 @@ def createRNAPlots(xVals, yVals, eventData, displayed, colorDict,
     eventColorsFinal -- last confirmed colors for splice events
     """
     # Select correct colorset depending on whih button was pressed last
-    evColors = json.loads(eventColorsFinal)
+    evColors = eventColorsFinal
 
         
     data = [] # Will hold all generated traces

@@ -34,11 +34,11 @@ def changeFormatRNA(imgFormat):
                 'scale' : 1.0, 'height' : None, 'format' : imgFormat} }
                                      
 @app.callback(
-    dash.dependencies.Output('legendSpacingDiv', 'children'),
+    dash.dependencies.Output('legendSpacingDiv', 'data'),
     [dash.dependencies.Input('legendSpacingSlider', 'value')]
 )
 def changeLegendSpacing(value):
-    return json.dumps(value)
+    return value
 
 
 @app.callback(
@@ -109,7 +109,7 @@ def previewColor(r, g, b):
     dash.dependencies.Output('rInput', component_property='value'),
     [dash.dependencies.Input('colorDrop', 'value'),
      dash.dependencies.Input('geneDrop', 'value')],
-    [dash.dependencies.State('colorFinal', 'children')]
+    [dash.dependencies.State('colorFinal', 'data')]
 )
 def rCallback(dataset, geneid, colors):
     """Callback to set initial value of red slider from dict
@@ -120,7 +120,7 @@ def rCallback(dataset, geneid, colors):
     colors -- Dictionary containing the color values(json string)
     """
 
-    colorsDict = json.loads(colors)
+    colorsDict = colors
     try:
         colorVal = colorsDict[dataset][4:-1].split(',')[0]
         return int(colorVal)
@@ -132,7 +132,7 @@ def rCallback(dataset, geneid, colors):
     dash.dependencies.Output('gInput', component_property='value'),
     [dash.dependencies.Input('colorDrop', 'value'),
      dash.dependencies.Input('geneDrop', 'value')],
-    [dash.dependencies.State('colorFinal', 'children')]
+    [dash.dependencies.State('colorFinal', 'data')]
 )
 def gCallback(dataset, geneid, colors):
     """Callback to set initial value of green slider from dict
@@ -142,7 +142,7 @@ def gCallback(dataset, geneid, colors):
     geneid -- not needed, only to register input
     colors -- Dictionary containing the color values(json string)
     """
-    colorsDict = json.loads(colors)
+    colorsDict = colors
     try:
         colorVal = colorsDict[dataset][4:-1].split(',')[1]
         return int(colorVal)
@@ -154,7 +154,7 @@ def gCallback(dataset, geneid, colors):
     dash.dependencies.Output('bInput', component_property='value'),
     [dash.dependencies.Input('colorDrop', 'value'),
      dash.dependencies.Input('geneDrop', 'value')],
-    [dash.dependencies.State('colorFinal', 'children')]
+    [dash.dependencies.State('colorFinal', 'data')]
 )
 def bCallback(dataset, geneid, colors):
     """Callback to set initial value of blue slider from dict
@@ -164,7 +164,7 @@ def bCallback(dataset, geneid, colors):
     geneid -- not needed, only to register input
     colors -- Dictionary containing the color values(json string)
     """
-    colorsDict = json.loads(colors)
+    colorsDict = colors
     try:
         colorVal = colorsDict[dataset][4:-1].split(',')[2]
         return int(colorVal)
@@ -173,13 +173,13 @@ def bCallback(dataset, geneid, colors):
 
 
 @app.callback(
-    dash.dependencies.Output('colorFinal', component_property='children'),
+    dash.dependencies.Output('colorFinal', component_property='data'),
     [dash.dependencies.Input('colorConfirm', 'n_clicks')],
     [dash.dependencies.State('rInput', 'value'),
      dash.dependencies.State('gInput', 'value'),
      dash.dependencies.State('bInput', 'value'),
      dash.dependencies.State('colorDrop', 'value'),
-     dash.dependencies.State('colorFinal', 'children')]
+     dash.dependencies.State('colorFinal', 'data')]
 )
 def confirmColor(nclicks, r, g, b, dataset, backup):
     """ Callback to confirm a color. This will overwrite the previous one.
@@ -195,19 +195,19 @@ def confirmColor(nclicks, r, g, b, dataset, backup):
     if r == None or b == None or g == None:
         return backup
     else:
-        colorDict = json.loads(backup)
+        colorDict = backup
         colorString = 'rgb(' + str(r) + ', ' + str(g) + ', ' + str(b) + ')'
         colorDict.update({dataset: colorString})
-        return json.dumps(colorDict)
+        return colorDict
 
 
 @app.callback(
-    dash.dependencies.Output('colorDiv', component_property='children'),
+    dash.dependencies.Output('colorDiv', component_property='data'),
     [dash.dependencies.Input('rInput', 'value'),
      dash.dependencies.Input('gInput', 'value'),
      dash.dependencies.Input('bInput', 'value')],
     [dash.dependencies.State('colorDrop', 'value'),
-     dash.dependencies.State('colorDiv', 'children')]
+     dash.dependencies.State('colorDiv', 'data')]
 )
 def changeColor(r, g, b, dataset, oldColors):
     """Callback to set new color values and save them as json string
@@ -222,11 +222,11 @@ def changeColor(r, g, b, dataset, oldColors):
     if r == None or b == None or g == None:
         return oldColors
     else:
-        colorDict = json.loads(oldColors)
+        colorDict = oldColors
         colorString = 'rgb(' + str(r) + ', ' + str(g) + ', ' + str(b) + ')'
         colorDict.update({dataset: colorString})
-        return json.dumps(colorDict)
-    
+        return colorDict
+
     
 @app.callback(
     dash.dependencies.Output('covRDisp', component_property='children'),
@@ -296,7 +296,7 @@ def previewColorCov(r, g, b):
 @app.callback(
     dash.dependencies.Output('covRInput', component_property='value'),
     [dash.dependencies.Input('covColorDrop', 'value')],
-    [dash.dependencies.State('covColorFinal', 'children')]
+    [dash.dependencies.State('covColorFinal', 'data')]
 )
 def rCallbackCov(dataset, colors):
     """Callback to set initial value of red slider from dict
@@ -306,7 +306,7 @@ def rCallbackCov(dataset, colors):
     colors -- Dictionary containing the color values(json string)
     """
 
-    colorsDict = json.loads(colors)
+    colorsDict = colors
     try:
         colorVal = colorsDict[dataset][4:-1].split(',')[0]
         return int(colorVal)
@@ -317,7 +317,7 @@ def rCallbackCov(dataset, colors):
 @app.callback(
     dash.dependencies.Output('covGInput', component_property='value'),
     [dash.dependencies.Input('covColorDrop', 'value')],
-    [dash.dependencies.State('covColorFinal', 'children')]
+    [dash.dependencies.State('covColorFinal', 'data')]
 )
 def gCallbackCov(dataset, colors):
     """Callback to set initial value of green slider from dict
@@ -326,7 +326,7 @@ def gCallbackCov(dataset, colors):
     dataset -- Currently selected dataset
     colors -- Dictionary containing the color values(json string)
     """
-    colorsDict = json.loads(colors)
+    colorsDict = colors
     try:
         colorVal = colorsDict[dataset][4:-1].split(',')[1]
         return int(colorVal)
@@ -337,7 +337,7 @@ def gCallbackCov(dataset, colors):
 @app.callback(
     dash.dependencies.Output('covBInput', component_property='value'),
     [dash.dependencies.Input('covColorDrop', 'value')],
-    [dash.dependencies.State('covColorFinal', 'children')]
+    [dash.dependencies.State('covColorFinal', 'data')]
 )
 def bCallbackCov(dataset, colors):
     """Callback to set initial value of blue slider from dict
@@ -346,7 +346,7 @@ def bCallbackCov(dataset, colors):
     dataset -- Currently selected dataset
     colors -- Dictionary containing the color values(json string)
     """
-    colorsDict = json.loads(colors)
+    colorsDict = colors
     try:
         colorVal = colorsDict[dataset][4:-1].split(',')[2]
         return int(colorVal)
@@ -355,13 +355,13 @@ def bCallbackCov(dataset, colors):
 
 
 @app.callback(
-    dash.dependencies.Output('covColorFinal', component_property='children'),
+    dash.dependencies.Output('covColorFinal', component_property='data'),
     [dash.dependencies.Input('covColorConfirm', 'n_clicks')],
     [dash.dependencies.State('covRInput', 'value'),
      dash.dependencies.State('covGInput', 'value'),
      dash.dependencies.State('covBInput', 'value'),
      dash.dependencies.State('covColorDrop', 'value'),
-     dash.dependencies.State('covColorFinal', 'children')]
+     dash.dependencies.State('covColorFinal', 'data')]
 )
 def conFirmColorCov(nclicks, r, g, b, dataset, backup):
     """ Callback to confirm a color. This will overwrite the previous one.
@@ -377,19 +377,19 @@ def conFirmColorCov(nclicks, r, g, b, dataset, backup):
     if r == None or b == None or g == None:
         return backup
     else:
-        colorDict = json.loads(backup)
+        colorDict = backup
         colorString = 'rgb(' + str(r) + ', ' + str(g) + ', ' + str(b) + ')'
         colorDict.update({dataset: colorString})
-        return json.dumps(colorDict)
+        return colorDict
 
 
 @app.callback(
-    dash.dependencies.Output('covColorDiv', component_property='children'),
+    dash.dependencies.Output('covColorDiv', component_property='data'),
     [dash.dependencies.Input('covRInput', 'value'),
      dash.dependencies.Input('covGInput', 'value'),
      dash.dependencies.Input('covBInput', 'value')],
     [dash.dependencies.State('covColorDrop', 'value'),
-     dash.dependencies.State('covColorDiv', 'children')]
+     dash.dependencies.State('covColorDiv', 'data')]
 )
 def changeColorCov(r, g, b, dataset, oldColors):
     """Callback to set new color values and save them as json string
@@ -404,10 +404,10 @@ def changeColorCov(r, g, b, dataset, oldColors):
     if r == None or b == None or g == None:
         return oldColors
     else:
-        colorDict = json.loads(oldColors)
+        colorDict = oldColors
         colorString = 'rgb(' + str(r) + ', ' + str(g) + ', ' + str(b) + ')'
         colorDict.update({dataset: colorString})
-        return json.dumps(colorDict)
+        return colorDict
 
 @app.callback(
     dash.dependencies.Output('eventRDisp', component_property='children'),
@@ -477,7 +477,7 @@ def previewColorEvent(r, g, b):
 @app.callback(
     dash.dependencies.Output('eventRInput', component_property='value'),
     [dash.dependencies.Input('eventColorDrop', 'value')],
-    [dash.dependencies.State('eventColorFinal', 'children')]
+    [dash.dependencies.State('eventColorFinal', 'data')]
 )
 def rCallbackEvent(dataset, colors):
     """Callback to set initial value of red slider from dict
@@ -487,7 +487,7 @@ def rCallbackEvent(dataset, colors):
     colors -- Dictionary containing the color values(json string)
     """
 
-    colorsDict = json.loads(colors)
+    colorsDict = colors
     try:
         colorVal = colorsDict[dataset][4:-1].split(',')[0]
         return int(colorVal)
@@ -498,7 +498,7 @@ def rCallbackEvent(dataset, colors):
 @app.callback(
     dash.dependencies.Output('eventGInput', component_property='value'),
     [dash.dependencies.Input('eventColorDrop', 'value')],
-    [dash.dependencies.State('eventColorFinal', 'children')]
+    [dash.dependencies.State('eventColorFinal', 'data')]
 )
 def gCallbackEvent(dataset, colors):
     """Callback to set initial value of green slider from dict
@@ -507,7 +507,7 @@ def gCallbackEvent(dataset, colors):
     dataset -- Currently selected dataset
     colors -- Dictionary containing the color values(json string)
     """
-    colorsDict = json.loads(colors)
+    colorsDict = colors
     try:
         colorVal = colorsDict[dataset][4:-1].split(',')[1]
         return int(colorVal)
@@ -518,7 +518,7 @@ def gCallbackEvent(dataset, colors):
 @app.callback(
     dash.dependencies.Output('eventBInput', component_property='value'),
     [dash.dependencies.Input('eventColorDrop', 'value')],
-    [dash.dependencies.State('eventColorFinal', 'children')]
+    [dash.dependencies.State('eventColorFinal', 'data')]
 )
 def bCallbackEvent(dataset, colors):
     """Callback to set initial value of blue slider from dict
@@ -527,7 +527,7 @@ def bCallbackEvent(dataset, colors):
     dataset -- Currently selected dataset
     colors -- Dictionary containing the color values(json string)
     """
-    colorsDict = json.loads(colors)
+    colorsDict = colors
     try:
         colorVal = colorsDict[dataset][4:-1].split(',')[2]
         return int(colorVal)
@@ -536,13 +536,13 @@ def bCallbackEvent(dataset, colors):
 
 
 @app.callback(
-    dash.dependencies.Output('eventColorFinal', component_property='children'),
+    dash.dependencies.Output('eventColorFinal', component_property='data'),
     [dash.dependencies.Input('eventColorConfirm', 'n_clicks')],
     [dash.dependencies.State('eventRInput', 'value'),
      dash.dependencies.State('eventGInput', 'value'),
      dash.dependencies.State('eventBInput', 'value'),
      dash.dependencies.State('eventColorDrop', 'value'),
-     dash.dependencies.State('eventColorFinal', 'children')]
+     dash.dependencies.State('eventColorFinal', 'data')]
 )
 def conFirmColorEvent(nclicks, r, g, b, dataset, backup):
     """ Callback to confirm a color. This will overwrite the previous one.
@@ -558,19 +558,19 @@ def conFirmColorEvent(nclicks, r, g, b, dataset, backup):
     if r == None or b == None or g == None:
         return backup
     else:
-        colorDict = json.loads(backup)
+        colorDict = backup
         colorString = 'rgb(' + str(r) + ', ' + str(g) + ', ' + str(b) + ')'
         colorDict.update({dataset: colorString})
-        return json.dumps(colorDict)
+        return colorDict
 
 
 @app.callback(
-    dash.dependencies.Output('eventColorDiv', component_property='children'),
+    dash.dependencies.Output('eventColorDiv', component_property='data'),
     [dash.dependencies.Input('eventRInput', 'value'),
      dash.dependencies.Input('eventGInput', 'value'),
      dash.dependencies.Input('eventBInput', 'value')],
     [dash.dependencies.State('eventColorDrop', 'value'),
-     dash.dependencies.State('eventColorDiv', 'children')]
+     dash.dependencies.State('eventColorDiv', 'data')]
 )
 def changeColorEvent(r, g, b, dataset, oldColors):
     """Callback to set new color values and save them as json string
@@ -585,10 +585,10 @@ def changeColorEvent(r, g, b, dataset, oldColors):
     if r == None or b == None or g == None:
         return oldColors
     else:
-        colorDict = json.loads(oldColors)
+        colorDict = oldColors
         colorString = 'rgb(' + str(r) + ', ' + str(g) + ', ' + str(b) + ')'
         colorDict.update({dataset: colorString})
-        return json.dumps(colorDict)
+        return colorDict
 
 
 

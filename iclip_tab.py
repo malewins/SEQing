@@ -41,23 +41,23 @@ def setDesc(name):
 
 @app.callback(
     dash.dependencies.Output('bsGraph', 'figure'),
-    [dash.dependencies.Input('bsGraphMem', 'children'),
+    [dash.dependencies.Input('bsGraphMem', 'data'),
      dash.dependencies.Input('paramList', 'values'),
      dash.dependencies.Input('sequenceRadio', 'value'),
-     dash.dependencies.Input('colorFinal', 'children'),
-     dash.dependencies.Input('legendSpacingDiv', 'children')]
+     dash.dependencies.Input('colorFinal', 'data'),
+     dash.dependencies.Input('legendSpacingDiv', 'data')]
 )
 def showICLIP(figData, dataSets, seqDisp, colorF, legendSpacing):
-    figData = json.loads(figData)
+    figData = figData
     traces = []
     rowHeights = []
-    legendColumnSpacing = json.loads(legendSpacing)
+    legendColumnSpacing = legendSpacing
     numRows = 1
     try:
         seqTrace = figData[seqDisp]
     except:
         seqTrace = []
-    colorDict = json.loads(colorF)
+    colorDict = colorF
     numIsoforms = len(figData['geneModels'])
     numParams = 0
     for index, elem in enumerate(figData['iCLIPTraces']):
@@ -161,12 +161,12 @@ def showICLIP(figData, dataSets, seqDisp, colorF, legendSpacing):
 
 
 @app.callback(
-    dash.dependencies.Output('bsGraphMem', 'children'),
+    dash.dependencies.Output('bsGraphMem', 'data'),
     [dash.dependencies.Input('geneDrop', 'value')],
     [dash.dependencies.State('paramList', 'values'),
      dash.dependencies.State('sequenceRadio', 'value'),
-     dash.dependencies.State('colorFinal', 'children'),
-     dash.dependencies.State('legendSpacingDiv', 'children')]
+     dash.dependencies.State('colorFinal', 'data'),
+     dash.dependencies.State('legendSpacingDiv', 'data')]
 )
 def iCLIPCallback(geneName, dataSets, seqDisp, colorsFinal, legendSpacing):
     """Main callback that handles the dynamic visualisation of selected data
@@ -249,7 +249,7 @@ def iCLIPCallback(geneName, dataSets, seqDisp, colorsFinal, legendSpacing):
     blockHeight = 0.4
     geneModels = createGeneModelPlot(isoformList, xAxisMin, xAxisMax, blockHeight, strand)
     figData.update({'geneModels' : geneModels})
-    return json.dumps(figData, cls=pu.PlotlyJSONEncoder)
+    return figData
 
 def generateMasterSequence(sequences, isoforms, xAxisMin, xAxisMax):
     """Helper function that creates a master sequence given a dataframe with sequences and a list containing
@@ -342,7 +342,7 @@ def createICLIPTrace(name, xMax, xMin, chrom, strand, colors):
     strand -- strand the gene is on, to look for correct binding sites
     colors -- json color string
     """
-    colors = json.loads(colors)
+    colors = colors
     # Selection criteria
     crit1 = cfg.bsRawDFs[name]['chrom'] == chrom
     crit21 = cfg.bsRawDFs[name]['chromStart'] >= xMin

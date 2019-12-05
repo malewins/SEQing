@@ -302,7 +302,7 @@ if __name__ == '__main__':
                                         ),
                                         html.Div(style = {'height' : '25px'}),
                                         html.Div(
-                                            children = [html.Div(id = 'bsGraphMem', style = {'display' : 'none'}),
+                                            children = [dcc.Store(id = 'bsGraphMem'),
                                                         dcc.Loading(
                                                         id ="iCLIP_loading",
                                                         type = 'dot',
@@ -406,7 +406,7 @@ if __name__ == '__main__':
                                         id ="RNAseq_loading",
                                         type = 'circle',
                                         children = [
-                                            html.Div(id = 'spliceMem',style = {'display' : 'none'}),
+                                            dcc.Store(id = 'spliceMem'),
                                             dcc.Graph(id='spliceGraph',
                                             style = {'padding' : '3px'},
                                             config = {'toImageButtonOptions' : 
@@ -449,15 +449,13 @@ if __name__ == '__main__':
                                                 className = 'field-set',
                                                 children = [ 
                                                     html.Legend('iCLIP Settings'),
-                                                    html.Div(
-                                                        style={'display': 'none'},
+                                                    dcc.Store(
                                                         id='colorDiv',
-                                                        children=json.dumps(cfg.colorMap)
+                                                        data=cfg.colorMap
                                                     ),
-                                                    html.Div(
-                                                        style={'display': 'none'},
+                                                    dcc.Store(
                                                         id='colorFinal',
-                                                        children=json.dumps(cfg.colorMap)
+                                                        data=cfg.colorMap
                                                     ),
                                                     dcc.Dropdown(
                                                         id='colorDrop',
@@ -526,15 +524,13 @@ if __name__ == '__main__':
                                                 className = 'field-set',
                                                 children = [ 
                                                     html.Legend('Coverage plot settings'),
-                                                    html.Div(
-                                                        style={'display': 'none'},
+                                                    dcc.Store(
                                                         id='covColorDiv',
-                                                        children=json.dumps(cfg.coverageColors)
+                                                        data=cfg.coverageColors
                                                     ),
-                                                    html.Div(
-                                                        style={'display': 'none'},
+                                                    dcc.Store(
                                                         id='covColorFinal',
-                                                        children=json.dumps(cfg.coverageColors)
+                                                        data=cfg.coverageColors
                                                     ),
                                                     dcc.Dropdown(
                                                         id='covColorDrop',
@@ -603,15 +599,13 @@ if __name__ == '__main__':
                                                 className = 'field-set',
                                                 children = [ 
                                                     html.Legend('Splice event plot settings'),
-                                                    html.Div(
-                                                        style={'display': 'none'},
+                                                    dcc.Store(
                                                         id='eventColorDiv',
-                                                        children=json.dumps(cfg.eventColors)
+                                                        data=cfg.eventColors
                                                     ),
-                                                    html.Div(
-                                                        style={'display': 'none'},
+                                                    dcc.Store(
                                                         id='eventColorFinal',
-                                                        children=json.dumps(cfg.eventColors)
+                                                        data=cfg.eventColors
                                                     ),
                                                     dcc.Dropdown(
                                                         id='eventColorDrop',
@@ -724,10 +718,9 @@ if __name__ == '__main__':
                                                         className = 'field-set',
                                                         children = [
                                                             html.Legend('Legend Colorbar Margin'),
-                                                            html.Div(
+                                                            dcc.Store(
                                                                 id = 'legendSpacingDiv',
-                                                                style = {'display': 'none'},
-                                                                children = json.dumps(legendColumnOffset)
+                                                                data = legendColumnOffset
                                                                 ),
                                                             dcc.Slider(
                                                                 id = 'legendSpacingSlider',
