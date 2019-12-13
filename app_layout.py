@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 """ Interactive visualizaton for iClIP-Seq and RNA-Seq data"""
-import json
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
@@ -24,12 +23,7 @@ if __name__ == '__main__':
         exit()
     # Properly define all global variables that are handed to this module by validator.py
     cfg.init(globals())
-    #rna_tab.init(globals())
-    #iclip_tab.init(globals())
 
-  
-    #settings_tab.init(geneAnnotations)
-    #description_tab.init(subTables, advancedDesc)
     try:
         myfile = open ("../help_text.md", "r")
         helpText = myfile.read()  
@@ -84,13 +78,6 @@ if __name__ == '__main__':
         advList = list(cfg.advancedDesc.columns.values)
         advList.remove('gene_ids')
         advDisabled = False
-#        try:
-#            advStart = advList[0]
-#            advDisabled = False
-#        except IndexError:
-#            print('Error while indexing advanced description file. Does it have atleast one column besides \'gene_ids\'?')
-#            advStart = None
-#            advDisabled = True
     
     imgFormat = 'svg' # Default format for image export
     

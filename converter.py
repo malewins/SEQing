@@ -14,12 +14,12 @@ dtypes = {'chrom' : 'category', 'chromStart' : 'uint32','chromEnd': 'uint32','na
                                   'thickEnd' : 'uint64', 'itemRGB' : 'int16', 'blockCount' : 'uint32','blockSizes' : 'object','blockStarts' : 'object'}
 
 def convertGTFToBed(df):
-    """ Convert a gtf dataframe to a bed12 dataframe for internal use. Only relevant
+    """ Convert a GTF dataframe to a BED12 dataframe for internal use. Only relevant
     lines will be taken into account, in this case exon and cds can be used 
     to reconstruct all needed information.
     
     Positional arguments:
-    df -- gtf dataframe
+    df -- GTF dataframe.
     """
 
     bedFile = []

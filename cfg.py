@@ -2,6 +2,10 @@
 # -*- coding: utf-8 -*-
 
 def init(globs):
+    """ Takes globals from validator and stores them in variables for the other modules.
+    
+    Positional arguments:
+    globs -- Globals from validator.
     global colorMap
     colorMap = globs['colorMap'] 
     global descAvail
