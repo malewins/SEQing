@@ -182,7 +182,7 @@ def loadAnnotations():
                 if checksums.get(str(i.stem), None) != checksum.hexdigest():
                     dtypes = {'chrom' : 'category', 'chromStart' : 'uint32','chromEnd': 'uint32','name' : 'object','score' : 'int16','strand' : 'category','thickStart' : 'uint64',
                  'thickEnd' : 'uint64', 'blockCount' : 'uint32','blockSizes' : 'object','blockStarts' : 'object'}
-                    df = pandas.read_csv(i, sep = '\t', comment = '#', names = bedHeader, dtype = dtypes)
+                    df = pandas.read_csv(i, sep = '\t', compression='infer', comment = '#', names = bedHeader, dtype = dtypes)
                     validation = validateBed12(df)
                     if validation[0] == True:
                         geneAnnotations.append(df)
@@ -202,7 +202,7 @@ def loadAnnotations():
                         print('pickle not  found, loading from raw file')
                         dtypes = {'chrom' : 'category', 'chromStart' : 'uint32','chromEnd': 'uint32','name' : 'object','score' : 'int16','strand' : 'category','thickStart' : 'uint64',
                                   'thickEnd' : 'uint64', 'blockCount' : 'uint32','blockSizes' : 'object','blockStarts' : 'object'}
-                        df = pandas.read_csv(i, sep = '\t', comment = '#', names = bedHeader, dtype = dtypes)
+                        df = pandas.read_csv(i, sep = '\t', compression='infer', comment = '#', names = bedHeader, dtype = dtypes)
                         validation = validateBed12(df)
                         if validation[0] == True:
                             geneAnnotations.append(df)
@@ -216,7 +216,7 @@ def loadAnnotations():
                         print('Error decoding pickle binary file, will load from raw file instead')
                         dtypes = {'chrom' : 'category', 'chromStart' : 'uint32','chromEnd': 'uint32','name' : 'object','score' : 'int16','strand' : 'category','thickStart' : 'uint64',
                                   'thickEnd' : 'uint64', 'blockCount' : 'uint32','blockSizes' : 'object','blockStarts' : 'object'}
-                        df = pandas.read_csv(i, sep = '\t', comment = '#', names = bedHeader, dtype = dtypes)                    
+                        df = pandas.read_csv(i, sep = '\t', compression='infer', comment = '#', names = bedHeader, dtype = dtypes)                    
                         validation = validateBed12(df)
                         if validation[0] == True:
                             geneAnnotations.append(df)
@@ -231,7 +231,7 @@ def loadAnnotations():
                         dtypes = {'chrom' : 'category', 'chromStart' : 'uint32','chromEnd': 'uint32','name' : 'object','score' : 'int16',
                                    'strand' : 'category','thickStart' : 'uint64',
                                    'thickEnd' : 'uint64', 'blockCount' : 'uint32','blockSizes' : 'object','blockStarts' : 'object'}
-                        df = pandas.read_csv(i, sep = '\t', comment = '#', names = bedHeader, dtype = dtypes)                    
+                        df = pandas.read_csv(i, sep = '\t', comment = '#', compression='infer', names = bedHeader, dtype = dtypes)                    
                         validation = validateBed12(df)
                         if validation[0] == True:
                             geneAnnotations.append(df)
@@ -247,7 +247,7 @@ def loadAnnotations():
                 if checksums.get(str(i.stem), None) != checksum.hexdigest():
                     dtypes = {'seqname' : 'object', 'source' : 'object', 'feature' : 'object', 'start' : 'uint32', 'end': 'uint32', 'score' : 'object',
                               'strand' : 'category', 'frame' : 'object', 'attribute' : 'object'}
-                    df = pandas.read_csv(i, sep = '\t', comment = '#', names = gtfheader, dtype = dtypes)
+                    df = pandas.read_csv(i, sep = '\t', compression='infer', comment = '#', names = gtfheader, dtype = dtypes)
                     validation = validateGTF(df)
                     if validation[0] == True:
                         df = converter.convertGTFToBed(df)
@@ -268,7 +268,7 @@ def loadAnnotations():
                         print('pickle not  found, loading from raw file')
                         dtypes = {'seqname' : 'object', 'source' : 'object', 'feature' : 'object', 'start' : 'uint32', 'end': 'uint32', 'score' : 'category',
                               'strand' : 'category', 'frame' : 'object', 'attribute' : 'object'}
-                        df = pandas.read_csv(i, sep = '\t', comment = '#', names = gtfheader, dtype = dtypes)
+                        df = pandas.read_csv(i, sep = '\t', compression='infer', comment = '#', names = gtfheader, dtype = dtypes)
                         validation = validateGTF(df)
                         if validation[0] == True:
                             df = converter.convertGTFToBed(df)
@@ -283,7 +283,7 @@ def loadAnnotations():
                         print('Error decoding pickle binary file, will load from raw file instead')
                         dtypes = {'seqname' : 'object', 'source' : 'object', 'feature' : 'object', 'start' : 'uint32', 'end': 'uint32', 'score' : 'category',
                               'strand' : 'category', 'frame' : 'object', 'attribute' : 'object'}
-                        df = pandas.read_csv(i, sep = '\t', comment = '#', names = gtfheader, dtype = dtypes)
+                        df = pandas.read_csv(i, sep = '\t', comment = '#', compression='infer', names = gtfheader, dtype = dtypes)
                         validation = validateGTF(df)
                         if validation[0] == True:
                             df = converter.convertGTFToBed(df)
@@ -298,7 +298,7 @@ def loadAnnotations():
                         print('Pickle was created using different package versions, will load from raw file instead')
                         dtypes = {'seqname' : 'object', 'source' : 'object', 'feature' : 'object', 'start' : 'uint32', 'end': 'uint32', 'score' : 'category',
                               'strand' : 'category', 'frame' : 'object', 'attribute' : 'object'}
-                        df = pandas.read_csv(i, sep = '\t', comment = '#', names = gtfheader, dtype = dtypes)
+                        df = pandas.read_csv(i, sep = '\t', comment = '#', compression='infer', names = gtfheader, dtype = dtypes)
                         validation = validateGTF(df)
                         if validation[0] == True:
                             df = converter.convertGTFToBed(df)
@@ -357,7 +357,7 @@ def loadSequences():
 def loadBasicDescriptions():
     global descAvail, geneDescriptions
     try:
-        geneDescriptions = pandas.read_csv(descriptionPath, 
+        geneDescriptions = pandas.read_csv(descriptionPath, compression='infer',
                             names = ['ensembl_gene_id', 'description', 'external_gene_name'], sep = '\t', usecols=[0,1,2])        
         # Filter for genes that are actually in the dataset
         geneDescriptions = geneDescriptions[geneDescriptions['ensembl_gene_id'].isin(geneNames)]
@@ -371,7 +371,7 @@ def loadBasicDescriptions():
 def loadAdvancedDescriptions():
     global advancedDescriptions
     try:
-        advancedDescriptions = pandas.read_csv(advancedDescPath, sep = '\t')
+        advancedDescriptions = pandas.read_csv(advancedDescPath, compression='infer', sep = '\t')
         if len(advancedDescriptions.index.values) > 0:
             if 'gene_ids' not in list(advancedDescriptions.columns.values):
                 print('Advanced description file does not contain "gene_ids" column, ignoring file.')
@@ -388,7 +388,7 @@ def loadAdvancedDescriptions():
 def loadSubTables():
     global subTables
     try:
-        subTables = pandas.read_csv(subTablePath, sep = '\t', names = ['column_id', 'columns'])
+        subTables = pandas.read_csv(subTablePath, compression='infer', sep = '\t', names = ['column_id', 'columns'])
     except FileNotFoundError:
         print('Sub table file could not be found, ignoring.')
         subTables = None
@@ -402,7 +402,7 @@ def loadICLIPData():
         for i in bindingSiteRawPaths:
             try:
                 dtypes = {'chrom' : 'category' ,'chromStart' : 'uint64','chromEnd' : 'uint64', 'count' : 'uint32'}
-                df = pandas.read_csv(i, sep = '\t', names = rawHeader, dtype = dtypes)
+                df = pandas.read_csv(i, compression='infer', sep = '\t', names = rawHeader, dtype = dtypes)
                 validation = validateBedGraph(df)
                 if validation[0] == True:
                     if i.stem.split('_')[0] not in dataSetNames:
@@ -430,7 +430,7 @@ def loadBSData():
         if i.stem.split('_')[0] in dataSetNames:
             try:
                 dtypes = {'chrom' : 'category', 'chromStart' : 'uint64','chromEnd' : 'uint64','type' : 'category', 'score' : 'float32', 'strand' : 'category'}
-                df = pandas.read_csv(i, sep = '\t', names = bsHeader, dtype = dtypes)
+                df = pandas.read_csv(i, compression='infer', sep = '\t', names = bsHeader, dtype = dtypes)
                 validation = validateBed(df)
                 if validation[0] == True:
                     if i.stem.split('_')[0] in bsProcDFs:
@@ -470,7 +470,7 @@ def loadCoverageData():
         if coverageChecksums.get(str(path.stem), None) != checksum.hexdigest():
             try: 
                 dtypes = {'chrom' : 'category', 'chromStart' : 'uint64','chromEnd' : 'uint64','type' : 'category', 'score' : 'float32', 'strand' : 'category'}
-                df = pandas.read_csv(path, sep= '\t', names= rawHeader, dtype = dtypes)
+                df = pandas.read_csv(path, compression='infer', sep= '\t', names= rawHeader, dtype = dtypes)
                 validation = validateBedGraph(df)
                 coverageChecksums[str(path.stem)] = checksum.hexdigest()
             except FileNotFoundError:
@@ -521,7 +521,7 @@ def loadCoverageData():
                         spliceSetNames[0].append(path.stem.split('_')[0])
             except (FileNotFoundError, UnicodeDecodeError, IOError, ImportError):
                 try:
-                    df = pandas.read_csv(path, sep= '\t', names= rawHeader, dtype = dtypes)
+                    df = pandas.read_csv(path, compression='infer', sep= '\t', names= rawHeader, dtype = dtypes)
                     validation = validateBedGraph(df)
                 except FileNotFoundError:
                     validation = [False]
@@ -567,7 +567,7 @@ def loadSpliceEvents():
     for i in spliceEventsPaths:
         try:
             dtypes = {'chrom' : 'category', 'chromStart' : 'uint64','chromEnd' : 'uint64','type' : 'category', 'score' : 'float32', 'strand' : 'category'}
-            df = pandas.read_csv(i, sep= '\t', names= bsHeader, dtype = dtypes)
+            df = pandas.read_csv(i, compression='infer', sep= '\t', names= bsHeader, dtype = dtypes)
             validation = validateBed(df)
             try:
                 file_name = i.stem.split('_')[0]+'_'+i.stem.split('_')[1]

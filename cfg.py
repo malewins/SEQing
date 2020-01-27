@@ -6,6 +6,7 @@ def init(globs):
     
     Positional arguments:
     globs -- Globals from validator.
+    """
     global colorMap
     colorMap = globs['colorMap'] 
     global descAvail
