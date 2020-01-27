@@ -5,7 +5,6 @@ import dash
 import pandas
 from app import app
 import cfg
-import json
 import dash_html_components as html
 from plotly import tools
 import plotly.graph_objs as go
@@ -16,10 +15,9 @@ import plotly.utils as pu
     [dash.dependencies.Input('geneDrop', 'value')]
 )
 def setDesc(name):
-    """Callback to update gene description
+    """Callback to update gene description.
 
     Positional arguments:
-    clicks -- Related to button, not needed in code
     name -- Name of the currently selected gene
     """
     if cfg.descAvail:
@@ -41,23 +39,34 @@ def setDesc(name):
 
 @app.callback(
     dash.dependencies.Output('bsGraph', 'figure'),
-    [dash.dependencies.Input('bsGraphMem', 'children'),
+    [dash.dependencies.Input('bsGraphMem', 'data'),
      dash.dependencies.Input('paramList', 'values'),
      dash.dependencies.Input('sequenceRadio', 'value'),
-     dash.dependencies.Input('colorFinal', 'children'),
-     dash.dependencies.Input('legendSpacingDiv', 'children')]
+     dash.dependencies.Input('colorFinal', 'data'),
+     dash.dependencies.Input('legendSpacingDiv', 'data'),
+     dash.dependencies.Input('iCLIPScale', 'value'),
+     dash.dependencies.Input('bsScale', 'value')]
 )
-def showICLIP(figData, dataSets, seqDisp, colorF, legendSpacing):
-    figData = json.loads(figData)
+def showICLIP(figData, dataSets, seqDisp, colorF, legendSpacing,  iCLIPScale, bsScale):
+    """ Update callbacks that selects traces to be displayed based on user input.
+    
+    Positional arguments:
+    figData -- Trace data from the data callback.
+    datasets -- List of selected datasets.
+    seqDisp -- Sytle for the reference sequence.
+    colorF -- Colors for the traces.
+    legendSpacing -- Spacing between legend and colorbar.
+    """
+    figData = figData
     traces = []
     rowHeights = []
-    legendColumnSpacing = json.loads(legendSpacing)
+    legendColumnSpacing = legendSpacing
     numRows = 1
     try:
         seqTrace = figData[seqDisp]
     except:
         seqTrace = []
-    colorDict = json.loads(colorF)
+    colorDict = colorF
     numIsoforms = len(figData['geneModels'])
     numParams = 0
     for index, elem in enumerate(figData['iCLIPTraces']):
@@ -104,9 +113,9 @@ def showICLIP(figData, dataSets, seqDisp, colorF, legendSpacing):
     else:
         procDataRows = 0
     if cfg.procAvail == True:
-        dataSetHeights.append(rowHeight / 2)
+        dataSetHeights.append(rowHeight / 2 * bsScale)
     if cfg.rawAvail == True:
-        dataSetHeights.append(rowHeight * rowOffset)
+        dataSetHeights.append(rowHeight * rowOffset * iCLIPScale)
         
     rowHeights = [rowHeight] * numIsoforms + dataSetHeights * numParams + [rowHeight]
     blockHeight = 0.4
@@ -152,8 +161,8 @@ def showICLIP(figData, dataSets, seqDisp, colorF, legendSpacing):
     for i in range(1,numRows + 1):  # Prevent zoom on y axis
         fig['layout']['yaxis' + str(i)].update(fixedrange=True)
 
-    fig['layout']['height'] = (baseHeight * rawDataRows
-                               + baseHeight * procDataRows
+    fig['layout']['height'] = (baseHeight * rawDataRows * iCLIPScale
+                               + baseHeight * procDataRows *bsScale
                                + baseHeight * (numIsoforms + 1)
                                + 80)
     fig['layout']['legend'].update(x = legendColumnSpacing)            
@@ -161,22 +170,22 @@ def showICLIP(figData, dataSets, seqDisp, colorF, legendSpacing):
 
 
 @app.callback(
-    dash.dependencies.Output('bsGraphMem', 'children'),
+    dash.dependencies.Output('bsGraphMem', 'data'),
     [dash.dependencies.Input('geneDrop', 'value')],
     [dash.dependencies.State('paramList', 'values'),
      dash.dependencies.State('sequenceRadio', 'value'),
-     dash.dependencies.State('colorFinal', 'children'),
-     dash.dependencies.State('legendSpacingDiv', 'children')]
+     dash.dependencies.State('colorFinal', 'data'),
+     dash.dependencies.State('legendSpacingDiv', 'data')]
 )
 def iCLIPCallback(geneName, dataSets, seqDisp, colorsFinal, legendSpacing):
-    """Main callback that handles the dynamic visualisation of selected data
+    """Data callback that handles the selection of data and creates all possible traces.
 
     Positional arguments:
-    geneName -- Name of the selected gene in order to filter the data
-    dataSets -- Selected data tracks with raw binding site data
-    seqDisp -- Display mode for dna sequence trace
-    colorsFinal -- Last confirmed color
-    legendSpacing -- Specifies margin between colorbar and other legend items
+    geneName -- Name of the selected gene in order to filter the data.
+    dataSets -- Selected data tracks with raw binding site data.
+    seqDisp -- Display mode for dna sequence trace.
+    colorsFinal -- Last confirmed color.
+    legendSpacing -- Specifies margin between colorbar and other legend items.
     """
     dataSets = cfg.dataSetNames
     # Check which of the two triggering buttons was pressed last
@@ -249,16 +258,17 @@ def iCLIPCallback(geneName, dataSets, seqDisp, colorsFinal, legendSpacing):
     blockHeight = 0.4
     geneModels = createGeneModelPlot(isoformList, xAxisMin, xAxisMax, blockHeight, strand)
     figData.update({'geneModels' : geneModels})
-    return json.dumps(figData, cls=pu.PlotlyJSONEncoder)
+    return figData
 
 def generateMasterSequence(sequences, isoforms, xAxisMin, xAxisMax):
     """Helper function that creates a master sequence given a dataframe with sequences and a list containing
-        start and end points as well as names for the relevant isoforms
+        start and end points as well as names for the relevant isoforms.
     
     Positional arguments:
-    sequences -- The list of sequence dicts
-    isoforms -- List containing three-tuples(start, end, name) for each isoform
-    xAxisMax -- endpoint of the gene on the x-axis, used for potential early termination
+    sequences -- The list of sequence dicts.
+    isoforms -- List containing three-tuples(start, end, name) for each isoform.
+    xAxisMin -- Start point of the gene on the x-axis.
+    xAxisMax -- End point of the gene on the x-axis, used for potential early termination.
     """  
     if xAxisMax <= 0:
         return ''
@@ -332,17 +342,17 @@ def generateMasterSequence(sequences, isoforms, xAxisMin, xAxisMax):
     return combinedSeq
 
 def createICLIPTrace(name, xMax, xMin, chrom, strand, colors):
-    """Helper function to plot the subplots containing iCLIP data
+    """Helper function to plot the subplots containing iCLIP data.
     
     Positional arguments:
-    name -- name of the subplot to create a title
-    xMax -- maximum x-axis value, used to select relevant data
-    xMin -- minimum x-axis value
-    chrom -- the chromosome we are looking for data on
-    strand -- strand the gene is on, to look for correct binding sites
-    colors -- json color string
+    name -- Name of the subplot to create a title.
+    xMax -- Maximum x-axis value, used to select relevant data.
+    xMin -- Minimum x-axis value.
+    chrom -- The chromosome we are looking for data on.
+    strand -- Strand the gene is on, to look for correct binding sites.
+    colors -- Colors for the traces.
     """
-    colors = json.loads(colors)
+    colors = colors
     # Selection criteria
     crit1 = cfg.bsRawDFs[name]['chrom'] == chrom
     crit21 = cfg.bsRawDFs[name]['chromStart'] >= xMin
@@ -413,15 +423,15 @@ def setUpBlockConstraints(chromStart, chromEnd, blockStarts, blockSizes, xAxisMi
     """ This function will calculate the correct block start and block size values.
         It takes partial overlapping of blocks with the target area into account.
         Any block that is outside (xAxisMin, xAxisMax) will have a blockStart of -1,
-        indicating that it i to be ignored when drawing the gene model
+        indicating that it i to be ignored when drawing the gene model.
         
         Positional arguments:
-        chromStart -- Isoform start point
-        chromEnd -- Isoform end point
-        blockStarts -- Block startpoints
-        blockSizes -- Sizes for the blocks
-        xAxisMin -- Start of the relevant genomic region
-        xAxisMax -- End of the relevant genomic region
+        chromStart -- Isoform start point.
+        chromEnd -- Isoform end point.
+        blockStarts -- Block startpoints.
+        blockSizes -- Sizes for the blocks.
+        xAxisMin -- Start of the relevant genomic region.
+        xAxisMax -- End of the relevant genomic region.
         
         Returns:
         Tupel containing finished block starts and block sizes as lists:
@@ -485,15 +495,15 @@ def calculateBlocks(thickStart, thickEnd, blockStart, blockEnd, blockVals, block
         located in coding or noncoding region, or on the boundary. The function directly appends to the input lists
         
         Positional Arguments:
-        thickStart -- The start point of the coding region
-        thickEnd -- Endpoint of the coding region
-        blockStart -- Startin point of the block. A value of -1 means this block is not in the relevant area 
+        thickStart -- The start point of the coding region.
+        thickEnd -- Endpoint of the coding region.
+        blockStart -- Startin point of the block. A value of -1 means this block is not in the relevant area .
         and will be ignored
-        blockEnd -- The end point of the block
-        blockVals -- This lists holds the x-coordinate for each block center
-        blockWidths -- This list holds the width of each block
-        blockYa -- Holds the y value of the block, this determines wether it's a coding or noncoding block
-        blockHeight -- The height value to use for coding blocks. Non coding blocks are half height
+        blockEnd -- The end point of the block.
+        blockVals -- This lists holds the x-coordinate for each block center.
+        blockWidths -- This list holds the width of each block.
+        blockYa -- Holds the y value of the block, this determines wether it's a coding or noncoding block.
+        blockHeight -- The height value to use for coding blocks. Non coding blocks are half height.
     """
     blockStart = blockStart
     if blockStart != -1 and blockStart != blockEnd:
@@ -549,11 +559,11 @@ def createSequenceTrace(seqDisp, strand, combinedSeq, xAxisMin, xAxisMax):
     """ Function to generate sequence display trace, either heatmap or scatter
 
     Positional arguments:
-    seqDisp -- Determines which trace type is used
-    strand -- If on minus strand invert dna sequence
-    combinedSeq -- Sequence for display
-    xAxisMin -- Startpoint
-    xAxisMax -- Endpoit
+    seqDisp -- Determines which trace type is used.
+    strand -- If on minus strand invert dna sequence.
+    combinedSeq -- Sequence for display.
+    xAxisMin -- Startpoint.
+    xAxisMax -- Endpoit.
     """
     if seqDisp == 'letterSeq':
         xA = []
@@ -697,14 +707,14 @@ def createSequenceTrace(seqDisp, strand, combinedSeq, xAxisMin, xAxisMax):
 
 
 def createGeneModelPlot(isoforms, xAxisMin, xAxisMax, blockHeight, strand):
-    """Generates gene model based on the given blocks and coding region
+    """Generates gene model based on the given blocks and coding region.
 
     Positional arguments:
-    isoforms -- List of all isoforms overlapping relevant region
-    xAxisMin -- Start of the relevant region
-    xAxisMax -- End of the relevant region
-    blockHeight -- Hight for thick blocks
-    strand -- Strand that the selected gene is on, for coloring
+    isoforms -- List of all isoforms overlapping relevant region.
+    xAxisMin -- Start of the relevant region.
+    xAxisMax -- End of the relevant region.
+    blockHeight -- Hight for thick blocks.
+    strand -- Strand that the selected gene is on, for coloring.
     """
     traces = []
     # This loop will check and if necessary cut blockstarts and sizes

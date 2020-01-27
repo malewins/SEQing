@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 """ Interactive visualizaton for iClIP-Seq and RNA-Seq data"""
-import json
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
@@ -24,12 +23,7 @@ if __name__ == '__main__':
         exit()
     # Properly define all global variables that are handed to this module by validator.py
     cfg.init(globals())
-    #rna_tab.init(globals())
-    #iclip_tab.init(globals())
 
-  
-    #settings_tab.init(geneAnnotations)
-    #description_tab.init(subTables, advancedDesc)
     try:
         myfile = open ("../help_text.md", "r")
         helpText = myfile.read()  
@@ -84,13 +78,6 @@ if __name__ == '__main__':
         advList = list(cfg.advancedDesc.columns.values)
         advList.remove('gene_ids')
         advDisabled = False
-#        try:
-#            advStart = advList[0]
-#            advDisabled = False
-#        except IndexError:
-#            print('Error while indexing advanced description file. Does it have atleast one column besides \'gene_ids\'?')
-#            advStart = None
-#            advDisabled = True
     
     imgFormat = 'svg' # Default format for image export
     
@@ -302,7 +289,7 @@ if __name__ == '__main__':
                                         ),
                                         html.Div(style = {'height' : '25px'}),
                                         html.Div(
-                                            children = [html.Div(id = 'bsGraphMem', style = {'display' : 'none'}),
+                                            children = [dcc.Store(id = 'bsGraphMem'),
                                                         dcc.Loading(
                                                         id ="iCLIP_loading",
                                                         type = 'dot',
@@ -406,7 +393,7 @@ if __name__ == '__main__':
                                         id ="RNAseq_loading",
                                         type = 'circle',
                                         children = [
-                                            html.Div(id = 'spliceMem',style = {'display' : 'none'}),
+                                            dcc.Store(id = 'spliceMem'),
                                             dcc.Graph(id='spliceGraph',
                                             style = {'padding' : '3px'},
                                             config = {'toImageButtonOptions' : 
@@ -449,15 +436,13 @@ if __name__ == '__main__':
                                                 className = 'field-set',
                                                 children = [ 
                                                     html.Legend('iCLIP Settings'),
-                                                    html.Div(
-                                                        style={'display': 'none'},
+                                                    dcc.Store(
                                                         id='colorDiv',
-                                                        children=json.dumps(cfg.colorMap)
+                                                        data=cfg.colorMap
                                                     ),
-                                                    html.Div(
-                                                        style={'display': 'none'},
+                                                    dcc.Store(
                                                         id='colorFinal',
-                                                        children=json.dumps(cfg.colorMap)
+                                                        data=cfg.colorMap
                                                     ),
                                                     dcc.Dropdown(
                                                         id='colorDrop',
@@ -526,15 +511,13 @@ if __name__ == '__main__':
                                                 className = 'field-set',
                                                 children = [ 
                                                     html.Legend('Coverage plot settings'),
-                                                    html.Div(
-                                                        style={'display': 'none'},
+                                                    dcc.Store(
                                                         id='covColorDiv',
-                                                        children=json.dumps(cfg.coverageColors)
+                                                        data=cfg.coverageColors
                                                     ),
-                                                    html.Div(
-                                                        style={'display': 'none'},
+                                                    dcc.Store(
                                                         id='covColorFinal',
-                                                        children=json.dumps(cfg.coverageColors)
+                                                        data=cfg.coverageColors
                                                     ),
                                                     dcc.Dropdown(
                                                         id='covColorDrop',
@@ -603,15 +586,13 @@ if __name__ == '__main__':
                                                 className = 'field-set',
                                                 children = [ 
                                                     html.Legend('Splice event plot settings'),
-                                                    html.Div(
-                                                        style={'display': 'none'},
+                                                    dcc.Store(
                                                         id='eventColorDiv',
-                                                        children=json.dumps(cfg.eventColors)
+                                                        data=cfg.eventColors
                                                     ),
-                                                    html.Div(
-                                                        style={'display': 'none'},
+                                                    dcc.Store(
                                                         id='eventColorFinal',
-                                                        children=json.dumps(cfg.eventColors)
+                                                        data=cfg.eventColors
                                                     ),
                                                     dcc.Dropdown(
                                                         id='eventColorDrop',
@@ -674,6 +655,50 @@ if __name__ == '__main__':
                                                     )
                                                 ]
                                             )]),
+ html.Div(className = 'table-cell', 
+                                                children = [
+                                                    html.Fieldset(title = 'iCLIP-seq plot settings', 
+                                                        className = 'field-set',
+                                                        children = [
+                                                            html.Legend('iCLIP-seq plot settings'),
+                                                            html.Div(children = 'iCLIP plot scale'),
+                                                            dcc.Slider(
+                                                                id = 'iCLIPScale',
+                                                                min = 0.25,
+                                                                max = 2.5,
+                                                                step = 0.05,
+                                                                value = 1.0,
+                                                                marks = {
+                                                                    0.25: '0.25',
+                                                                    1.0: '1.0',
+                                                                    1.5: '1.5',
+                                                                    2.0: '2.0',
+                                                                    2.5: '2.5',
+                                                                    }
+                                                            ),
+                                                            html.Div(
+                                                                style = {'height' : '25px'}),
+                                                            html.Div(children = 'Binding site plot scale'),
+                                                            dcc.Slider(
+                                                                id = 'bsScale',
+                                                                min = 0.25,
+                                                                max = 2.5,
+                                                                step = 0.05,
+                                                                value = 1.0,
+                                                                marks = {
+                                                                    0.25: '0.25',
+                                                                    1.0: '1.0',
+                                                                    1.5: '1.5',
+                                                                    2.0: '2.0',
+                                                                    2.5: '2.5',
+                                                                    }
+                                                            ),
+                                                            html.Div(
+                                                                style = {'height' : '15px'})
+                                                        ]
+                                                    )
+                                                ]
+                                            ),                                                                
                                             html.Div(className = 'table-cell', 
                                                 children = [
                                                     html.Fieldset(title = 'RNA-seq plot settings', 
@@ -724,10 +749,9 @@ if __name__ == '__main__':
                                                         className = 'field-set',
                                                         children = [
                                                             html.Legend('Legend Colorbar Margin'),
-                                                            html.Div(
+                                                            dcc.Store(
                                                                 id = 'legendSpacingDiv',
-                                                                style = {'display': 'none'},
-                                                                children = json.dumps(legendColumnOffset)
+                                                                data = legendColumnOffset
                                                                 ),
                                                             dcc.Slider(
                                                                 id = 'legendSpacingSlider',

@@ -17,8 +17,7 @@ def showDetails(name):
     """ Create tabular view of additional data
 
     Positional arguments:
-    data -- Data for the current gene, as json string(dict)
-    name -- Gene name for initialization
+    name -- Gene name for initialization.
     """
     if cfg.advancedDesc is not None:
         try:
@@ -101,9 +100,9 @@ def createDetailRow(content, name, rowNumber):
     """ Returns a single row for the details table
 
     Positional arguments:
-    content -- The attribute data as String
-    name -- Name for the attribute
-    rowNumber -- Used for odd/even coloring
+    content -- The attribute data as String.
+    name -- Name for the attribute.
+    rowNumber -- Used for odd/even coloring.
     """
     # Check subtable information
     try:

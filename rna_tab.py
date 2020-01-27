@@ -7,7 +7,6 @@ from app import app
 import cfg
 import time 
 import pickle
-import json
 import dash_html_components as html
 from plotly import tools
 import plotly.graph_objs as go
@@ -38,24 +37,34 @@ def rnaDesc(name):
 
 @app.callback(
     dash.dependencies.Output('spliceGraph', 'figure'),
-    [dash.dependencies.Input('spliceMem', 'children'),
+    [dash.dependencies.Input('spliceMem', 'data'),
      dash.dependencies.Input('rnaParamList', 'values'),
      dash.dependencies.Input('rnaRadio', 'value'),
-     dash.dependencies.Input('covColorFinal', 'children'),
-     dash.dependencies.Input('eventColorFinal', 'children'),
-     dash.dependencies.Input('legendSpacingDiv', 'children'),
+     dash.dependencies.Input('covColorFinal', 'data'),
+     dash.dependencies.Input('eventColorFinal', 'data'),
+     dash.dependencies.Input('legendSpacingDiv', 'data'),
      dash.dependencies.Input('coverageScale', 'value'),
      dash.dependencies.Input('eventScale', 'value')]
 )
 def showRNA(figData, dataSets, displayType, covColor, eventColor, legendSpacing, coverageScale, eventScale):
-    #print('ShowStart')
-    start = time.time()
-    legendColumnSpacing = json.loads(legendSpacing)
-    figData = json.loads(figData)
+    """Update callback that selects traces to be displayed based on settings.
+
+    Positional arguments:
+    figData -- Trace data from the data callback.
+    datasets -- List of datasets to display.
+    displayType -- Type of splice event display.
+    covColor -- Colors for coverage traces.
+    eventColorl -- Colots for splice events.
+    legendSpacing -- Specifies margin between colorbar and other legend items.
+    coverageScale -- Scaling factor for coverage plots.
+    eventScale -- Scaling factor for event plots.
+    """
+    legendColumnSpacing = legendSpacing
+    figData = figData
     traces = figData['rnaTraces']
     geneModels = figData['geneModels']
-    coverageColors = json.loads(covColor)
-    eventColors = json.loads(eventColor)
+    coverageColors = covColor
+    eventColors = eventColor
     eventIndices = [] # Save indices of all elements that contain event traces
     rnaDataSets = sorted(list(cfg.coverageData.keys()))
     displayed_rnaDataSet = []
@@ -173,12 +182,6 @@ def showRNA(figData, dataSets, displayType, covColor, eventColor, legendSpacing,
         fig['layout']['xaxis'].update(autorange='reversed')
     for i in range(1, numRows+1):  # prevent zoom on y axis
         fig['layout']['yaxis' + str(i)].update(fixedrange=True)
-    # Set axis titles and grid for y1
-    #try:
-     #   fig['layout']['yaxis'].update(showticklabels=True, showgrid=True, zeroline=True, title={'text': axisTitles[0]})
-    #except IndexError:
-     #   fig['layout']['yaxis'].update(showticklabels=True, showgrid=True, zeroline=True)
-    # Set axis titles, grid and range for other y-axes where applicable
     try:
         maxYVal = max(yVals)
     except ValueError:
@@ -211,38 +214,34 @@ def showRNA(figData, dataSets, displayType, covColor, eventColor, legendSpacing,
     fig['layout']['height'] = (size + 85)
     # set spacing for the second legend column
     fig['layout']['legend'].update(x = legendColumnSpacing)
-    end = time.time()
     #print('Showcallback: ' + str(end-start))
     return fig
 
 @app.callback(
-    dash.dependencies.Output('spliceMem', 'children'),
+    dash.dependencies.Output('spliceMem', 'data'),
     [dash.dependencies.Input('geneDrop', 'value')],
     [dash.dependencies.State('rnaRadio', 'value'),
      dash.dependencies.State('rnaParamList', 'values'),
-     dash.dependencies.State('covColorFinal', 'children'),
-     dash.dependencies.State('eventColorFinal', 'children'),
-     dash.dependencies.State('legendSpacingDiv', 'children'),
+     dash.dependencies.State('covColorFinal', 'data'),
+     dash.dependencies.State('eventColorFinal', 'data'),
+     dash.dependencies.State('legendSpacingDiv', 'data'),
      dash.dependencies.State('coverageScale', 'value'),
      dash.dependencies.State('eventScale', 'value')]
 )
 def rnaCallback(geneName, displayMode,rnaParamList, colorsFinal, eventColorsFinal, legendSpacing,
                 coverageScale, eventScale):
-    """Main callback that handles the dynamic visualisation of the RNA-seq data.
+    """Data callback that selects relevant data and creates all possible traces.
 
         Positional arguments:
-        geneName -- Name of the selected gene in order to filter the data
-        displaymode --determines how splice events will be visualized
-        rnaParamList -- Selected RNA data sets to plot 
-        colors -- Color currently being confirmed. Needed due to lack of order on callbacks
-        colorsFinal -- Last confirmed color
-        eventColors -- Colors for splice events being confirmed
-        eventColorsFinal -- last confirmed colors for splice events
-        legendSpacing -- Specifies margin between colorbar and other legend items
-        coverageScale -- Scaling factor for coverage plots
-        eventScale -- Scaling factor for event plots
+        geneName -- Name of the selected gene in order to filter the data.
+        displaymode --determines how splice events will be visualized.
+        rnaParamList -- Selected RNA data sets to plot.
+        colorsFinal -- Last confirmed color.
+        eventColorsFinal -- Last confirmed colors for splice events.
+        legendSpacing -- Specifies margin between colorbar and other legend items.
+        coverageScale -- Scaling factor for coverage plots.
+        eventScale -- Scaling factor for event plots.
         """
-    start = time.time()
     colors = colorsFinal
     figData = {}
 
@@ -259,7 +258,7 @@ def rnaCallback(geneName, displayMode,rnaParamList, colorsFinal, eventColorsFina
     chrom = currentGene['chrom'].iloc[0]
     strand = currentGene['strand'].iloc[0]
     figData.update({'strand': strand})
-    color_dict = json.loads(colors)  # Color per mutant
+    color_dict = colors  # Color per mutant
     figData.update({'covColors' : color_dict})
     # Filter out needed datasets
     rnaDataSets = sorted(list(cfg.coverageData.keys()))
@@ -275,7 +274,6 @@ def rnaCallback(geneName, displayMode,rnaParamList, colorsFinal, eventColorsFina
     maxYVal = 0 # Used to scale y-axes later
     maxYVals = {}
     eventDict = {} # stores dataframes with relevant splice event data
-    start = time.time()
     iterTime = 0
     evSel = 0
     covSel = 0
@@ -323,19 +321,11 @@ def rnaCallback(geneName, displayMode,rnaParamList, colorsFinal, eventColorsFina
         # Find maximum y-axis value for axis scaling
         maxYVals.update({ds: max(yVal)})
         if max(yVal) > maxYVal: maxYVal = max(yVal)
-    end = time.time()
-    #print('Data selection ' + str(end-start))
-   # print('Iteration: ' + str(iterTime))
-    #print('covSel: ' + str(covSel))
-    #print('evSel: ' + str(evSel))
     figData.update({'maxY' : maxYVal})
     figData.update({'maxYList' : maxYVals})
-    # Create
-    plotStart = time.time()
+    # Create RNA-seq traces from data
     rnaSeqPlotData = createRNAPlots(xVals, yVals, eventDict, displayed_rnaDataSet, 
                           color_dict, displayMode, eventColorsFinal)
-    plotEnd = time.time()
-    #print('Plotting: ' + str(plotEnd-plotStart))
     traces = rnaSeqPlotData[0]
     eventMaxHeights = rnaSeqPlotData[1]
     axisTitles = rnaSeqPlotData[2]
@@ -362,9 +352,7 @@ def rnaCallback(geneName, displayMode,rnaParamList, colorsFinal, eventColorsFina
     # Calculate gene models. We have to distinguish between coding region and non-coding region
     geneModels = createGeneModelPlot(isoformList, xAxisMin, xAxisMax, blockHeight, strand)
     figData.update({'geneModels' : geneModels})
-    end = time.time()
-    #print('Calccallback: ' + str(end-start))
-    return json.dumps(figData, cls=pu.PlotlyJSONEncoder)
+    return figData
 
 def coverageDataSelection(ds, xAxisMin, xAxisMax, chrom):
     """ This function performs selection and loading of relevant coverage data. 
@@ -372,10 +360,10 @@ def coverageDataSelection(ds, xAxisMin, xAxisMax, chrom):
         on demand.
         
         Positional arguments:
-        ds -- Name of the dataset 
-        xAxisMin -- Left border of relevant area
-        xAxisMax -- Right border of relevant area
-        chrom -- Chromosome to search on
+        ds -- Name of the dataset .
+        xAxisMin -- Left border of relevant area.
+        xAxisMax -- Right border of relevant area.
+        chrom -- Chromosome to search on.
     """
     fileIndex = cfg.coverageData[ds]
     dfBcrit11 = fileIndex['start'] <= xAxisMin
@@ -386,15 +374,12 @@ def coverageDataSelection(ds, xAxisMin, xAxisMax, chrom):
     dfBcrit32 = fileIndex['end'] <= xAxisMax
     relevantFiles = fileIndex.loc[(dfBcrit11 & dfBcrit12) | (dfBcrit21 & dfBcrit22) | (dfBcrit31 & dfBcrit32)]
     finalDF = []
-    start = time.time()
     for i in relevantFiles.itertuples(): # Build dataframe from parts
         try:
             df = pickle.load(open(i.fileName, 'rb'))
             finalDF.append(df)
         except FileNotFoundError:
             print(i.fileName + ' was not found')
-    end = time.time()
-    #print(end-start)
     try: # Final selection of relevant values from the combined df
         finalDF = pandas.concat(finalDF)
         bcrit11 = finalDF['chrom'] == chrom
@@ -407,11 +392,11 @@ def coverageDataSelection(ds, xAxisMin, xAxisMax, chrom):
         return pandas.DataFrame()    
 
 def overlap(a, b):
-    """check if two intervals overlap
+    """check if two intervals overlap.
 
     Positional arguments:
-    a -- first interval
-    b -- second interval
+    a -- First interval.
+    b -- Second interval.
     """
     return a[1] > b[0] and a[0] < b[1]
 
@@ -422,18 +407,16 @@ def createRNAPlots(xVals, yVals, eventData, displayed, colorDict,
     """Create the plots for both coverage and splice events.
 
     Positional arguments:
-    xVals -- x-axis values for coverage plot
-    yVals -- y-axis values for coverage plot
-    eventData -- Dict containing the dataframes with relevant splice events
-    displayed -- displayed datasets
-    colorDict -- colors for the coverage plots
-    displayMode -- determines how splice events are visualized
-    eventColorsFinal -- last confirmed colors for splice events
+    xVals -- x-axis values for coverage plot.
+    yVals -- y-axis values for coverage plot.
+    eventData -- Dict containing the dataframes with relevant splice events.
+    displayed -- Displayed datasets.
+    colorDict -- Colors for the coverage plots.
+    displayMode -- Determines how splice events are visualized.
+    eventColorsFinal -- Last confirmed colors for splice events.
     """
     # Select correct colorset depending on whih button was pressed last
-    evColors = json.loads(eventColorsFinal)
-
-        
+    evColors = eventColorsFinal
     data = [] # Will hold all generated traces
     axisTitles = [] # Will hold axis titles to be added in the main callback
     eventMaxHeights = [] # Will hold number of stacked event rows for layouting
@@ -448,21 +431,18 @@ def createRNAPlots(xVals, yVals, eventData, displayed, colorDict,
             covEnd = time.time()
             covTime += covEnd-covStart
         if cfg.spliceEventAvail:
-            start = time.time()
             data.append(createEventPlots(eventData, ds, axisTitles, eventMaxHeights, evColors, legendSet))
-            #print('EventCalc ' + str(time.time()-start))
-    #print('coverage time : ' + str(covTime))
     return (data, eventMaxHeights, axisTitles)
 
 def createAreaChart(xVals, yVals, ds, colorDict, axisTitles):
     """ Creates an area chart from provided values. axisTitles is modified by this function.
     
         Positional arguments:
-        xVals -- X-axis values for the area chart
-        yVals -- Y-axis values for the area chart
-        ds -- dataset this chart is for, used for color selection and naming
-        colorDict -- Dict holding colors by datasets
-        axisTitles -- List of y-axis titles
+        xVals -- X-axis values for the area chart.
+        yVals -- Y-axis values for the area chart.
+        ds -- Dataset this chart is for, used for color selection and naming.
+        colorDict -- Dict holding colors by datasets.
+        axisTitles -- List of y-axis titles.
     """
     xAxis = xVals[ds]
     yAxis = yVals[ds]
@@ -490,12 +470,12 @@ def createEventPlots(eventData, ds, axisTitles, eventMaxHeights, evColors, legen
         and legendSet
     
         Positional arguments:
-        eventData -- The dataframe containing the splice event data
-        ds -- Name of the dataset plots should be created for
+        eventData -- The dataframe containing the splice event data.
+        ds -- Name of the dataset plots should be created for.
         axistitles -- List that holds axistitles.
         eventMaxHeights -- List that contains the number of stacked event rows for each event trace.
-        evColors -- Colors for the different splice event types
-        legendSet -- Keeps track of which legend items to show to avoid duplicates
+        evColors -- Colors for the different splice event types.
+        legendSet -- Keeps track of which legend items to show to avoid duplicates.
     """
     maxStack = 0 # keeps track of the maximum number of stacked bars, to avoid empty rows
     traceDict = {}
@@ -603,16 +583,16 @@ def calculateEvents(key, chromStart, chromEnd, score, eventXValues, eventWidths,
         and returns a new value for maxstack. 
         
         Positional arguments:
-        key -- The type of splice event this event belongs to
-        chromstart -- Start of the event
-        chromEnd -- End of the event
-        score -- Score of the event
-        eventXValues -- Holds x-axis center coordinates of all events that have been processed already
-        eventWidths -- Holds widths of all processed events
-        eventBases -- Hold the vertical offset of all processed events
-        eventScores -- Holds the scores of all processed events
-        intervals -- Stores events as tuple containing start and end positions as well as vertical offset
-        maxStack -- Keeps track of the currently highest event row for layouting purposes
+        key -- The type of splice event this event belongs to.
+        chromstart -- Start of the event.
+        chromEnd -- End of the event.
+        score -- Score of the event.
+        eventXValues -- Holds x-axis center coordinates of all events that have been processed already.
+        eventWidths -- Holds widths of all processed events.
+        eventBases -- Hold the vertical offset of all processed events.
+        eventScores -- Holds the scores of all processed events.
+        intervals -- Stores events as tuple containing start and end positions as well as vertical offset.
+        maxStack -- Keeps track of the currently highest event row for layouting purposes.
     """
     # Avoid problems with events that don't follow the convention of chromStart < chromEnd
     maxVal = max(chromStart, chromEnd)
@@ -677,15 +657,15 @@ def calculateEventsScoreColored(chromStart, chromEnd, score, eventXValues, event
         and returns a new value for maxstack. 
     
         Positional arguments:
-        chromstart -- Start of the event
-        chromEnd -- End of the event
-        score -- Score of the event
-        eventXValues -- Holds x-axis center coordinates of all events that have been processed already
-        eventWidths -- Holds widths of all processed events
-        eventBases -- Hold the vertical offset of all processed events
-        eventScores -- Holds the scores of all processed events
-        intervals -- Stores events as tuple containing start and end positions as well as vertical offset
-        maxStack -- Keeps track of the currently highest event row for layouting purposes
+        chromstart -- Start of the event.
+        chromEnd -- End of the event.
+        score -- Score of the event.
+        eventXValues -- Holds x-axis center coordinates of all events that have been processed already.
+        eventWidths -- Holds widths of all processed events.
+        eventBases -- Hold the vertical offset of all processed events.
+        eventScores -- Holds the scores of all processed events.
+        intervals -- Stores events as tuple containing start and end positions as well as vertical offset.
+        maxStack -- Keeps track of the currently highest event row for layouting purposes.
     """
     maxVal = max(chromStart, chromEnd) 
     minVal = min(chromStart, chromEnd)
