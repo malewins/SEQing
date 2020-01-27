@@ -43,9 +43,11 @@ def setDesc(name):
      dash.dependencies.Input('paramList', 'values'),
      dash.dependencies.Input('sequenceRadio', 'value'),
      dash.dependencies.Input('colorFinal', 'data'),
-     dash.dependencies.Input('legendSpacingDiv', 'data')]
+     dash.dependencies.Input('legendSpacingDiv', 'data'),
+     dash.dependencies.Input('iCLIPScale', 'value'),
+     dash.dependencies.Input('bsScale', 'value')]
 )
-def showICLIP(figData, dataSets, seqDisp, colorF, legendSpacing):
+def showICLIP(figData, dataSets, seqDisp, colorF, legendSpacing,  iCLIPScale, bsScale):
     """ Update callbacks that selects traces to be displayed based on user input.
     
     Positional arguments:
@@ -111,9 +113,9 @@ def showICLIP(figData, dataSets, seqDisp, colorF, legendSpacing):
     else:
         procDataRows = 0
     if cfg.procAvail == True:
-        dataSetHeights.append(rowHeight / 2)
+        dataSetHeights.append(rowHeight / 2 * bsScale)
     if cfg.rawAvail == True:
-        dataSetHeights.append(rowHeight * rowOffset)
+        dataSetHeights.append(rowHeight * rowOffset * iCLIPScale)
         
     rowHeights = [rowHeight] * numIsoforms + dataSetHeights * numParams + [rowHeight]
     blockHeight = 0.4
@@ -159,8 +161,8 @@ def showICLIP(figData, dataSets, seqDisp, colorF, legendSpacing):
     for i in range(1,numRows + 1):  # Prevent zoom on y axis
         fig['layout']['yaxis' + str(i)].update(fixedrange=True)
 
-    fig['layout']['height'] = (baseHeight * rawDataRows
-                               + baseHeight * procDataRows
+    fig['layout']['height'] = (baseHeight * rawDataRows * iCLIPScale
+                               + baseHeight * procDataRows *bsScale
                                + baseHeight * (numIsoforms + 1)
                                + 80)
     fig['layout']['legend'].update(x = legendColumnSpacing)            

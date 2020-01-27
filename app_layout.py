@@ -655,6 +655,50 @@ if __name__ == '__main__':
                                                     )
                                                 ]
                                             )]),
+ html.Div(className = 'table-cell', 
+                                                children = [
+                                                    html.Fieldset(title = 'iCLIP-seq plot settings', 
+                                                        className = 'field-set',
+                                                        children = [
+                                                            html.Legend('iCLIP-seq plot settings'),
+                                                            html.Div(children = 'iCLIP plot scale'),
+                                                            dcc.Slider(
+                                                                id = 'iCLIPScale',
+                                                                min = 0.25,
+                                                                max = 2.5,
+                                                                step = 0.05,
+                                                                value = 1.0,
+                                                                marks = {
+                                                                    0.25: '0.25',
+                                                                    1.0: '1.0',
+                                                                    1.5: '1.5',
+                                                                    2.0: '2.0',
+                                                                    2.5: '2.5',
+                                                                    }
+                                                            ),
+                                                            html.Div(
+                                                                style = {'height' : '25px'}),
+                                                            html.Div(children = 'Binding site plot scale'),
+                                                            dcc.Slider(
+                                                                id = 'bsScale',
+                                                                min = 0.25,
+                                                                max = 2.5,
+                                                                step = 0.05,
+                                                                value = 1.0,
+                                                                marks = {
+                                                                    0.25: '0.25',
+                                                                    1.0: '1.0',
+                                                                    1.5: '1.5',
+                                                                    2.0: '2.0',
+                                                                    2.5: '2.5',
+                                                                    }
+                                                            ),
+                                                            html.Div(
+                                                                style = {'height' : '15px'})
+                                                        ]
+                                                    )
+                                                ]
+                                            ),                                                                
                                             html.Div(className = 'table-cell', 
                                                 children = [
                                                     html.Fieldset(title = 'RNA-seq plot settings', 
