@@ -19,12 +19,18 @@ git clone https://github.com/malewins/SEQing.git
 or downloaded and extracted from the github page: [github.com/malewins/SEQing](https://github.com/malewins/SEQing)
 
 
-The file ```requirements.txt``` can be used to install all needed needed dependencies for the project. Python 3.5 or higher is required and we recommend to setup a virtual environment for this project. If your current python points to a python2 version, please put ```python3``` instead of just ```python``` before running SEQing. 
+The file ```requirements.txt``` can be used to install all needed needed dependencies for the project. Python 3.5 or higher is required and we recommend to setup a virtual environment for this project. If your current python points to a python2 version, please put ```python3``` instead of just ```python``` before running SEQing. The same applies to the package installer ```pip```.
 
 Once you have setup your virtual environment run the following code to install the dependencies:
 ```
 pip install -r requirements.txt
 ```
+or 
+```
+pip3 install -r requirements.txt
+```
+if your pip points to an existing Python2 environment.
+
 
 ## Running SEQing with sample data
 
