@@ -20,7 +20,7 @@ __author__ = "Yannik Bramkamp"
 
 
 start = time.time()
-
+geneIndex = pandas.DataFrame()
 plotColors = []
 geneAnnotations = []
 sequences = []
@@ -59,7 +59,7 @@ eventColors = ['rgb(0,0,255)', 'rgb(255,0,0)', 'rgb(0,255,0)', 'rgb(128,0,128)',
 chunkSize = 10000
 spliceEventColors = {} # dictionary for slice event colors
 # Headers for the data files, files obviously need to conform to these headers for the visualization to work
-bedHeader = ['chrom','chromStart','chromEnd','name','score','strand','thickStart',
+bedHeader = ['chrom','chromStart','chromEnd','transID','score','strand','thickStart',
              'thickEnd','itemRGB','blockCount','blockSizes','blockStarts']
 bsHeader = ['chrom', 'chromStart','chromEnd','type', 'score', 'strand']
 rawHeader = ['chrom','chromStart','chromEnd','count']
@@ -180,9 +180,10 @@ def loadAnnotations():
             if i.suffix.lower() =='.bed':
                 checksum = hashlib.md5(open(str(i)).read().encode('utf-8'))
                 if checksums.get(str(i.stem), None) != checksum.hexdigest():
-                    dtypes = {'chrom' : 'category', 'chromStart' : 'uint32','chromEnd': 'uint32','name' : 'object','score' : 'int16','strand' : 'category','thickStart' : 'uint64',
+                    dtypes = {'chrom' : 'category', 'chromStart' : 'uint32','chromEnd': 'uint32','transID' : 'object','score' : 'int16','strand' : 'category','thickStart' : 'uint64',
                  'thickEnd' : 'uint64', 'blockCount' : 'uint32','blockSizes' : 'object','blockStarts' : 'object'}
                     df = pandas.read_csv(i, sep = '\t', compression='infer', comment = '#', names = bedHeader, dtype = dtypes)
+                    df = df.join(geneIndex.set_index('transID'), on='transID') 
                     validation = validateBed12(df)
                     if validation[0] == True:
                         geneAnnotations.append(df)
@@ -200,9 +201,10 @@ def loadAnnotations():
                         print('Loaded from pickle')
                     except IOError:
                         print('pickle not  found, loading from raw file')
-                        dtypes = {'chrom' : 'category', 'chromStart' : 'uint32','chromEnd': 'uint32','name' : 'object','score' : 'int16','strand' : 'category','thickStart' : 'uint64',
+                        dtypes = {'chrom' : 'category', 'chromStart' : 'uint32','chromEnd': 'uint32','transID' : 'object','score' : 'int16','strand' : 'category','thickStart' : 'uint64',
                                   'thickEnd' : 'uint64', 'blockCount' : 'uint32','blockSizes' : 'object','blockStarts' : 'object'}
                         df = pandas.read_csv(i, sep = '\t', compression='infer', comment = '#', names = bedHeader, dtype = dtypes)
+                        df = df.join(geneIndex.set_index('transID'), on='transID') 
                         validation = validateBed12(df)
                         if validation[0] == True:
                             geneAnnotations.append(df)
@@ -214,9 +216,10 @@ def loadAnnotations():
                             print(validation[1])
                     except UnicodeDecodeError:
                         print('Error decoding pickle binary file, will load from raw file instead')
-                        dtypes = {'chrom' : 'category', 'chromStart' : 'uint32','chromEnd': 'uint32','name' : 'object','score' : 'int16','strand' : 'category','thickStart' : 'uint64',
+                        dtypes = {'chrom' : 'category', 'chromStart' : 'uint32','chromEnd': 'uint32','transID' : 'object','score' : 'int16','strand' : 'category','thickStart' : 'uint64',
                                   'thickEnd' : 'uint64', 'blockCount' : 'uint32','blockSizes' : 'object','blockStarts' : 'object'}
-                        df = pandas.read_csv(i, sep = '\t', compression='infer', comment = '#', names = bedHeader, dtype = dtypes)                    
+                        df = pandas.read_csv(i, sep = '\t', compression='infer', comment = '#', names = bedHeader, dtype = dtypes)
+                        df = df.join(geneIndex.set_index('transID'), on='transID')                     
                         validation = validateBed12(df)
                         if validation[0] == True:
                             geneAnnotations.append(df)
@@ -228,10 +231,10 @@ def loadAnnotations():
                             print(validation[1])
                     except ModuleNotFoundError:
                         print('Pickle was created using different package versions, will load from raw file instead')
-                        dtypes = {'chrom' : 'category', 'chromStart' : 'uint32','chromEnd': 'uint32','name' : 'object','score' : 'int16',
-                                   'strand' : 'category','thickStart' : 'uint64',
-                                   'thickEnd' : 'uint64', 'blockCount' : 'uint32','blockSizes' : 'object','blockStarts' : 'object'}
-                        df = pandas.read_csv(i, sep = '\t', comment = '#', compression='infer', names = bedHeader, dtype = dtypes)                    
+                        dtypes = {'chrom' : 'category', 'chromStart' : 'uint32','chromEnd': 'uint32','transID' : 'object','score' : 'int16','strand' : 'category','thickStart' : 'uint64',
+                                  'thickEnd' : 'uint64', 'blockCount' : 'uint32','blockSizes' : 'object','blockStarts' : 'object'}
+                        df = pandas.read_csv(i, sep = '\t', compression='infer', comment = '#', names = bedHeader, dtype = dtypes)
+                        df = df.join(geneIndex.set_index('transID'), on='transID')                          
                         validation = validateBed12(df)
                         if validation[0] == True:
                             geneAnnotations.append(df)
@@ -708,6 +711,13 @@ parser.add_argument('-name',
                     type = str,
                     default = '',
                     metavar = 'String')
+parser.add_argument('-geneindex',
+                    dest = 'geneIndex',
+                    help = '''Index mapping gene identifiers to transcript identifiers. For use with Bed12 annotation files. Should be two-column
+                    tsv file, with the first column containing gene ids and the second column containing transcript ids. No header row.''',
+                    type = Path,
+                    metavar = 'FILE',
+                    )
 if __name__ == '__main__':
     args=parser.parse_args()
     
@@ -735,6 +745,10 @@ if __name__ == '__main__':
             advancedDescPath = Path(args.advancedDesc)
         except TypeError:
             advancedDescPath = None
+        try:
+            indexPath = Path(args.geneIndex)
+        except TypeError:
+            indexPath = None
         try:
             subTablePath = Path(args.subTables)
         except TypeError:
@@ -843,10 +857,18 @@ if __name__ == '__main__':
         print('No valid color strings provided, using defaults')
         plotColors = ['rgb( 88, 24, 69 )', 'rgb( 199, 0, 57 )', 'rgb(46, 214, 26)', 'rgb(255, 87, 51)']        
     
+    try:
+        geneIndex = pandas.read_csv(indexPath, sep = '\t', compression='infer', comment = '#', names = ['geneID', 'transID'])
+    except FileNotFoundError:
+        print('Gene index file not found.')
+        geneIndex = pandas.DataFrame(columns = ['geneID', 'transID'])
+    except ValueError:
+        print('geneIndex not set')
+        geneIndex = pandas.DataFrame(columns = ['geneID', 'transID'])
     # Load gene annotations from either bed or gtf files. also handle pickling
     loadAnnotations()
-    # Read dna sequences from fasta
-    geneNames = list(set().union([x[0] for y in [i['name'].str.split('.') for i in geneAnnotations] for x in y]))
+    test = [k for k in [i['geneID'].tolist() for i in geneAnnotations]]
+    geneNames = list(set().union(*test))
     print('Done.')
     print('Loading description and sequence data if provided.')
     # Read dna sequences from fasta

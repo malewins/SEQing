@@ -9,8 +9,8 @@ if __name__ == '__main__':
     print('Please start the program via validator.py')
     exit()
 
-gtfHeader = ['chrom','chromStart','chromEnd','name','score','strand','thickStart','thickEnd','itemRGB','blockCount','blockSizes','blockStarts']
-dtypes = {'chrom' : 'category', 'chromStart' : 'uint32','chromEnd': 'uint32','name' : 'object','score' : 'int16','strand' : 'category','thickStart' : 'uint64',
+gtfHeader = ['chrom','chromStart','chromEnd','geneID', 'transID','score','strand','thickStart','thickEnd','itemRGB','blockCount','blockSizes','blockStarts']
+dtypes = {'chrom' : 'category', 'chromStart' : 'uint32','chromEnd': 'uint32','geneID' : 'object', 'transID' : 'object','score' : 'int16','strand' : 'category','thickStart' : 'uint64',
                                   'thickEnd' : 'uint64', 'itemRGB' : 'int16', 'blockCount' : 'uint32','blockSizes' : 'object','blockStarts' : 'object'}
 
 def convertGTFToBed(df):
@@ -21,7 +21,6 @@ def convertGTFToBed(df):
     Positional arguments:
     df -- GTF dataframe.
     """
-
     bedFile = []
     current = ''
     chrom = ''
@@ -60,29 +59,29 @@ def convertGTFToBed(df):
                     transID = transID[1:-1]
             else:
                 transID = ''
-            # handle ids that consist of multiple, point seperated values
-            geneParts = geneID.split('.')
-            transParts = transID.split('.')
-            finalID = '' # this will be the final id used for the gene
-            if geneID != '':
-                if transID != '':
-                    if len(geneParts) == 1 and len(transParts) == 1:
-                        finalID = geneParts[0] + '.' + transParts[0]
-                    else:
-                        if len(geneParts) == 1 and len(transParts) == 2:
-                            if geneParts[0] == transParts[0]:
-                                finalID = geneParts[0] + '.' + transParts[1]
-                            else:
-                                finalID = geneParts[0] + '.' + '_'.join(transParts)
-                        else:
-                            finalID = '_'.join(geneParts) + '.' + '_'.join(transParts)
-                else:
-                    finalID = geneID
-            else:
-                continue
+#            # handle ids that consist of multiple, point seperated values
+#            geneParts = geneID.split('.')
+#            transParts = transID.split('.')
+#            finalID = '' # this will be the final id used for the gene
+#            if geneID != '':
+#                if transID != '':
+#                    if len(geneParts) == 1 and len(transParts) == 1:
+#                        finalID = geneParts[0] + '.' + transParts[0]
+#                    else:
+#                        if len(geneParts) == 1 and len(transParts) == 2:
+#                            if geneParts[0] == transParts[0]:
+#                                finalID = geneParts[0] + '.' + transParts[1]
+#                            else:
+#                                finalID = geneParts[0] + '.' + '_'.join(transParts)
+#                        else:
+#                            finalID = '_'.join(geneParts) + '.' + '_'.join(transParts)
+#                else:
+#                    finalID = geneID
+#            else:
+#                continue
             # convert the data into bed 12
             if current == '':
-                current = finalID
+                current = transID
                 chrom = i[1]['seqname']
                 strand = i[1]['strand']
                 blockCount = 0
@@ -102,7 +101,7 @@ def convertGTFToBed(df):
                     if thickEnd == -1 or thickEnd < i[1]['end']:
                         thickEnd = i[1]['end']
             else:
-                if finalID == current: # line still belongs to the same gene
+                if transID == current: # line still belongs to the same gene
                     if i[1]['feature'] == 'exon':
                         blockCount += 1
                         blockStarts.append(int(i[1]['start']))
@@ -123,10 +122,10 @@ def convertGTFToBed(df):
                     bBlockStarts = [int(i)-int(chromStart) for i in blockStarts]
                     # append data of previous gene before resetting values for
                     # the new one
-                    bedFile.append([chrom, chromStart-1, chromEnd, current, score,
+                    bedFile.append([chrom, chromStart-1, chromEnd, geneID, transID, score,
                                     strand, thickStart, thickEnd, itemRGB,
                                     blockCount, ','.join(map(str, blockSizes)), ','.join(map(str, bBlockStarts))])
-                    current = finalID
+                    current = transID
                     chrom = i[1]['seqname']
                     strand = i[1]['strand']
                     blockCount = 0
@@ -154,7 +153,7 @@ def convertGTFToBed(df):
     bBlockStarts = [int(i)-int(chromStart) for i in blockStarts]
     # append data of previous gene before resetting values for
     # the new one
-    bedFile.append([chrom, chromStart-1, chromEnd, current, score,
+    bedFile.append([chrom, chromStart-1, chromEnd, geneID, transID, score,
                                     strand, thickStart, thickEnd, itemRGB,
                                     blockCount, ','.join(map(str, blockSizes)), ','.join(map(str, bBlockStarts))])
     finDF = pandas.DataFrame(data = bedFile, columns = gtfHeader)
