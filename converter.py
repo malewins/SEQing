@@ -23,6 +23,7 @@ def convertGTFToBed(df):
     """
     bedFile = []
     current = ''
+    currentGene = ''
     chrom = ''
     strand = ''
     itemRGB = 0
@@ -82,6 +83,7 @@ def convertGTFToBed(df):
             # convert the data into bed 12
             if current == '':
                 current = transID
+                currentGene = geneID
                 chrom = i[1]['seqname']
                 strand = i[1]['strand']
                 blockCount = 0
@@ -122,10 +124,11 @@ def convertGTFToBed(df):
                     bBlockStarts = [int(i)-int(chromStart) for i in blockStarts]
                     # append data of previous gene before resetting values for
                     # the new one
-                    bedFile.append([chrom, chromStart-1, chromEnd, geneID, transID, score,
+                    bedFile.append([chrom, chromStart-1, chromEnd, currentGene, current, score,
                                     strand, thickStart, thickEnd, itemRGB,
                                     blockCount, ','.join(map(str, blockSizes)), ','.join(map(str, bBlockStarts))])
                     current = transID
+                    currentGene = geneID
                     chrom = i[1]['seqname']
                     strand = i[1]['strand']
                     blockCount = 0
