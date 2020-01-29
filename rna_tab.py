@@ -44,10 +44,11 @@ def rnaDesc(name):
      dash.dependencies.Input('eventColorFinal', 'data'),
      dash.dependencies.Input('legendSpacingDiv', 'data'),
      dash.dependencies.Input('coverageScale', 'value'),
+     dash.dependencies.Input('sequenceRadio', 'value'),
      dash.dependencies.Input('eventScale', 'value')],
      [dash.dependencies.State('bsGraphMem', 'data')]
 )
-def showRNA(figData, dataSets, displayType, covColor, eventColor, legendSpacing, coverageScale, eventScale, bsMem):
+def showRNA(figData, dataSets, displayType, covColor, eventColor, legendSpacing, coverageScale, seqDisp, eventScale, bsMem):
     """Update callback that selects traces to be displayed based on settings.
 
     Positional arguments:
@@ -66,7 +67,9 @@ def showRNA(figData, dataSets, displayType, covColor, eventColor, legendSpacing,
     geneModels = figData['geneModels']
     coverageColors = covColor
     try:
-        seqTrace = bsMem['heatSeq']
+        seqTrace = bsMem[seqDisp]
+        for i in seqTrace:
+            i['showscale'] = False
     except:
         seqTrace = []
 
@@ -117,7 +120,7 @@ def showRNA(figData, dataSets, displayType, covColor, eventColor, legendSpacing,
                 t['fillcolor'] = newColor
                 finTraces.append(t)              
     numIsoforms = len(geneModels) # Number of isoforms in the gene model
-    numRows = len(finTraces)+numIsoforms#+1 for sequence trace
+    numRows = len(finTraces)+numIsoforms+1#+1 for sequence trace
     
     # Setup row heights based on available data
     
@@ -129,6 +132,7 @@ def showRNA(figData, dataSets, displayType, covColor, eventColor, legendSpacing,
     else:
         vSpace = spacingSpace
     rowHeights = []
+    rowHeights.append(rowHeight/2)
     eventHeights = []
     eventMaxHeights = figData['maxHeights']
     for index, i in enumerate(eventMaxHeights):
@@ -142,26 +146,22 @@ def showRNA(figData, dataSets, displayType, covColor, eventColor, legendSpacing,
             if i >= 10:
                 eventHeights.append(i % 5 +1)
     if cfg.spliceEventAvail:
-        for i in range(numRows):
-            if i > len(finTraces)-1: rowHeights.append(0.5 * rowHeight) # Gene model row
-            elif (i % 2 != 0):
+        for i in range(1,numRows):
+            if i > len(finTraces): 
+                rowHeights.append(0.5 * rowHeight) # Gene model row
+            elif (i % 2 == 0):
                 try:
-                    rowHeights.append(eventHeights[i//2] * rowHeight * eventScale) # Splice event row
+                    rowHeights.append(eventHeights[(i//2)-1] * rowHeight * eventScale) # Splice event row
                 except IndexError:
-                     rowHeights.append(0)
+                    rowHeights.append(0)
             else:
                 rowHeights.append(3 * rowHeight * coverageScale) # Coverage row
     else:
-        for i in range(numRows):
-            if i > len(finTraces)-1: rowHeights.append(0.5 * rowHeight) # Gene model row
+        for i in range(1,numRows):
+            if i > len(finTraces): rowHeights.append(0.5 * rowHeight) # Gene model row
             else:
                 rowHeights.append(3 * rowHeight * coverageScale) # Coverage row
-    print(len(rowHeights))
-    print(numRows)
-    rowHeights.append(rowHeight)
-    print(len(rowHeights))
-    
-    fig = tools.make_subplots(print_grid=False, rows=numRows+1, cols=1,
+    fig = tools.make_subplots(print_grid=False, rows=numRows, cols=1,
                               shared_xaxes=True, row_width=rowHeights[::-1], vertical_spacing = vSpace)
         # Layouting of the figure
     eventIndicesDraw = [] # Save indices of all elements that contain event traces
@@ -170,19 +170,15 @@ def showRNA(figData, dataSets, displayType, covColor, eventColor, legendSpacing,
     for index, t in enumerate(finTraces):
         try:
             fig.append_trace(t, index + 2, 1)
-            print(index +2)
         except ValueError:
             eventIndicesDraw.append(index)
     for i in eventIndicesDraw: # Add event traces after all coverage traces have been added for legend item positioning
         for x in finTraces[i]:
             fig.append_trace(x, i + 2, 1)    
-            print(i+2)
     counter = len(finTraces)+1
-    print('gene_model')
     for model in geneModels:
         for part in model:
-            fig.append_trace(part, counter, 1)
-            print(counter+1)
+            fig.append_trace(part, counter+1, 1)
         counter += 1
     fig['layout']['xaxis'].update(nticks=6)
     fig['layout']['xaxis'].update(tickmode='array')
@@ -193,6 +189,7 @@ def showRNA(figData, dataSets, displayType, covColor, eventColor, legendSpacing,
     fig['layout'].update(hovermode='closest')
     fig['layout']['yaxis'].update(fixedrange=True)
     fig['layout'].update(barmode='relative')
+
     # Reverse x-axis if gene is on - strand to always show models in 3'->5'
     if figData['strand'] == '-':
         fig['layout']['xaxis'].update(autorange='reversed')
@@ -203,26 +200,27 @@ def showRNA(figData, dataSets, displayType, covColor, eventColor, legendSpacing,
     except ValueError:
         maxYVal = 0
     blockHeight = 0.4
-    for i in range(1, numRows+1):
+    for i in range(1, numRows):   
             if cfg.spliceEventAvail:
                 if i % 2 != 0 and i <= len(finTraces): # Coverage row
-                    fig['layout']['yaxis' + str(i)].update(range=[0, maxYVal],title={'text': axisTitles[i-1]})
-                    fig['layout']['yaxis' + str(i)].update(showticklabels=True, showgrid=True, zeroline=True)
+                    fig['layout']['yaxis' + str(i+1)].update(range=[0, maxYVal],title={'text': axisTitles[i-1]})
+                    fig['layout']['yaxis' + str(i+1)].update(showticklabels=True, showgrid=True, zeroline=True)
                 else: # Event or gene model row
                     if i > len(finTraces): # Gene model row
-                        fig['layout']['yaxis' + str(i)].update(showticklabels=False, showgrid=False, zeroline=False)
-                        fig['layout']['yaxis' + str(i)].update(range=[-blockHeight, blockHeight])
+                        fig['layout']['yaxis' + str(i+1)].update(showticklabels=False, showgrid=False, zeroline=False)
+                        fig['layout']['yaxis' + str(i+1)].update(range=[-blockHeight, blockHeight])
                     else: # Event row
-                        fig['layout']['yaxis' + str(i)].update(showticklabels=False, showgrid=False, zeroline=False, title={'text': axisTitles[i-1]})
+                        fig['layout']['yaxis' + str(i+1)].update(showticklabels=False, showgrid=False, zeroline=False, title={'text': axisTitles[i-1]})
             else:
                 if i <= len(finTraces): # Coverage row
-                    fig['layout']['yaxis' + str(i)].update(range=[0, maxYVal], title={'text': axisTitles[i-1]})
-                    fig['layout']['yaxis' + str(i)].update(showticklabels=True, showgrid=True, zeroline=True)
+                    fig['layout']['yaxis' + str(i+1)].update(range=[0, maxYVal], title={'text': axisTitles[i-1]})
+                    fig['layout']['yaxis' + str(i+1)].update(showticklabels=True, showgrid=True, zeroline=True)
                 else: # Gene model row
-                    fig['layout']['yaxis' + str(i)].update(showticklabels=False, showgrid=False, zeroline=False)
-                    fig['layout']['yaxis' + str(i)].update(range=[-blockHeight, blockHeight], )
+                    fig['layout']['yaxis' + str(i+1)].update(showticklabels=False, showgrid=False, zeroline=False)
+                    fig['layout']['yaxis' + str(i+1)].update(range=[-blockHeight, blockHeight], )
     # Setup plot height, add 85 to account for margins
     fig['layout'].update(margin=go.layout.Margin(l=60, r=40, t=25, b=60),)
+    fig['layout']['yaxis'].update(visible = False, showticklabels=False, showgrid=False, zeroline=False)
     rowScales = [x/rowHeight for x in rowHeights]
     size = 0 
     for i in rowScales:

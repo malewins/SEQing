@@ -488,7 +488,7 @@ def setUpBlockConstraints(chromStart, chromEnd, blockStarts, blockSizes, xAxisMi
                 blockSizesF[index] = xAxisMax - elem
     return (blockStartsF, blockSizesF, loc)
                 
-def calculateBlocks(thickStart, thickEnd, blockStart, blockEnd, blockVals, blockWidths, blockYs, blockHeight):
+def calculateBlocks(thickStart, thickEnd, blockStart, blockEnd, blockVals, blockWidths, blockYs, blockHeight, strand):
     """ This function determines the actual shape of each block, based on wether it's
         located in coding or noncoding region, or on the boundary. The function directly appends to the input lists
         
@@ -503,6 +503,10 @@ def calculateBlocks(thickStart, thickEnd, blockStart, blockEnd, blockVals, block
         blockYa -- Holds the y value of the block, this determines wether it's a coding or noncoding block.
         blockHeight -- The height value to use for coding blocks. Non coding blocks are half height.
     """
+    if strand == '-':
+        blockEnd -= 1
+    else:
+        blockEnd = blockEnd
     blockStart = blockStart
     if blockStart != -1 and blockStart != blockEnd:
         blockEnd = blockEnd  # Same as codingRegionEnd
@@ -682,10 +686,13 @@ def createSequenceTrace(seqDisp, strand, combinedSeq, xAxisMin, xAxisMax):
                 [0.75, cfg.colorG],
                 [1.0, cfg.colorG]
             ]
-
+        if strand == '-':
+            xList = list(range(xAxisMin, xAxisMax-1))
+        else:
+            xList = list(range(xAxisMin, xAxisMax))
         heatTrace = go.Heatmap(
             z=[zlist],
-            x=list(range(xAxisMin, xAxisMax)),
+            x=xList,
             text=[textList],
             colorscale=colors,
             showscale=True,
@@ -738,7 +745,7 @@ def createGeneModelPlot(isoforms, xAxisMin, xAxisMax, blockHeight, strand):
         # Calculate blocks from block start and end positions, as well as thickness
         for j in range(len(blockStarts)):
             blockStart = blockStarts[j]
-            calculateBlocks(i.thickStart, i.thickEnd, blockStart, blockStart + blockSizes[j] , blockVals, blockWidths, blockYs, blockHeight)
+            calculateBlocks(i.thickStart, i.thickEnd, blockStart, blockStart + blockSizes[j] , blockVals, blockWidths, blockYs, blockHeight, strand)
         # Find first and last block to draw line properly
         f = lambda i: blockVals[i]
         lineCoords = []
