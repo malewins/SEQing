@@ -44,9 +44,10 @@ def rnaDesc(name):
      dash.dependencies.Input('eventColorFinal', 'data'),
      dash.dependencies.Input('legendSpacingDiv', 'data'),
      dash.dependencies.Input('coverageScale', 'value'),
-     dash.dependencies.Input('eventScale', 'value')]
+     dash.dependencies.Input('eventScale', 'value')],
+     [dash.dependencies.State('bsGraphMem', 'data')]
 )
-def showRNA(figData, dataSets, displayType, covColor, eventColor, legendSpacing, coverageScale, eventScale):
+def showRNA(figData, dataSets, displayType, covColor, eventColor, legendSpacing, coverageScale, eventScale, bsMem):
     """Update callback that selects traces to be displayed based on settings.
 
     Positional arguments:
@@ -64,6 +65,11 @@ def showRNA(figData, dataSets, displayType, covColor, eventColor, legendSpacing,
     traces = figData['rnaTraces']
     geneModels = figData['geneModels']
     coverageColors = covColor
+    try:
+        seqTrace = bsMem['heatSeq']
+    except:
+        seqTrace = []
+
     eventColors = eventColor
     eventIndices = [] # Save indices of all elements that contain event traces
     rnaDataSets = sorted(list(cfg.coverageData.keys()))
@@ -111,8 +117,8 @@ def showRNA(figData, dataSets, displayType, covColor, eventColor, legendSpacing,
                 t['fillcolor'] = newColor
                 finTraces.append(t)              
     numIsoforms = len(geneModels) # Number of isoforms in the gene model
-    numRows = len(finTraces)+numIsoforms
-
+    numRows = len(finTraces)+numIsoforms#+1 for sequence trace
+    
     # Setup row heights based on available data
     
     plotSpace = 0.9  # Space taken up by data tracks
@@ -150,23 +156,33 @@ def showRNA(figData, dataSets, displayType, covColor, eventColor, legendSpacing,
             if i > len(finTraces)-1: rowHeights.append(0.5 * rowHeight) # Gene model row
             else:
                 rowHeights.append(3 * rowHeight * coverageScale) # Coverage row
-
-    fig = tools.make_subplots(print_grid=False, rows=numRows, cols=1,
+    print(len(rowHeights))
+    print(numRows)
+    rowHeights.append(rowHeight)
+    print(len(rowHeights))
+    
+    fig = tools.make_subplots(print_grid=False, rows=numRows+1, cols=1,
                               shared_xaxes=True, row_width=rowHeights[::-1], vertical_spacing = vSpace)
         # Layouting of the figure
     eventIndicesDraw = [] # Save indices of all elements that contain event traces
+    for i in seqTrace:
+        fig.append_trace(i, 1, 1)
     for index, t in enumerate(finTraces):
         try:
-            fig.append_trace(t, index + 1, 1)
+            fig.append_trace(t, index + 2, 1)
+            print(index +2)
         except ValueError:
             eventIndicesDraw.append(index)
     for i in eventIndicesDraw: # Add event traces after all coverage traces have been added for legend item positioning
         for x in finTraces[i]:
-            fig.append_trace(x, i + 1, 1)         
+            fig.append_trace(x, i + 2, 1)    
+            print(i+2)
     counter = len(finTraces)+1
+    print('gene_model')
     for model in geneModels:
         for part in model:
             fig.append_trace(part, counter, 1)
+            print(counter+1)
         counter += 1
     fig['layout']['xaxis'].update(nticks=6)
     fig['layout']['xaxis'].update(tickmode='array')
@@ -244,7 +260,7 @@ def rnaCallback(geneName, displayMode,rnaParamList, colorsFinal, eventColorsFina
         """
     colors = colorsFinal
     figData = {}
-
+    
     # Select appropriate data from gene annotations
     currentGene = pandas.DataFrame()
     for index, elem in enumerate(cfg.geneAnnotations):
