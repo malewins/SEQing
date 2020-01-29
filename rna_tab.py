@@ -248,7 +248,7 @@ def rnaCallback(geneName, displayMode,rnaParamList, colorsFinal, eventColorsFina
     # Select appropriate data from gene annotations
     currentGene = pandas.DataFrame()
     for index, elem in enumerate(cfg.geneAnnotations):
-        currentGene = elem[elem['name'].str.contains(geneName)]
+        currentGene = elem[elem['geneID'].str.contains(geneName)]
         if not currentGene.empty:
             break
 
@@ -342,7 +342,7 @@ def rnaCallback(geneName, displayMode,rnaParamList, colorsFinal, eventColorsFina
         bcrit41 = i['chromStart'] <= xAxisMin
         bcrit42 = i['chromEnd'] >= xAxisMax
         preDF = i.loc[bcrit11 & ((bcrit21 & bcrit22) | (bcrit31 & bcrit32) | (bcrit41 & bcrit42))]
-        result = preDF[~preDF['name'].str.contains(geneName)]
+        result = preDF[~preDF['geneID'].str.contains(geneName)]
         overlappingGenes.append(result)
         
     overlaps = pandas.concat(overlappingGenes)

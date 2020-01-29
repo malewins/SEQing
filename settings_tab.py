@@ -602,7 +602,7 @@ def setHeadline(name):
     name -- Name of the currently selected gene.
     """
     for i in cfg.geneAnnotations:
-        currentGene = i[i['name'].str.contains(name)]
+        currentGene = i[i['geneID'].str.contains(name)]
         if not currentGene.empty:
             break
     strand = currentGene['strand'].iloc[0]
