@@ -232,7 +232,7 @@ def iCLIPCallback(geneName, dataSets, seqDisp, colorsFinal, legendSpacing):
     # Create list of 3-tupels containing start, end, name for each isoform.
     isoformRanges = []
     for elem in currentGene.itertuples():
-        name = elem.geneID
+        name = elem.transID
         isoformRanges.append((elem.chromStart, elem.chromEnd, name))
     # Create master sequence for sequence display
     try:
