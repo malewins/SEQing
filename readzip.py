@@ -8,16 +8,16 @@ import bz2
 
 class FileInput:
     """Decorator for file checking"""
-
-    def __init__(self, file_path, file_type, zipped):
+    def __init__(self, file_path, file_type, zipped, header_present):
         self.file_path = file_path
         self.file_type = file_type
         self.zipped = zipped
+        self.header_present = header_present
 
 
 def check_input_file(file_path):
     """A function to test the input file and classifies it by content"""
-    # try to guess file type by head
+    # try to guess file type by analysing the head
     guessed_type = ft.guess(file_path)
     file_zipped = False
 
@@ -31,52 +31,43 @@ def check_input_file(file_path):
         file_zipped = True
     else:
         # return unsupported file type
-        return FileInput(file_path, 'unsupported', False)
+        return FileInput(file_path, 'unsupported', False, False)
 
-    head_dim = file_head.shape
     head_dtypes = np.array(file_head.dtypes)
+    # check for header (no numbers in first row)
+    header_present = not any(cell == np.int for cell in head_dtypes)
 
-    print(head_dtypes == [object, np.int64, np.int64, np.int64])
-    print(head_dtypes == [object, np.int64, np.int64, np.float64])
+    header = pd.Series()
+    if header_present:
+        header = file_head.iloc[0]
+        if file_zipped:
+            file_head = pd.read_csv(file_path, compression='infer', sep='\t', header=None, nrows=5, skiprows=1, comment='#')
+        else:
+            file_head = pd.read_csv(file_path, sep='\t', header=None, nrows=5, skiprows=1, comment='#')
 
+    # assign file type by shape of table
+    head_dim = file_head.shape
     # check for BED4
     if head_dim[1] == 4:
-        return FileInput(file_path, 'BED4', file_zipped)
+        return FileInput(file_path, 'BED4', file_zipped, header_present)
     # check for BED6
     elif head_dim[1] == 6:
-        return FileInput(file_path, 'BED4', file_zipped)
+        return FileInput(file_path, 'BED4', file_zipped, header_present)
     # check for GFF or GTF
     elif head_dim[1] == 9:
-        return FileInput(file_path, 'GFF/GTF', file_zipped)
+
+        if not header.empty:
+            for col in header:
+                if 'gff-version 3' in col:
+                    return FileInput(file_path, 'GFF3', file_zipped, header_present)
+                else:
+                    return FileInput(file_path, 'GTF', file_zipped, header_present)
+
     elif head_dim[1] == 12:
-        return FileInput(file_path, 'BED12', file_zipped)
+        return FileInput(file_path, 'BED12', file_zipped, header_present)
     else:
         # unsupported format
-        return FileInput(file_path, 'unsupported', False)
+        return FileInput(file_path, 'unsupported', False, header_present)
 
 
-readfiles = ['example_set/AtGRP7-ox_LL36.bedgraph',  # uncompressed
-             'example_set/AtGRP7-ox_LL36.bedgraph.gz',  # gzipped
-             'example_set/AtGRP7-ox_LL36.bedgraph.zip',  # zipped
-             'example_set/AtGRP7-ox_LL36.bedgraph.bz2'  # gzipped
-             ]
 
-for file in readfiles:
-    print(vars(check_input_file(file)))
-
-'''
-
-for file_to_read in readfiles:
-    guessed_type = ft.guess(file_to_read)
-    # None equals regular text files
-    if guessed_type == None:
-        #read with pandas
-        print("Filetype of {f2r} is: {type}".format(type=guessed_type, f2r=file_to_read))
-        data_file = pd.read_csv(file_to_read,sep='\t',header=None, nrows=4)
-        print(data_file.head())
-    elif guessed_type.mime in ['application/gzip', 'application/x-bzip2', 'application/zip']:
-        # read with pandas and zip option
-        print("Filetype of {f2r} is: {type}".format(type=guessed_type.mime, f2r=file_to_read))
-        data_file = pd.read_csv(file_to_read, compression='infer',sep='\t',header=None,nrows=4)
-        print(data_file.head())
-'''
