@@ -202,7 +202,7 @@ def iCLIPCallback(geneName, dataSets, seqDisp, colorsFinal, legendSpacing):
     # Select appropriate data from either the coding or non-coding set
     currentGene = pandas.DataFrame()
     for elem in cfg.geneAnnotations:
-        currentGene = elem[elem['name'].str.contains(geneName)]
+        currentGene = elem[elem['geneID'].str.contains(geneName)]
         if not currentGene.empty:
             break
     
@@ -223,7 +223,7 @@ def iCLIPCallback(geneName, dataSets, seqDisp, colorsFinal, legendSpacing):
         bcrit41 = i['chromStart'] <= xAxisMin
         bcrit42 = i['chromEnd'] >= xAxisMax
         preDF = i.loc[bcrit11 & ((bcrit21 & bcrit22) | (bcrit31 & bcrit32) | (bcrit41 & bcrit42))]
-        result = preDF[~preDF['name'].str.contains(geneName)]
+        result = preDF[~preDF['geneID'].str.contains(geneName)]
         overlappingGenes.append(result)
         
     overlaps = pandas.concat(overlappingGenes)
@@ -232,9 +232,7 @@ def iCLIPCallback(geneName, dataSets, seqDisp, colorsFinal, legendSpacing):
     # Create list of 3-tupels containing start, end, name for each isoform.
     isoformRanges = []
     for elem in currentGene.itertuples():
-        name = elem.name
-        if len(elem.name.split('_')) > 1: # Format name properly
-            name = elem.name.split('.')[1].replace('_', '.')
+        name = elem.transID
         isoformRanges.append((elem.chromStart, elem.chromEnd, name))
     # Create master sequence for sequence display
     try:
@@ -736,7 +734,7 @@ def createGeneModelPlot(isoforms, xAxisMin, xAxisMax, blockHeight, strand):
         blockVals = []
         blockWidths = []
         blockYs = []
-        name = i.name
+        name = i.transID
         # Calculate blocks from block start and end positions, as well as thickness
         for j in range(len(blockStarts)):
             blockStart = blockStarts[j]
