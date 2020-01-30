@@ -15,6 +15,9 @@ from Bio import SeqIO
 from Bio.Alphabet import generic_dna
 import converter
 import time
+import gzip
+import bz2
+import zipfile
 
 __author__ = "Yannik Bramkamp"
 
@@ -173,6 +176,29 @@ def isRGB(color):
     except TypeError:
         return False
 
+def md5Gzip(fname):
+    hash_md5 = hashlib.md5()
+
+    with gzip.open(fname, 'rb') as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash_md5.update(chunk)
+    return hash_md5
+
+def md5Bz2(fname):
+    hash_md5 = hashlib.md5()
+
+    with bz2.open(fname, 'rb') as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash_md5.update(chunk)
+    return hash_md5
+
+def md5Zip(fname):
+    hash_md5 = hashlib.md5()
+    with zipfile.open(fname, 'rb') as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash_md5.update(chunk)
+    return hash_md5
+
 def loadAnnotations():
     for idx, i in enumerate(geneAnnotationPaths):
         try:
@@ -185,7 +211,15 @@ def loadAnnotations():
             if typeGuess.file_type == 'BED12':           
     #        try:
     #            if i.suffix.lower() =='.bed':
-                checksum = hashlib.md5(open(str(i)).read().encode('utf-8'))
+                if typeGuess.zipped == True:
+                    if typeGuess.zip_type == 'gzip':
+                        checksum = md5Gzip(str(i))
+                    elif typeGuess.zio_type == 'bzip2':
+                        checksum = md5Bz2(str(i))
+                    elif typeGuess.zio_type == 'zip':
+                        checksum = md5Zip(str(i))       
+                else:
+                    checksum = hashlib.md5(open(str(i)).read().encode('utf-8'))
                 if checksums.get(str(i.stem), None) != checksum.hexdigest():
                     dtypes = {'chrom' : 'category', 'chromStart' : 'uint32','chromEnd': 'uint32','transID' : 'object','score' : 'int16','strand' : 'category','thickStart' : 'uint64',
                  'thickEnd' : 'uint64', 'blockCount' : 'uint32','blockSizes' : 'object','blockStarts' : 'object'}
@@ -253,7 +287,10 @@ def loadAnnotations():
                             print(validation[1])
             elif typeGuess.file_type == 'GTF':
     #            if i.suffix.lower() == '.gtf':
-                checksum = hashlib.md5(open(str(i)).read().encode('utf-8'))
+                if typeGuess.zipped == True:
+                    checksum = md5Gzip(str(i))
+                else:
+                    checksum = hashlib.md5(open(str(i)).read().encode('utf-8'))
                 if checksums.get(str(i.stem), None) != checksum.hexdigest():
                     dtypes = {'seqname' : 'object', 'source' : 'object', 'feature' : 'object', 'start' : 'uint32', 'end': 'uint32', 'score' : 'object',
                               'strand' : 'category', 'frame' : 'object', 'attribute' : 'object'}
