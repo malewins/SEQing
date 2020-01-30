@@ -185,7 +185,6 @@ def check_input_file(file_path):
     if guessed_type == None:
         # read uncompressed head
         file_head = pd.read_csv(file_path, sep='\t', header=None, nrows=5)
-
     elif guessed_type.mime in ['application/gzip', 'application/x-bzip2', 'application/zip']:
         # read compressed head
         file_head = pd.read_csv(file_path, compression='infer', sep='\t', header=None, nrows=5)
@@ -193,11 +192,9 @@ def check_input_file(file_path):
     else:
         # return unsupported file type
         return FileInput(file_path, 'unsupported', False, False)
-
     head_dtypes = np.array(file_head.dtypes)
     # check for header (no numbers in first row)
     header_present = not any(cell == np.int for cell in head_dtypes)
-
     header = pd.Series()
     if header_present:
         header = file_head.iloc[0]
@@ -216,14 +213,15 @@ def check_input_file(file_path):
         return FileInput(file_path, 'BED4', file_zipped, header_present)
     # check for GFF or GTF
     elif head_dim[1] == 9:
-
         if not header.empty:
             for col in header:
                 if 'gff-version 3' in col:
                     return FileInput(file_path, 'GFF3', file_zipped, header_present)
                 else:
                     return FileInput(file_path, 'GTF', file_zipped, header_present)
-
+        else:
+            if '"' in file_head.iloc[0, 8]:
+                return FileInput(file_path, 'GTF', file_zipped, header_present)
     elif head_dim[1] == 12:
         return FileInput(file_path, 'BED12', file_zipped, header_present)
     else:

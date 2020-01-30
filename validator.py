@@ -175,14 +175,41 @@ def isRGB(color):
 
 def loadAnnotations():
     for idx, i in enumerate(geneAnnotationPaths):
+        typeGuess = converter.check_input_file(str(i))
+        if typeGuess.header_present == True:
+            header = 1  
+        else:
+            header = None
         print('Loading file ' + str(idx+1) )
-        try:
-            if i.suffix.lower() =='.bed':
-                checksum = hashlib.md5(open(str(i)).read().encode('utf-8'))
-                if checksums.get(str(i.stem), None) != checksum.hexdigest():
+        if typeGuess.file_type == 'BED12':           
+#        try:
+#            if i.suffix.lower() =='.bed':
+            checksum = hashlib.md5(open(str(i)).read().encode('utf-8'))
+            if checksums.get(str(i.stem), None) != checksum.hexdigest():
+                dtypes = {'chrom' : 'category', 'chromStart' : 'uint32','chromEnd': 'uint32','transID' : 'object','score' : 'int16','strand' : 'category','thickStart' : 'uint64',
+             'thickEnd' : 'uint64', 'blockCount' : 'uint32','blockSizes' : 'object','blockStarts' : 'object'}
+                df = pandas.read_csv(i, sep = '\t', compression='infer', comment = '#', names = bedHeader, dtype = dtypes, header = header)
+                df = df.join(geneIndex.set_index('transID'), on='transID') 
+                validation = validateBed12(df)
+                if validation[0] == True:
+                    geneAnnotations.append(df)
+                    out = open(binFilePath + str(i.stem)+'.bin', 'wb')
+                    pickle.dump(df, out)
+                    out.close()
+                else:
+                    print('Error in file ' + str(i) + ':')
+                    print(validation[1])
+                checksums[str(i.stem)] = checksum.hexdigest()
+            else:
+                try:
+                    df = pickle.load(open(binFilePath + str(i.stem)+'.bin', 'rb'))
+                    geneAnnotations.append(df)
+                    print('Loaded from pickle')
+                except IOError:
+                    print('pickle not  found, loading from raw file')
                     dtypes = {'chrom' : 'category', 'chromStart' : 'uint32','chromEnd': 'uint32','transID' : 'object','score' : 'int16','strand' : 'category','thickStart' : 'uint64',
-                 'thickEnd' : 'uint64', 'blockCount' : 'uint32','blockSizes' : 'object','blockStarts' : 'object'}
-                    df = pandas.read_csv(i, sep = '\t', compression='infer', comment = '#', names = bedHeader, dtype = dtypes)
+                              'thickEnd' : 'uint64', 'blockCount' : 'uint32','blockSizes' : 'object','blockStarts' : 'object'}
+                    df = pandas.read_csv(i, sep = '\t', compression='infer', comment = '#', names = bedHeader, dtype = dtypes, header = header)
                     df = df.join(geneIndex.set_index('transID'), on='transID') 
                     validation = validateBed12(df)
                     if validation[0] == True:
@@ -193,64 +220,64 @@ def loadAnnotations():
                     else:
                         print('Error in file ' + str(i) + ':')
                         print(validation[1])
-                    checksums[str(i.stem)] = checksum.hexdigest()
-                else:
-                    try:
-                        df = pickle.load(open(binFilePath + str(i.stem)+'.bin', 'rb'))
+                except UnicodeDecodeError:
+                    print('Error decoding pickle binary file, will load from raw file instead')
+                    dtypes = {'chrom' : 'category', 'chromStart' : 'uint32','chromEnd': 'uint32','transID' : 'object','score' : 'int16','strand' : 'category','thickStart' : 'uint64',
+                              'thickEnd' : 'uint64', 'blockCount' : 'uint32','blockSizes' : 'object','blockStarts' : 'object'}
+                    df = pandas.read_csv(i, sep = '\t', compression='infer', comment = '#', names = bedHeader, dtype = dtypes, header = header)
+                    df = df.join(geneIndex.set_index('transID'), on='transID')                     
+                    validation = validateBed12(df)
+                    if validation[0] == True:
                         geneAnnotations.append(df)
-                        print('Loaded from pickle')
-                    except IOError:
-                        print('pickle not  found, loading from raw file')
-                        dtypes = {'chrom' : 'category', 'chromStart' : 'uint32','chromEnd': 'uint32','transID' : 'object','score' : 'int16','strand' : 'category','thickStart' : 'uint64',
-                                  'thickEnd' : 'uint64', 'blockCount' : 'uint32','blockSizes' : 'object','blockStarts' : 'object'}
-                        df = pandas.read_csv(i, sep = '\t', compression='infer', comment = '#', names = bedHeader, dtype = dtypes)
-                        df = df.join(geneIndex.set_index('transID'), on='transID') 
-                        validation = validateBed12(df)
-                        if validation[0] == True:
-                            geneAnnotations.append(df)
-                            out = open(binFilePath + str(i.stem)+'.bin', 'wb')
-                            pickle.dump(df, out)
-                            out.close()
-                        else:
-                            print('Error in file ' + str(i) + ':')
-                            print(validation[1])
-                    except UnicodeDecodeError:
-                        print('Error decoding pickle binary file, will load from raw file instead')
-                        dtypes = {'chrom' : 'category', 'chromStart' : 'uint32','chromEnd': 'uint32','transID' : 'object','score' : 'int16','strand' : 'category','thickStart' : 'uint64',
-                                  'thickEnd' : 'uint64', 'blockCount' : 'uint32','blockSizes' : 'object','blockStarts' : 'object'}
-                        df = pandas.read_csv(i, sep = '\t', compression='infer', comment = '#', names = bedHeader, dtype = dtypes)
-                        df = df.join(geneIndex.set_index('transID'), on='transID')                     
-                        validation = validateBed12(df)
-                        if validation[0] == True:
-                            geneAnnotations.append(df)
-                            out = open(binFilePath + str(i.stem)+'.bin', 'wb')
-                            pickle.dump(df, out)
-                            out.close()
-                        else:
-                            print('Error in file ' + str(i) + ':')
-                            print(validation[1])
-                    except ModuleNotFoundError:
-                        print('Pickle was created using different package versions, will load from raw file instead')
-                        dtypes = {'chrom' : 'category', 'chromStart' : 'uint32','chromEnd': 'uint32','transID' : 'object','score' : 'int16','strand' : 'category','thickStart' : 'uint64',
-                                  'thickEnd' : 'uint64', 'blockCount' : 'uint32','blockSizes' : 'object','blockStarts' : 'object'}
-                        df = pandas.read_csv(i, sep = '\t', compression='infer', comment = '#', names = bedHeader, dtype = dtypes)
-                        df = df.join(geneIndex.set_index('transID'), on='transID')                          
-                        validation = validateBed12(df)
-                        if validation[0] == True:
-                            geneAnnotations.append(df)
-                            out = open(binFilePath + str(i.stem)+'.bin', 'wb')
-                            pickle.dump(df, out)
-                            out.close()
-                        else:
-                            print('Error in file ' + str(i) + ':')
-                            print(validation[1])
-                            
-            if i.suffix.lower() == '.gtf':
-                checksum = hashlib.md5(open(str(i)).read().encode('utf-8'))
-                if checksums.get(str(i.stem), None) != checksum.hexdigest():
-                    dtypes = {'seqname' : 'object', 'source' : 'object', 'feature' : 'object', 'start' : 'uint32', 'end': 'uint32', 'score' : 'object',
-                              'strand' : 'category', 'frame' : 'object', 'attribute' : 'object'}
-                    df = pandas.read_csv(i, sep = '\t', compression='infer', comment = '#', names = gtfheader, dtype = dtypes)
+                        out = open(binFilePath + str(i.stem)+'.bin', 'wb')
+                        pickle.dump(df, out)
+                        out.close()
+                    else:
+                        print('Error in file ' + str(i) + ':')
+                        print(validation[1])
+                except ModuleNotFoundError:
+                    print('Pickle was created using different package versions, will load from raw file instead')
+                    dtypes = {'chrom' : 'category', 'chromStart' : 'uint32','chromEnd': 'uint32','transID' : 'object','score' : 'int16','strand' : 'category','thickStart' : 'uint64',
+                              'thickEnd' : 'uint64', 'blockCount' : 'uint32','blockSizes' : 'object','blockStarts' : 'object'}
+                    df = pandas.read_csv(i, sep = '\t', compression='infer', comment = '#', names = bedHeader, dtype = dtypes, header = header)
+                    df = df.join(geneIndex.set_index('transID'), on='transID')                          
+                    validation = validateBed12(df)
+                    if validation[0] == True:
+                        geneAnnotations.append(df)
+                        out = open(binFilePath + str(i.stem)+'.bin', 'wb')
+                        pickle.dump(df, out)
+                        out.close()
+                    else:
+                        print('Error in file ' + str(i) + ':')
+                        print(validation[1])
+        elif typeGuess.file_type == 'GTF':
+#            if i.suffix.lower() == '.gtf':
+            checksum = hashlib.md5(open(str(i)).read().encode('utf-8'))
+            if checksums.get(str(i.stem), None) != checksum.hexdigest():
+                dtypes = {'seqname' : 'object', 'source' : 'object', 'feature' : 'object', 'start' : 'uint32', 'end': 'uint32', 'score' : 'object',
+                          'strand' : 'category', 'frame' : 'object', 'attribute' : 'object'}
+                df = pandas.read_csv(i, sep = '\t', compression='infer', comment = '#', names = gtfheader, dtype = dtypes, header = header)
+                validation = validateGTF(df)
+                if validation[0] == True:
+                    df = converter.convertGTFToBed(df)
+                    out = open(binFilePath + str(i.stem)+'.bin', 'wb')
+                    pickle.dump(df, out)
+                    out.close()
+                    geneAnnotations.append(df)
+                else:
+                    print('Error in file ' + str(i) + ':')
+                    print(validation[1])
+                checksums[str(i.stem)] = checksum.hexdigest()                        
+            else:
+                try:
+                    df = pickle.load(open(binFilePath + str(i.stem)+'.bin', 'rb'))
+                    geneAnnotations.append(df)
+                    print('Loaded from pickle')
+                except IOError:
+                    print('pickle not  found, loading from raw file')
+                    dtypes = {'seqname' : 'object', 'source' : 'object', 'feature' : 'object', 'start' : 'uint32', 'end': 'uint32', 'score' : 'category',
+                          'strand' : 'category', 'frame' : 'object', 'attribute' : 'object'}
+                    df = pandas.read_csv(i, sep = '\t', compression='infer', comment = '#', names = gtfheader, dtype = dtypes, header = header)
                     validation = validateGTF(df)
                     if validation[0] == True:
                         df = converter.convertGTFToBed(df)
@@ -261,63 +288,42 @@ def loadAnnotations():
                     else:
                         print('Error in file ' + str(i) + ':')
                         print(validation[1])
-                    checksums[str(i.stem)] = checksum.hexdigest()                        
-                else:
-                    try:
-                        df = pickle.load(open(binFilePath + str(i.stem)+'.bin', 'rb'))
+                except UnicodeDecodeError:
+                    print('Error decoding pickle binary file, will load from raw file instead')
+                    dtypes = {'seqname' : 'object', 'source' : 'object', 'feature' : 'object', 'start' : 'uint32', 'end': 'uint32', 'score' : 'category',
+                          'strand' : 'category', 'frame' : 'object', 'attribute' : 'object'}
+                    df = pandas.read_csv(i, sep = '\t', comment = '#', compression='infer', names = gtfheader, dtype = dtypes, header = header)
+                    validation = validateGTF(df)
+                    if validation[0] == True:
+                        df = converter.convertGTFToBed(df)
+                        out = open(binFilePath + str(i.stem)+'.bin', 'wb')
+                        pickle.dump(df, out)
+                        out.close()
                         geneAnnotations.append(df)
-                        print('Loaded from pickle')
-                    except IOError:
-                        print('pickle not  found, loading from raw file')
-                        dtypes = {'seqname' : 'object', 'source' : 'object', 'feature' : 'object', 'start' : 'uint32', 'end': 'uint32', 'score' : 'category',
-                              'strand' : 'category', 'frame' : 'object', 'attribute' : 'object'}
-                        df = pandas.read_csv(i, sep = '\t', compression='infer', comment = '#', names = gtfheader, dtype = dtypes)
-                        validation = validateGTF(df)
-                        if validation[0] == True:
-                            df = converter.convertGTFToBed(df)
-                            out = open(binFilePath + str(i.stem)+'.bin', 'wb')
-                            pickle.dump(df, out)
-                            out.close()
-                            geneAnnotations.append(df)
-                        else:
-                            print('Error in file ' + str(i) + ':')
-                            print(validation[1])
-                    except UnicodeDecodeError:
-                        print('Error decoding pickle binary file, will load from raw file instead')
-                        dtypes = {'seqname' : 'object', 'source' : 'object', 'feature' : 'object', 'start' : 'uint32', 'end': 'uint32', 'score' : 'category',
-                              'strand' : 'category', 'frame' : 'object', 'attribute' : 'object'}
-                        df = pandas.read_csv(i, sep = '\t', comment = '#', compression='infer', names = gtfheader, dtype = dtypes)
-                        validation = validateGTF(df)
-                        if validation[0] == True:
-                            df = converter.convertGTFToBed(df)
-                            out = open(binFilePath + str(i.stem)+'.bin', 'wb')
-                            pickle.dump(df, out)
-                            out.close()
-                            geneAnnotations.append(df)
-                        else:
-                            print('Error in file ' + str(i) + ':')
-                            print(validation[1])
-                    except ModuleNotFoundError:
-                        print('Pickle was created using different package versions, will load from raw file instead')
-                        dtypes = {'seqname' : 'object', 'source' : 'object', 'feature' : 'object', 'start' : 'uint32', 'end': 'uint32', 'score' : 'category',
-                              'strand' : 'category', 'frame' : 'object', 'attribute' : 'object'}
-                        df = pandas.read_csv(i, sep = '\t', comment = '#', compression='infer', names = gtfheader, dtype = dtypes)
-                        validation = validateGTF(df)
-                        if validation[0] == True:
-                            df = converter.convertGTFToBed(df)
-                            out = open(binFilePath + str(i.stem)+'.bin', 'wb')
-                            pickle.dump(df, out)
-                            out.close()
-                            geneAnnotations.append(df)
-                        else:
-                            print('Error in file ' + str(i) + ':')
-                            print(validation[1])
-            if i.suffix.lower() != '.gtf' and i.suffix.lower() != '.bed':
-                print('Invalid file format, please use only .bed or .gtf files')              
-        except FileNotFoundError:
-            print('File ' + str(i.stem) + ' not found, skipping')
-        except ValueError as e:
-            print('File ' + str(i.stem) + ' had errornous datatypes or missing values, skipping: ' + str(e))                
+                    else:
+                        print('Error in file ' + str(i) + ':')
+                        print(validation[1])
+                except ModuleNotFoundError:
+                    print('Pickle was created using different package versions, will load from raw file instead')
+                    dtypes = {'seqname' : 'object', 'source' : 'object', 'feature' : 'object', 'start' : 'uint32', 'end': 'uint32', 'score' : 'category',
+                          'strand' : 'category', 'frame' : 'object', 'attribute' : 'object'}
+                    df = pandas.read_csv(i, sep = '\t', comment = '#', compression='infer', names = gtfheader, dtype = dtypes, header = header)
+                    validation = validateGTF(df)
+                    if validation[0] == True:
+                        df = converter.convertGTFToBed(df)
+                        out = open(binFilePath + str(i.stem)+'.bin', 'wb')
+                        pickle.dump(df, out)
+                        out.close()
+                        geneAnnotations.append(df)
+                    else:
+                        print('Error in file ' + str(i) + ':')
+                        print(validation[1])
+        elif typeGuess.file_type == 'unsupported':
+            print('Invalid file format, please use only .bed or .gtf files')              
+       # except FileNotFoundError:
+        #    print('File ' + str(i.stem) + ' not found, skipping')
+        #except ValueError as e:
+         #   print('File ' + str(i.stem) + ' had errornous datatypes or missing values, skipping: ' + str(e))                
     if len(geneAnnotations) == 0:
         print('No valid gene annotation files found, terminating.')
         exit()
