@@ -502,10 +502,6 @@ def calculateBlocks(thickStart, thickEnd, blockStart, blockEnd, blockVals, block
         blockYa -- Holds the y value of the block, this determines wether it's a coding or noncoding block.
         blockHeight -- The height value to use for coding blocks. Non coding blocks are half height.
     """
-    if strand == '-':
-        blockEnd -= 1
-    else:
-        blockEnd = blockEnd
     blockStart = blockStart
     if blockStart != -1 and blockStart != blockEnd:
         blockEnd = blockEnd  # Same as codingRegionEnd
