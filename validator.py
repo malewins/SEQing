@@ -15,6 +15,9 @@ from Bio import SeqIO
 from Bio.Alphabet import generic_dna
 import converter
 import time
+import gzip
+import bz2
+import zipfile
 
 __author__ = "Yannik Bramkamp"
 
@@ -173,16 +176,54 @@ def isRGB(color):
     except TypeError:
         return False
 
+def md5Gzip(fname):
+    hash_md5 = hashlib.md5()
+
+    with gzip.open(fname, 'rb') as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash_md5.update(chunk)
+    return hash_md5
+
+def md5Bz2(fname):
+    hash_md5 = hashlib.md5()
+
+    with bz2.open(fname, 'rb') as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash_md5.update(chunk)
+    return hash_md5
+
+def md5Zip(fname):
+    hash_md5 = hashlib.md5()
+    with zipfile.open(fname, 'rb') as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash_md5.update(chunk)
+    return hash_md5
+
 def loadAnnotations():
     for idx, i in enumerate(geneAnnotationPaths):
-        print('Loading file ' + str(idx+1) )
         try:
-            if i.suffix.lower() =='.bed':
-                checksum = hashlib.md5(open(str(i)).read().encode('utf-8'))
+            typeGuess = converter.check_input_file(str(i))
+            if typeGuess.header_present == True:
+                header = 1  
+            else:
+                header = None
+            print('Loading file ' + str(idx+1) )
+            if typeGuess.file_type == 'BED12':           
+    #        try:
+    #            if i.suffix.lower() =='.bed':
+                if typeGuess.zipped == True:
+                    if typeGuess.zip_type == 'gzip':
+                        checksum = md5Gzip(str(i))
+                    elif typeGuess.zio_type == 'bzip2':
+                        checksum = md5Bz2(str(i))
+                    elif typeGuess.zio_type == 'zip':
+                        checksum = md5Zip(str(i))       
+                else:
+                    checksum = hashlib.md5(open(str(i)).read().encode('utf-8'))
                 if checksums.get(str(i.stem), None) != checksum.hexdigest():
                     dtypes = {'chrom' : 'category', 'chromStart' : 'uint32','chromEnd': 'uint32','transID' : 'object','score' : 'int16','strand' : 'category','thickStart' : 'uint64',
                  'thickEnd' : 'uint64', 'blockCount' : 'uint32','blockSizes' : 'object','blockStarts' : 'object'}
-                    df = pandas.read_csv(i, sep = '\t', compression='infer', comment = '#', names = bedHeader, dtype = dtypes)
+                    df = pandas.read_csv(i, sep = '\t', compression='infer', comment = '#', names = bedHeader, dtype = dtypes, header = header)
                     df = df.join(geneIndex.set_index('transID'), on='transID') 
                     validation = validateBed12(df)
                     if validation[0] == True:
@@ -203,7 +244,7 @@ def loadAnnotations():
                         print('pickle not  found, loading from raw file')
                         dtypes = {'chrom' : 'category', 'chromStart' : 'uint32','chromEnd': 'uint32','transID' : 'object','score' : 'int16','strand' : 'category','thickStart' : 'uint64',
                                   'thickEnd' : 'uint64', 'blockCount' : 'uint32','blockSizes' : 'object','blockStarts' : 'object'}
-                        df = pandas.read_csv(i, sep = '\t', compression='infer', comment = '#', names = bedHeader, dtype = dtypes)
+                        df = pandas.read_csv(i, sep = '\t', compression='infer', comment = '#', names = bedHeader, dtype = dtypes, header = header)
                         df = df.join(geneIndex.set_index('transID'), on='transID') 
                         validation = validateBed12(df)
                         if validation[0] == True:
@@ -218,7 +259,7 @@ def loadAnnotations():
                         print('Error decoding pickle binary file, will load from raw file instead')
                         dtypes = {'chrom' : 'category', 'chromStart' : 'uint32','chromEnd': 'uint32','transID' : 'object','score' : 'int16','strand' : 'category','thickStart' : 'uint64',
                                   'thickEnd' : 'uint64', 'blockCount' : 'uint32','blockSizes' : 'object','blockStarts' : 'object'}
-                        df = pandas.read_csv(i, sep = '\t', compression='infer', comment = '#', names = bedHeader, dtype = dtypes)
+                        df = pandas.read_csv(i, sep = '\t', compression='infer', comment = '#', names = bedHeader, dtype = dtypes, header = header)
                         df = df.join(geneIndex.set_index('transID'), on='transID')                     
                         validation = validateBed12(df)
                         if validation[0] == True:
@@ -233,7 +274,7 @@ def loadAnnotations():
                         print('Pickle was created using different package versions, will load from raw file instead')
                         dtypes = {'chrom' : 'category', 'chromStart' : 'uint32','chromEnd': 'uint32','transID' : 'object','score' : 'int16','strand' : 'category','thickStart' : 'uint64',
                                   'thickEnd' : 'uint64', 'blockCount' : 'uint32','blockSizes' : 'object','blockStarts' : 'object'}
-                        df = pandas.read_csv(i, sep = '\t', compression='infer', comment = '#', names = bedHeader, dtype = dtypes)
+                        df = pandas.read_csv(i, sep = '\t', compression='infer', comment = '#', names = bedHeader, dtype = dtypes, header = header)
                         df = df.join(geneIndex.set_index('transID'), on='transID')                          
                         validation = validateBed12(df)
                         if validation[0] == True:
@@ -244,13 +285,21 @@ def loadAnnotations():
                         else:
                             print('Error in file ' + str(i) + ':')
                             print(validation[1])
-                            
-            if i.suffix.lower() == '.gtf':
-                checksum = hashlib.md5(open(str(i)).read().encode('utf-8'))
+            elif typeGuess.file_type == 'GTF':
+    #            if i.suffix.lower() == '.gtf':
+                if typeGuess.zipped == True:
+                    if typeGuess.zip_type == 'gzip':
+                        checksum = md5Gzip(str(i))
+                    elif typeGuess.zio_type == 'bzip2':
+                        checksum = md5Bz2(str(i))
+                    elif typeGuess.zio_type == 'zip':
+                        checksum = md5Zip(str(i))       
+                else:
+                    checksum = hashlib.md5(open(str(i)).read().encode('utf-8'))
                 if checksums.get(str(i.stem), None) != checksum.hexdigest():
                     dtypes = {'seqname' : 'object', 'source' : 'object', 'feature' : 'object', 'start' : 'uint32', 'end': 'uint32', 'score' : 'object',
                               'strand' : 'category', 'frame' : 'object', 'attribute' : 'object'}
-                    df = pandas.read_csv(i, sep = '\t', compression='infer', comment = '#', names = gtfheader, dtype = dtypes)
+                    df = pandas.read_csv(i, sep = '\t', compression='infer', comment = '#', names = gtfheader, dtype = dtypes, header = header)
                     validation = validateGTF(df)
                     if validation[0] == True:
                         df = converter.convertGTFToBed(df)
@@ -271,7 +320,7 @@ def loadAnnotations():
                         print('pickle not  found, loading from raw file')
                         dtypes = {'seqname' : 'object', 'source' : 'object', 'feature' : 'object', 'start' : 'uint32', 'end': 'uint32', 'score' : 'category',
                               'strand' : 'category', 'frame' : 'object', 'attribute' : 'object'}
-                        df = pandas.read_csv(i, sep = '\t', compression='infer', comment = '#', names = gtfheader, dtype = dtypes)
+                        df = pandas.read_csv(i, sep = '\t', compression='infer', comment = '#', names = gtfheader, dtype = dtypes, header = header)
                         validation = validateGTF(df)
                         if validation[0] == True:
                             df = converter.convertGTFToBed(df)
@@ -286,7 +335,7 @@ def loadAnnotations():
                         print('Error decoding pickle binary file, will load from raw file instead')
                         dtypes = {'seqname' : 'object', 'source' : 'object', 'feature' : 'object', 'start' : 'uint32', 'end': 'uint32', 'score' : 'category',
                               'strand' : 'category', 'frame' : 'object', 'attribute' : 'object'}
-                        df = pandas.read_csv(i, sep = '\t', comment = '#', compression='infer', names = gtfheader, dtype = dtypes)
+                        df = pandas.read_csv(i, sep = '\t', comment = '#', compression='infer', names = gtfheader, dtype = dtypes, header = header)
                         validation = validateGTF(df)
                         if validation[0] == True:
                             df = converter.convertGTFToBed(df)
@@ -301,7 +350,7 @@ def loadAnnotations():
                         print('Pickle was created using different package versions, will load from raw file instead')
                         dtypes = {'seqname' : 'object', 'source' : 'object', 'feature' : 'object', 'start' : 'uint32', 'end': 'uint32', 'score' : 'category',
                               'strand' : 'category', 'frame' : 'object', 'attribute' : 'object'}
-                        df = pandas.read_csv(i, sep = '\t', comment = '#', compression='infer', names = gtfheader, dtype = dtypes)
+                        df = pandas.read_csv(i, sep = '\t', comment = '#', compression='infer', names = gtfheader, dtype = dtypes, header = header)
                         validation = validateGTF(df)
                         if validation[0] == True:
                             df = converter.convertGTFToBed(df)
@@ -312,12 +361,12 @@ def loadAnnotations():
                         else:
                             print('Error in file ' + str(i) + ':')
                             print(validation[1])
-            if i.suffix.lower() != '.gtf' and i.suffix.lower() != '.bed':
+            elif typeGuess.file_type == 'unsupported':
                 print('Invalid file format, please use only .bed or .gtf files')              
         except FileNotFoundError:
-            print('File ' + str(i.stem) + ' not found, skipping')
+            print('File ' + str(i) + ' not found, skipping')
         except ValueError as e:
-            print('File ' + str(i.stem) + ' had errornous datatypes or missing values, skipping: ' + str(e))                
+            print('File ' + str(i) + ' had errornous datatypes or missing values, skipping: ' + str(e))                
     if len(geneAnnotations) == 0:
         print('No valid gene annotation files found, terminating.')
         exit()

@@ -205,7 +205,6 @@ def iCLIPCallback(geneName, dataSets, seqDisp, colorsFinal, legendSpacing):
         currentGene = elem[elem['geneID'].str.contains(geneName)]
         if not currentGene.empty:
             break
-    
     # Setup some variables for plot creation 
     xAxisMin = currentGene['chromStart'].min() # Left border of the plot region
     xAxisMax = currentGene['chromEnd'].max() # Rigt border of the plot region
