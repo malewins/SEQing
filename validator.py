@@ -288,7 +288,12 @@ def loadAnnotations():
             elif typeGuess.file_type == 'GTF':
     #            if i.suffix.lower() == '.gtf':
                 if typeGuess.zipped == True:
-                    checksum = md5Gzip(str(i))
+                    if typeGuess.zip_type == 'gzip':
+                        checksum = md5Gzip(str(i))
+                    elif typeGuess.zio_type == 'bzip2':
+                        checksum = md5Bz2(str(i))
+                    elif typeGuess.zio_type == 'zip':
+                        checksum = md5Zip(str(i))       
                 else:
                     checksum = hashlib.md5(open(str(i)).read().encode('utf-8'))
                 if checksums.get(str(i.stem), None) != checksum.hexdigest():

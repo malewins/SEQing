@@ -98,7 +98,7 @@ def convertGTFToBed(df):
                     blockCount += 1
                     blockStarts.append(int(i[1]['start']))
                     blockEnds.append(int(i[1]['end']))
-                    blockSizes.append(int(i[1]['end'])-int(i[1]['start']))
+                    blockSizes.append(int(i[1]['end'])-int(i[1]['start'])+1)
                 if i[1]['feature'] == 'CDS':
                     if thickStart == -1 or thickStart > i[1]['start']:
                         thickStart = int(i[1]['start'])-1
@@ -110,7 +110,7 @@ def convertGTFToBed(df):
                         blockCount += 1
                         blockStarts.append(int(i[1]['start']))
                         blockEnds.append(int(i[1]['end']))
-                        blockSizes.append(int(i[1]['end'])-int(i[1]['start']))
+                        blockSizes.append(int(i[1]['end'])-int(i[1]['start'])+1)
                     if i[1]['feature'] == 'CDS':
                         if thickStart == -1 or thickStart > i[1]['start']:
                             thickStart = int(i[1]['start'])-1
@@ -126,7 +126,7 @@ def convertGTFToBed(df):
                     bBlockStarts = [int(i)-int(chromStart) for i in blockStarts]
                     # append data of previous gene before resetting values for
                     # the new one
-                    bedFile.append([chrom, chromStart, chromEnd, currentGene, current, score,
+                    bedFile.append([chrom, chromStart-1, chromEnd, currentGene, current, score,
                                     strand, thickStart, thickEnd, itemRGB,
                                     blockCount, ','.join(map(str, blockSizes)), ','.join(map(str, bBlockStarts))])
                     current = transID
@@ -158,7 +158,7 @@ def convertGTFToBed(df):
     bBlockStarts = [int(i)-int(chromStart) for i in blockStarts]
     # append data of previous gene before resetting values for
     # the new one
-    bedFile.append([chrom, chromStart, chromEnd, geneID, transID, score,
+    bedFile.append([chrom, chromStart-1, chromEnd, geneID, transID, score,
                                     strand, thickStart, thickEnd, itemRGB,
                                     blockCount, ','.join(map(str, blockSizes)), ','.join(map(str, bBlockStarts))])
     finDF = pd.DataFrame(data = bedFile, columns = gtfHeader)
