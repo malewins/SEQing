@@ -45,8 +45,8 @@ def rnaDesc(name):
      dash.dependencies.Input('legendSpacingDiv', 'data'),
      dash.dependencies.Input('coverageScale', 'value'),
      dash.dependencies.Input('sequenceRadio', 'value'),
-     dash.dependencies.Input('eventScale', 'value')],
-     [dash.dependencies.State('bsGraphMem', 'data')]
+     dash.dependencies.Input('eventScale', 'value'),
+     dash.dependencies.Input('bsGraphMem', 'data')]
 )
 def showRNA(figData, dataSets, displayType, covColor, eventColor, legendSpacing, coverageScale, seqDisp, eventScale, bsMem):
     """Update callback that selects traces to be displayed based on settings.
@@ -68,11 +68,13 @@ def showRNA(figData, dataSets, displayType, covColor, eventColor, legendSpacing,
     coverageColors = covColor
     try:
         seqTrace = bsMem[seqDisp]
-        for i in seqTrace:
-            i['showscale'] = False
+        if seqDisp == 'heatseq':
+            for i in seqTrace:
+                print(i)
+                i['showscale'] = False
     except:
         seqTrace = []
-
+    #print(seqTrace)
     eventColors = eventColor
     eventIndices = [] # Save indices of all elements that contain event traces
     rnaDataSets = sorted(list(cfg.coverageData.keys()))
