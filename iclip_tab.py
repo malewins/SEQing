@@ -515,8 +515,8 @@ def calculateBlocks(thickStart, thickEnd, blockStart, blockEnd, blockVals, block
         if (blockStart >= codingRegionStart) & (blockEnd > codingRegionEnd):
             if (blockStart >= codingRegionEnd):
                 # Block is right of coding region
-                blockVals.append(blockStart + (blockEnd - blockStart) / 2)
-                blockWidths.append(blockEnd - blockStart + 1)
+                blockVals.append(blockStart + ((blockEnd-1) - blockStart) / 2)
+                blockWidths.append(blockEnd - blockStart )
                 blockYs.append(blockHeight / 2)
             else:
                 # Block overlaps coding region on the left
