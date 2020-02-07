@@ -508,13 +508,13 @@ def createEventPlots(eventData, ds, axisTitles, eventMaxHeights, evColors, legen
         # eventMaxHeights will be used to scale the size of event traces based on the number
         # of stacked event rows  
         traces = []
+
         for k in sorted(eventXValues.keys()):
             legend = False # Show legend item 
             traceColor = 'darkblue'
+            legendSet[k] = True
+            legend = True
             if i == 'two':
-                if legendSet[k] == False: # Legend item for this event type is not displayed, display it
-                    legendSet[k] = True
-                    legend = True
                 traceColor = evColors[k]
             trace = go.Bar(
                # text = eventScores,
@@ -593,7 +593,7 @@ def createEventPlots(eventData, ds, axisTitles, eventMaxHeights, evColors, legen
     eventMaxHeights.append(maxStack)
     return traceDict
 
-def calculateEvents(key, chromStart, chromEnd, score, eventXValues, eventWidths, eventBases, eventScores, intervals, maxStack):
+def calculateEvents(key, chromStart, chromEnd, score, eventXValues, eventWidths, eventBases, eventScores, intervals, maxStack, oneKey=False):
     """ This function calculates a bar and its vertical position for displayMode one and two. 
         It directly modifies eventXValues, eventWidths, eventBases, eventScores and intervals 
         and returns a new value for maxstack. 
