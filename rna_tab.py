@@ -520,7 +520,6 @@ def createEventPlots(eventData, ds, axisTitles, eventMaxHeights, evColors, legen
             else:
                 legendGroup = 'eventRegions'
                 traceName = 'event regions'
-            print(legendGroup)
             trace = go.Bar(
                # text = eventScores,
                 #hoverinfo = 'x+text',
