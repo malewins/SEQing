@@ -68,9 +68,8 @@ def showRNA(figData, dataSets, displayType, covColor, eventColor, legendSpacing,
     coverageColors = covColor
     try:
         seqTrace = bsMem[seqDisp]
-        if seqDisp == 'heatseq':
+        if seqDisp == 'heatSeq':
             for i in seqTrace:
-                print(i)
                 i['showscale'] = False
     except:
         seqTrace = []
@@ -508,14 +507,20 @@ def createEventPlots(eventData, ds, axisTitles, eventMaxHeights, evColors, legen
         # eventMaxHeights will be used to scale the size of event traces based on the number
         # of stacked event rows  
         traces = []
-
+        legend = True
         for k in sorted(eventXValues.keys()):
-            legend = False # Show legend item 
+
             traceColor = 'darkblue'
             legendSet[k] = True
-            legend = True
+            #legend = True
             if i == 'two':
                 traceColor = evColors[k]
+                legendGroup = k
+                traceName = k
+            else:
+                legendGroup = 'eventRegions'
+                traceName = 'event regions'
+            print(legendGroup)
             trace = go.Bar(
                # text = eventScores,
                 #hoverinfo = 'x+text',
@@ -523,10 +528,10 @@ def createEventPlots(eventData, ds, axisTitles, eventMaxHeights, evColors, legen
                 y=[1]*len(eventXValues[k]),
                 width = eventWidths[k],
                 base = eventBases[k],
-                name = k,
+                name = traceName,
                 meta = ds,
                 showlegend = legend,
-                legendgroup = k, # Group traces from different datasets so they all repsond to the one legend item
+                legendgroup = legendGroup, # Group traces from different datasets so they all repsond to the one legend item
                 insidetextfont=dict(
                     family="Arial",
                     color="black"
@@ -538,6 +543,8 @@ def createEventPlots(eventData, ds, axisTitles, eventMaxHeights, evColors, legen
                 )
             )
             traces.append(trace)
+            if i == 'one':
+                legend = False # Show legend item 
         if len(traces) > 0:
             traceDict.update({i : traces})
         else:
