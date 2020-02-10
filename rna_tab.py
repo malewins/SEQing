@@ -438,6 +438,7 @@ def createRNAPlots(xVals, yVals, eventData, displayed, colorDict,
     legendSet = {} # Keeps track of legend items to avoid duplicates for event types
     for val in cfg.eventTypes:
         legendSet[val] = False
+    legendSet['one'] = True
     covTime = 0
     for ds in sorted(displayed):
         if cfg.spliceAvail:
@@ -507,11 +508,18 @@ def createEventPlots(eventData, ds, axisTitles, eventMaxHeights, evColors, legen
         # eventMaxHeights will be used to scale the size of event traces based on the number
         # of stacked event rows  
         traces = []
-        legend = True
         for k in sorted(eventXValues.keys()):
-
+            legend = False
+            if i == 'one' and legendSet['one'] == True:
+                legend = True
+                legendSet['one'] = False
+            if i == 'two':
+                if legendSet[k] == False: # Legend item for this event type is not displayed, display it
+                    legendSet[k] = True
+                    legend = True
+                else:
+                    legend = False
             traceColor = 'darkblue'
-            legendSet[k] = True
             #legend = True
             if i == 'two':
                 traceColor = evColors[k]
@@ -542,8 +550,6 @@ def createEventPlots(eventData, ds, axisTitles, eventMaxHeights, evColors, legen
                 )
             )
             traces.append(trace)
-            if i == 'one':
-                legend = False # Show legend item 
         if len(traces) > 0:
             traceDict.update({i : traces})
         else:
