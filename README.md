@@ -214,7 +214,7 @@ Arranging data tracks of multiple datasets is done by providing a ```-k``` param
 python3 validator.py gene_annotation_file -bsraw 7pref26_iCLIP 7pref30_iCLIP \
 -k 'lambda x : x[-2:]' 'True' -k 'lambda x : x[:1]' 'False'
 ```
-Take note of the ```-k``` option. It allows to provide arguments for the ```list.sort``` function of python. In this case we provide 2 different sets of arguments, the first sorts the prefixes by the last two characters, descending and the second sorts them by the first character, in ascending order. Each -k has to be followed by a string containing the desired lambda expression and a boolean telling the program whether to revert the order (the default is *ascending*).
+The ```-k``` parameter allows users to directly provide arguments for the ```list.sort``` function of python. In this case we provide 2 different sets of arguments, the first one sorts the prefixes by the last two characters (descending order) and the second sorts them by the first character in ascending order. Each -k has to be followed by a string containing the desired lambda expression and a boolean telling the program whether to revert the order (the default is *ascending*).
 
 ## License
 MIT
