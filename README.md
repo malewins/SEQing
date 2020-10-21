@@ -4,6 +4,11 @@ An interactive web-based tool for visualization of iCLIP and RNA-seq data.
 
 The goal of this project is to develop a generalized, web-based, interactive visualization and exploration tool for iCLP and RNA-seq data. The application case is a local machine inside the users network, allowing members a web-based (browser) access to explore their experimental data omitting any local installations. 
 
+## Citation
+Lewinski, M., Bramkamp, Y., Köster, T. et al. SEQing: web-based visualization of iCLIP and RNA-seq data in an interactive python framework. BMC Bioinformatics 21, 113 (2020). https://doi.org/10.1186/s12859-020-3434-9  
+
+
+
 ## Getting Started
 
 These instructions will get you a copy of the project up and running on your local machine.
